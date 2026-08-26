@@ -1515,15 +1515,23 @@ body[data-theme="graphite"] .session-unread-dot {
 }
 
 .user-bubble {
-  max-width: min(62%, 640px);
-  padding: 10px 16px;
-  border-radius: 8px 8px 3px 8px;
-  background: var(--user-bg);
-  color: var(--user-text);
+  max-width: min(68%, 680px);
+  padding: 12px 18px;
+  border-radius: 18px 18px 4px 18px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, var(--surface-1)), var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.08);
+  color: var(--text);
   font-size: var(--fs-chat);
   line-height: 1.7;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 180ms ease;
+}
+
+.user-bubble:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 6px 20px -2px color-mix(in srgb, var(--accent) 18%, transparent), 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
 .user-bubble p {
@@ -1599,8 +1607,16 @@ body[data-theme="graphite"] .session-unread-dot {
   height: 96px;
   flex: 0 0 96px;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 60%, transparent);
   background: var(--surface-2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16);
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 220ms ease;
+}
+
+.user-attachment-image:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 .user-attachment-image img {
@@ -1702,13 +1718,14 @@ body[data-theme="graphite"] .session-unread-dot {
 .assistant-meta button,
 .code-copy-button {
   display: grid;
-  width: 25px;
-  height: 23px;
+  width: 26px;
+  height: 25px;
   place-items: center;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;
+  transition: opacity 160ms ease, background 160ms ease, color 160ms ease, transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .message-actions button,
@@ -1728,6 +1745,7 @@ body[data-theme="graphite"] .session-unread-dot {
 .code-copy-button:hover {
   background: var(--surface-2);
   color: var(--text);
+  transform: scale(1.1);
 }
 
 .message-actions .icon-slot,
@@ -1762,11 +1780,18 @@ body[data-theme="graphite"] .session-unread-dot {
   top: 0;
   bottom: auto;
   left: 0;
-  width: 30px;
-  height: 30px;
-  border: 1.5px solid var(--gold);
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--gold);
   border-radius: 50%;
   object-fit: cover;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gold) 35%, transparent);
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 260ms ease;
+}
+
+.assistant-label:hover img {
+  transform: scale(1.12) rotate(4deg);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--gold) 60%, transparent);
 }
 
 .assistant-label > div {
@@ -1777,9 +1802,10 @@ body[data-theme="graphite"] .session-unread-dot {
 }
 
 .assistant-label strong {
-  color: var(--text-soft);
+  color: var(--gold);
   font-size: var(--fs-micro);
   font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .assistant-label span {
@@ -1792,17 +1818,24 @@ body[data-theme="graphite"] .session-unread-dot {
   color: var(--accent);
 }
 
-/* 助手气泡:surface-1 无边框 + 软阴影,左下角 3px 收尾 */
+/* 助手气泡:现代化卡片设计 + 优雅圆角 + 柔和边界与微阴影 */
 .assistant-content {
   position: relative;
   min-width: 0;
-  padding: 12px 16px;
-  border-radius: 8px 8px 8px 3px;
-  background: var(--surface-1);
-  box-shadow: var(--bubble-shadow);
+  padding: 14px 20px;
+  border-radius: 4px 18px 18px 18px;
+  background: color-mix(in srgb, var(--surface-1) 94%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 40%, transparent);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.16), 0 1px 4px rgba(0, 0, 0, 0.06);
   color: var(--text);
   font-size: var(--fs-chat);
   line-height: 1.75;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.assistant-content:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 6px 24px -2px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* 普通正文和小签按内容收缩；长文本仍受消息列最大宽度约束并正常换行。 */
@@ -2071,34 +2104,46 @@ body[data-theme="graphite"] .session-unread-dot {
 }
 
 .code-block {
-  margin: 2px 0 12px;
+  margin: 6px 0 14px;
   overflow: hidden;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 50%, transparent);
+  border-radius: 12px;
   background: var(--code-bg);
   color: var(--code-ink);
+  box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.22);
+  transition: border-color 200ms ease;
+}
+
+.code-block:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .code-toolbar {
   display: flex;
-  min-height: 30px;
+  min-height: 32px;
   align-items: center;
   justify-content: space-between;
-  padding: 3px 6px 0 14px;
-  color: color-mix(in srgb, var(--code-ink) 50%, transparent);
+  padding: 4px 8px 4px 14px;
+  background: color-mix(in srgb, var(--code-bg) 80%, var(--surface-2));
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+  color: color-mix(in srgb, var(--code-ink) 55%, transparent);
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .code-copy-button {
+  padding: 3px 8px;
+  border-radius: 6px;
   color: color-mix(in srgb, var(--code-ink) 60%, transparent);
+  transition: all 180ms ease;
 }
 
 .code-copy-button:hover {
-  background: color-mix(in srgb, var(--code-ink) 12%, transparent);
+  background: color-mix(in srgb, var(--code-ink) 14%, transparent);
   color: var(--code-ink);
+  transform: scale(1.05);
 }
 
 .code-block pre {
@@ -2145,9 +2190,10 @@ body[data-theme="graphite"] .session-unread-dot {
   width: fit-content;
   max-width: 100%;
   align-items: center;
-  padding: 4px 11px;
-  border-radius: 6px;
-  background: var(--chip-think);
+  padding: 5px 13px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--chip-think) 85%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   color: var(--text);
   cursor: pointer;
   gap: 7px;
@@ -2156,7 +2202,8 @@ body[data-theme="graphite"] .session-unread-dot {
   line-height: 1.5;
   list-style: none;
   user-select: none;
-  transition: background-color 180ms ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .reasoning-block summary::-webkit-details-marker {
@@ -2165,6 +2212,9 @@ body[data-theme="graphite"] .session-unread-dot {
 
 .reasoning-block summary:hover {
   background: var(--chip-live);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .reasoning-block summary .reasoning-icon {
@@ -2306,12 +2356,16 @@ body[data-theme="graphite"] .session-unread-dot {
   animation: spin 900ms linear infinite;
 }
 
-/* 展开:浅紫底面板 */
+/* 展开:精致思考面板 */
 .reasoning-text {
-  margin: 6px 0 2px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--accent-soft) 38%, transparent);
+  margin: 8px 0 4px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+  border-top: 1px solid color-mix(in srgb, var(--outline-variant) 30%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--outline-variant) 30%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--outline-variant) 30%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
   color: var(--text-soft);
   font-size: var(--fs-meta);
   line-height: 1.75;
@@ -2716,16 +2770,23 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
   max-width: 100%;
   min-height: 0;
   align-items: center;
-  padding: 4px 9px;
-  border-radius: 6px;
+  padding: 5px 12px;
+  border-radius: 16px;
   background: var(--chip-live);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   color: var(--text);
   cursor: pointer;
-  gap: 5px;
+  gap: 6px;
   font-size: 11.5px;
   font-weight: 600;
   text-align: left;
-  transition: background-color 180ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tool-head:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .is-success .tool-head {
