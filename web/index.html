@@ -634,7 +634,7 @@
                     <input type="file" id="voiceFileInput" accept=".mp3,.wav,.ogg,.flac,.m4a,.aac,.opus,.wma,audio/*" style="display: none;">
                     <button class="primary-button compact-button" id="uploadVoiceFileButton" type="button">
                       <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-                      上传录音
+                      选择文件
                     </button>
                     <button class="compact-button" id="refreshVoiceFilesButton" type="button" title="重新扫描 voices/ 目录">
                       <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
@@ -643,9 +643,13 @@
                   </div>
                 </header>
                 <div class="config-group-body">
-                  <div id="voiceFileDropZone" class="voice-drop-zone">
+                  <div id="voiceFileDropZone" class="voice-drop-zone" title="点击或拖拽音频文件到此处上传">
                     <div class="voice-drop-zone-content">
-                      <span>点击右上角上传录音，或将音频拖拽至此处（推荐 3~8 秒清晰人声 WAV/MP3）</span>
+                      <button class="secondary-button compact-button" id="browseVoiceFileButton" type="button">
+                        <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
+                        选择文件
+                      </button>
+                      <span>或将音频文件拖拽至此处（推荐 3~8 秒清晰人声 WAV/MP3）</span>
                     </div>
                   </div>
                   <div class="voice-list-grid" id="voiceFileList" style="margin-top: 10px;">
