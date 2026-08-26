@@ -6166,14 +6166,9 @@ textarea.config-input {
 .voice-tab-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
   margin-bottom: 8px;
-}
-
-.voice-mode-tab .tab-icon {
-  font-size: 20px;
-  line-height: 1;
 }
 
 .voice-tab-pill {
