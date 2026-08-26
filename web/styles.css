@@ -115,48 +115,48 @@ body[data-theme="linen"] {
 body[data-theme="linen"] {
   color-scheme: light;
 
-  /* 晨光 (dawn) —— 亮色主题。primary=发影藤紫,底色=窗边奶油白。 */
-  --md-sys-color-primary: #7568b0;
+  /* 晨光 (dawn / light mode) —— 现代化清透雅致明亮配色系统 */
+  --md-sys-color-primary: #6366f1;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #e6e1f6;
-  --md-sys-color-on-primary-container: #372e66;
-  --md-sys-color-secondary: #8f6b1e;
+  --md-sys-color-primary-container: #edeefc;
+  --md-sys-color-on-primary-container: #2e2a72;
+  --md-sys-color-secondary: #d97706;
   --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #f3e2bb;
-  --md-sys-color-on-secondary-container: #4a3608;
-  --md-sys-color-tertiary: #a5495a;
+  --md-sys-color-secondary-container: #fef3c7;
+  --md-sys-color-on-secondary-container: #78350f;
+  --md-sys-color-tertiary: #e11d48;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #f6dce0;
-  --md-sys-color-on-tertiary-container: #5e222c;
-  --md-sys-color-error: #b3403a;
+  --md-sys-color-tertiary-container: #ffe4e6;
+  --md-sys-color-on-tertiary-container: #881337;
+  --md-sys-color-error: #ef4444;
   --md-sys-color-on-error: #ffffff;
-  --md-sys-color-error-container: #f6dcd6;
-  --md-sys-color-on-error-container: #5f1d18;
-  --md-sys-color-surface: #f6f0e2;
-  --md-sys-color-surface-container-lowest: #fffdf6;
-  --md-sys-color-surface-container-low: #efe7d3;
-  --md-sys-color-surface-container: #fffdf6;
-  --md-sys-color-surface-container-high: #f1eada;
-  --md-sys-color-surface-container-highest: #e8dfc9;
-  --md-sys-color-on-surface: #34303a;
-  --md-sys-color-on-surface-variant: #797064;
-  --md-sys-color-outline: #c6b795;
-  --md-sys-color-outline-variant: #e3d8c1;
-  --md-ext-color-online: #3e8e5c;
+  --md-sys-color-error-container: #fee2e2;
+  --md-sys-color-on-error-container: #991b1b;
+  --md-sys-color-surface: #f8fafc;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f1f5f9;
+  --md-sys-color-surface-container: #ffffff;
+  --md-sys-color-surface-container-high: #f1f5f9;
+  --md-sys-color-surface-container-highest: #e2e8f0;
+  --md-sys-color-on-surface: #0f172a;
+  --md-sys-color-on-surface-variant: #475569;
+  --md-sys-color-outline: #94a3b8;
+  --md-sys-color-outline-variant: #e2e8f0;
+  --md-ext-color-online: #10b981;
 
-  /* 亮色下少数别名的映射不同:用户气泡用实心主色,代码块改暖纸浅底 */
-  --user-bg: var(--md-sys-color-primary);
-  --user-text: var(--md-sys-color-on-primary);
-  --code-bg: color-mix(in srgb, var(--md-sys-color-surface-container-high) 96%, var(--md-sys-color-on-surface));
-  --code-ink: color-mix(in srgb, var(--md-sys-color-on-surface) 85%, var(--md-sys-color-surface));
-  --hl: color-mix(in srgb, var(--md-sys-color-primary) 78%, var(--md-sys-color-on-surface));
-  --bubble-shadow: 0 1px 4px rgba(83, 64, 30, 0.07);
-  --card-shadow: 0 2px 8px rgba(83, 64, 30, 0.06);
-  --float-shadow: 0 18px 50px rgba(83, 64, 30, 0.2), 0 4px 12px rgba(83, 64, 30, 0.1);
-  --artifact-shadow: 0 0 10px rgba(83, 64, 30, 0.1), 0 2px 6px rgba(83, 64, 30, 0.06);
-  --chip-think: color-mix(in srgb, var(--accent-soft) 55%, transparent);
-  --chip-live: color-mix(in srgb, var(--accent-soft) 85%, transparent);
-  --chip-fail: color-mix(in srgb, var(--danger-soft) 78%, transparent);
+  /* 亮色别名映射优化 */
+  --user-bg: #6366f1;
+  --user-text: #ffffff;
+  --code-bg: #f1f5f9;
+  --code-ink: #0f172a;
+  --hl: #4f46e5;
+  --bubble-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --card-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  --float-shadow: 0 20px 40px -4px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.06);
+  --artifact-shadow: 0 4px 24px -2px rgba(15, 23, 42, 0.08);
+  --chip-think: color-mix(in srgb, var(--accent-soft) 65%, transparent);
+  --chip-live: color-mix(in srgb, var(--accent-soft) 90%, transparent);
+  --chip-fail: color-mix(in srgb, var(--danger-soft) 85%, transparent);
 }
 
 * {
@@ -7582,8 +7582,8 @@ input[type="file"][hidden] {
   --heat-0: #262a3e; --heat-1: #303c66; --heat-2: #42549b; --heat-3: #5a71c4; --heat-4: #82a1ea;
 }
 body[data-theme="linen"] {
-  --chart-1: #5d6cc4; --chart-2: #8f6b1e; --chart-3: #c2426e; --chart-4: #6d51c4;
-  --heat-0: #ece4d1; --heat-1: #cdc7e8; --heat-2: #a8a0d6; --heat-3: #837ac0; --heat-4: #5b4fa0;
+  --chart-1: #6366f1; --chart-2: #d97706; --chart-3: #e11d48; --chart-4: #8b5cf6;
+  --heat-0: #e2e8f0; --heat-1: #c7d2fe; --heat-2: #a5b4fc; --heat-3: #818cf8; --heat-4: #4f46e5;
 }
 
 .console-view { position: fixed; inset: 0; z-index: 40; display: flex; background: var(--app-bg); }
