@@ -12047,7 +12047,7 @@
 
     elements.checkVoiceCloneHealthButton?.addEventListener("click", async () => {
       if (!elements.voiceCloneStatusBadge) return;
-      elements.voiceCloneStatusBadge.textContent = "⏳ 检测中...";
+      elements.voiceCloneStatusBadge.textContent = "检测中...";
       elements.voiceCloneStatusBadge.className = "voice-status-badge";
       try {
         const testPayload = {
@@ -12065,16 +12065,16 @@
           body: JSON.stringify(testPayload)
         });
         if (res.ok) {
-          elements.voiceCloneStatusBadge.textContent = "🟢 连通正常";
+          elements.voiceCloneStatusBadge.textContent = "连通正常";
           elements.voiceCloneStatusBadge.className = "voice-status-badge is-online";
           showToast("克隆服务连接成功，状态正常！");
         } else {
-          elements.voiceCloneStatusBadge.textContent = "🔴 未启动/异常";
+          elements.voiceCloneStatusBadge.textContent = "未启动/异常";
           elements.voiceCloneStatusBadge.className = "voice-status-badge is-offline";
           showToast("未能连接到本地克隆服务（端口未响应），请确保后台 Python 脚本已启动", "warning");
         }
       } catch (err) {
-        elements.voiceCloneStatusBadge.textContent = "🔴 无法连接";
+        elements.voiceCloneStatusBadge.textContent = "无法连接";
         elements.voiceCloneStatusBadge.className = "voice-status-badge is-offline";
         showToast("本地克隆服务连接失败: " + err.message, "error");
       }
