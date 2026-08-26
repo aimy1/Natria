@@ -10674,7 +10674,7 @@
   }
 
   function bindConsoleEvents() {
-    elements.consoleButton.addEventListener("click", () => consoleOpen());
+    elements.consoleButton?.addEventListener("click", () => consoleOpen());
     elements.consoleBack.addEventListener("click", () => consoleClose());
     elements.conRailToggle.addEventListener("click", () =>
       elements.consoleView.classList.toggle("rail-collapsed"));

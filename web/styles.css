@@ -229,18 +229,33 @@ textarea:disabled {
   width: 100%;
   height: calc(100dvh / var(--ui-scale));
   zoom: var(--ui-scale);
+  transition: grid-template-columns 280ms cubic-bezier(0.2, 0, 0, 1);
 }
 
 .app-shell.is-sidebar-collapsed {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 0px minmax(0, 1fr);
 }
 
 .app-shell.is-sidebar-collapsed .sidebar {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-20px);
 }
 
 .app-shell.is-sidebar-collapsed .sidebar-expand-button {
   display: inline-grid;
+  animation: sidebar-expand-in 240ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes sidebar-expand-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
 
 .icon-slot {
@@ -274,11 +289,17 @@ textarea:disabled {
   background: transparent;
   color: var(--text-soft);
   cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .icon-button:hover:not(:disabled) {
   background: var(--surface-2);
   color: var(--text);
+  transform: translateY(-1.5px);
+}
+
+.icon-button:active:not(:disabled) {
+  transform: scale(0.92);
 }
 
 .icon-button:disabled {
@@ -325,6 +346,9 @@ textarea:disabled {
   min-width: 0;
   min-height: 0;
   background: var(--sidebar-bg);
+  overflow: hidden;
+  border-right: 1px solid color-mix(in srgb, var(--line-soft) 45%, transparent);
+  transition: transform 280ms cubic-bezier(0.2, 0, 0, 1), opacity 220ms ease, box-shadow 280ms ease;
 }
 
 .brand-row {
@@ -341,6 +365,7 @@ textarea:disabled {
   min-width: 0;
   align-items: center;
   gap: 10px;
+  cursor: default;
 }
 
 .brand-avatar {
@@ -350,6 +375,12 @@ textarea:disabled {
   border: 2px solid var(--gold);
   border-radius: 50%;
   object-fit: cover;
+  transition: transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 300ms ease;
+}
+
+.brand-identity:hover .brand-avatar {
+  transform: scale(1.08) rotate(3deg);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--gold) 45%, transparent);
 }
 
 .brand-identity > div {
@@ -363,6 +394,11 @@ textarea:disabled {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: 0.04em;
+  transition: color 200ms ease;
+}
+
+.brand-identity:hover strong {
+  color: var(--gold);
 }
 
 .brand-identity > div > span,
@@ -388,11 +424,13 @@ textarea:disabled {
   border-radius: 6px;
   background: transparent;
   color: var(--text-soft);
+  transition: background 180ms ease, color 180ms ease, transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .sidebar-collapse-button:hover {
   background: var(--surface-2);
   color: var(--text);
+  transform: scale(1.06);
 }
 
 .sidebar-collapse-button .icon-slot,
@@ -413,12 +451,17 @@ textarea:disabled {
   background: var(--accent-soft);
   color: var(--md-sys-color-on-primary-container);
   cursor: pointer;
-  transition: filter 180ms ease, transform 150ms ease;
+  transition: filter 180ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 200ms ease;
 }
 
 .new-chat-button:hover:not(:disabled) {
-  filter: brightness(1.05);
-  transform: translateY(-1px);
+  filter: brightness(1.08);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.new-chat-button:hover:not(:disabled) .icon-slot {
+  transform: rotate(90deg);
 }
 
 .new-chat-button:active:not(:disabled) {
@@ -428,6 +471,7 @@ textarea:disabled {
 .new-chat-button .icon-slot {
   width: 17px;
   height: 17px;
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .new-chat-button:disabled {
@@ -473,18 +517,20 @@ textarea:disabled {
   color: var(--text);
   gap: 0;
   text-align: left;
-  transition: background 180ms ease;
+  transition: background 180ms ease, transform 180ms cubic-bezier(0.2, 0, 0, 1), box-shadow 180ms ease;
 }
 
 .session-item:hover,
 .session-item:focus-within {
-  background: color-mix(in srgb, var(--surface-1) 65%, transparent);
+  background: color-mix(in srgb, var(--surface-1) 75%, transparent);
+  transform: translateX(3px);
 }
 
 .session-item.active,
 .session-item.active:hover {
   background: var(--surface-1);
   box-shadow: var(--bubble-shadow);
+  transform: translateX(0);
 }
 
 .session-item.active::before {
@@ -496,6 +542,19 @@ textarea:disabled {
   border-radius: 3px;
   background: var(--ribbon);
   content: "";
+  box-shadow: 0 0 8px color-mix(in srgb, var(--ribbon) 60%, transparent);
+  animation: active-bar-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes active-bar-pulse {
+  0%, 100% {
+    opacity: 0.9;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.08);
+  }
 }
 
 .session-item-main {
@@ -793,22 +852,33 @@ body[data-theme="graphite"] .session-unread-dot {
   min-width: 0;
   min-height: 32px;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 10px;
   border-radius: 6px;
   background: transparent;
   color: var(--text-soft);
   cursor: pointer;
   gap: 7px;
+  transition: background 180ms ease, color 180ms ease, transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .sidebar-action:hover {
   background: var(--surface-2);
   color: var(--text);
+  transform: translateY(-1.5px);
+}
+
+.sidebar-action:active {
+  transform: scale(0.95);
 }
 
 .sidebar-action .icon-slot {
   width: 15px;
   height: 15px;
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sidebar-action:hover .icon-slot {
+  transform: rotate(45deg);
 }
 
 .settings-label {
@@ -7008,11 +7078,14 @@ textarea.config-input {
     padding-top: env(safe-area-inset-top);
     box-shadow: var(--float-shadow);
     transform: translateX(-102%);
-    transition: transform 180ms ease;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms ease;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .sidebar.open {
     transform: translateX(0);
+    box-shadow: 0 0 32px color-mix(in srgb, #000 45%, transparent);
   }
 
   .sidebar-close,

@@ -168,7 +168,7 @@ static KATEX_FONTS: &[(&str, &[u8])] = &[
 // 原图留在 `pics/` 不动：README、终端演示、外部链接还在引用。
 // 重新生成见 `scripts/gen_web_assets.py`。
 const MIYU_LOGO: &[u8] = include_bytes!("../../web/assets/natria-logo.png");
-const MIYU_WALLPAPER: &[u8] = include_bytes!("../../web/assets/miyuwallpaper.png");
+const MIYU_WALLPAPER: &[u8] = include_bytes!("../../web/assets/natriawallpaper.png");
 
 
 
