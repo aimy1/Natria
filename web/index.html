@@ -411,7 +411,6 @@
                 <div class="voice-mode-tabs" role="tablist">
                   <button type="button" class="voice-mode-tab is-active" data-engine-tab="edge_tts">
                     <div class="voice-tab-header">
-                      <span class="tab-icon">⚡</span>
                       <span class="voice-tab-pill pill-green">免部署</span>
                     </div>
                     <div class="tab-meta">
@@ -421,7 +420,6 @@
                   </button>
                   <button type="button" class="voice-mode-tab" data-engine-tab="clone">
                     <div class="voice-tab-header">
-                      <span class="tab-icon">🎙️</span>
                       <span class="voice-tab-pill pill-purple">零样本</span>
                     </div>
                     <div class="tab-meta">
@@ -431,7 +429,6 @@
                   </button>
                   <button type="button" class="voice-mode-tab" data-engine-tab="custom">
                     <div class="voice-tab-header">
-                      <span class="tab-icon">🌐</span>
                       <span class="voice-tab-pill pill-blue">API 扩展</span>
                     </div>
                     <div class="tab-meta">
@@ -480,7 +477,6 @@
                 <!-- 添加新音色表单 -->
                 <div class="voice-library-add-form">
                   <div class="voice-form-header">
-                    <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></span>
                     <strong>添加自定义音色</strong>
                   </div>
                   <div class="voice-form-grid">
@@ -524,11 +520,11 @@
               <div class="config-group">
                 <header style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
                   <div>
-                    <h3>🎙️ 本地零样本声音克隆</h3>
+                    <h3>本地零样本声音克隆</h3>
                     <p>需在电脑运行 GPT-SoVITS 或 CosyVoice 本地 Python 服务</p>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span id="voiceCloneStatusBadge" class="voice-status-badge">⚪ 待检测</span>
+                    <span id="voiceCloneStatusBadge" class="voice-status-badge">待检测</span>
                     <button type="button" id="checkVoiceCloneHealthButton" class="compact-button">
                       <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
                       检测连通性
@@ -537,14 +533,14 @@
                 </header>
                 <div class="config-group-body">
                   <div style="font-size: 11px; color: var(--text-soft); line-height: 1.5; padding: 8px 12px; background: color-mix(in srgb, var(--surface-2) 60%, transparent); border-radius: 6px; border-left: 3px solid var(--accent);">
-                    💡 <strong>降级保护</strong>：若本地克隆服务未启动，朗读时将自动安全降级为 Edge-TTS，绝不阻断聊天。
+                    <strong>降级保护</strong>：若本地克隆服务未启动，朗读时将自动安全降级为 Edge-TTS，绝不阻断聊天。
                   </div>
                   <div class="config-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
                     <div class="config-field">
                       <label class="config-field-label" for="voiceCloneEngineSubSelect">克隆引擎</label>
                       <select id="voiceCloneEngineSubSelect" class="config-input">
-                        <option value="gpt_sovits">🎙️ GPT-SoVITS</option>
-                        <option value="cosyvoice">🧬 CosyVoice</option>
+                        <option value="gpt_sovits">GPT-SoVITS</option>
+                        <option value="cosyvoice">CosyVoice</option>
                       </select>
                     </div>
                     <div class="config-field">
@@ -590,7 +586,7 @@
               <h2>自定义接口</h2>
               <div class="config-group">
                 <header style="padding: 12px 16px;">
-                  <h3>🌐 自定义 HTTP / OpenAI 兼容 TTS</h3>
+                  <h3>自定义 HTTP / OpenAI 兼容 TTS</h3>
                   <p>通过兼容 OpenAI 协议的标准接口合成语音</p>
                 </header>
                 <div class="config-group-body">
@@ -598,8 +594,8 @@
                     <div class="config-field">
                       <label class="config-field-label" for="voiceCustomEngineSubSelect">接口类型</label>
                       <select id="voiceCustomEngineSubSelect" class="config-input">
-                        <option value="openai">🤖 OpenAI 兼容 TTS (/v1/audio/speech)</option>
-                        <option value="custom_http">🌐 自定义 HTTP TTS 接口</option>
+                        <option value="openai">OpenAI 兼容 TTS (/v1/audio/speech)</option>
+                        <option value="custom_http">自定义 HTTP TTS 接口</option>
                       </select>
                     </div>
                     <div class="config-field">
@@ -631,7 +627,7 @@
               <div class="config-group">
                 <header style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
                   <div>
-                    <h3>📁 本地语音文件 (<span id="voiceFileCount">0</span>)</h3>
+                    <h3>本地语音文件 (<span id="voiceFileCount">0</span>)</h3>
                     <p>用于克隆的 3~8 秒人声录音，或 voices/ 目录下的音频文件</p>
                   </div>
                   <div style="display: flex; gap: 8px; align-items: center;">
@@ -649,7 +645,6 @@
                 <div class="config-group-body">
                   <div id="voiceFileDropZone" class="voice-drop-zone">
                     <div class="voice-drop-zone-content">
-                      <span class="voice-drop-icon">🎵</span>
                       <span>点击右上角上传录音，或将音频拖拽至此处（推荐 3~8 秒清晰人声 WAV/MP3）</span>
                     </div>
                   </div>
