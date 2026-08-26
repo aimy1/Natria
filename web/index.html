@@ -631,7 +631,7 @@
                     <p>用于克隆的 3~8 秒人声录音，或 voices/ 目录下的音频文件</p>
                   </div>
                   <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="file" id="voiceFileInput" accept=".mp3,.wav,.ogg,.flac,.m4a,.aac,.opus,.wma,audio/*" style="display: none;">
+                    <input id="voiceFileInput" type="file" accept=".mp3,.wav,.ogg,.flac,.m4a,.aac,.opus,.wma,audio/*" hidden style="display: none !important; position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;">
                     <button class="primary-button compact-button" id="uploadVoiceFileButton" type="button">
                       <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
                       选择文件
