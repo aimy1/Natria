@@ -10989,32 +10989,46 @@
       } while (text !== prev);
     }
 
-    // 5. 处理标题、引用、分割线
+    // 5. 规整省略号、破折号与多重标点为自然呼吸停顿
+    text = text.replace(/[…\.]{2,}/g, "，");
+    text = text.replace(/[—\-]{2,}/g, "，");
+
+    // 6. 转化易导致声学模型注意力崩溃与无限发声的单字鼻音叹词（如 "唔……", "呃……", "额……" -> "好啦，"）
+    text = text.replace(/^[嗯唔呃额][，,、\s]*/g, "好啦，");
+    text = text.replace(/([。！？\n])[嗯唔呃额][，,、\s]*/g, "$1好啦，");
+    text = text.replace(/唔/g, "嗯");
+    text = text.replace(/呃/g, "嗯");
+    text = text.replace(/吖/g, "呀");
+    text = text.replace(/咩/g, "吗");
+
+    // 7. 技术专有名词与大写字母归一化（防止模型遇到英文词表音素丢包）
+    text = text.replace(/\bgpt[-_]?sovits\b/gi, "GPT 声音模型");
+    text = text.replace(/\bgpt\b/gi, "G P T");
+    text = text.replace(/\bapi\b/gi, "A P I");
+    text = text.replace(/\bui\b/gi, "U I");
+    text = text.replace(/\bweb\b/gi, "网页");
+    text = text.replace(/\btts\b/gi, "T T S");
+    text = text.replace(/\bllm\b/gi, "大模型");
+    text = text.replace(/\bnatria\b/gi, "小盐");
+
+    // 连续大写字母加空格
+    text = text.replace(/([A-Z])([A-Z])/g, "$1 $2");
+    text = text.replace(/([A-Z])([A-Z])/g, "$1 $2");
+
+    // 8. 处理标题、引用、列表、加粗斜体等 Markdown 格式标记
     text = text.replace(/^#+\s+/gm, "");
     text = text.replace(/^>\s+/gm, "");
     text = text.replace(/^[-*_]{3,}$/gm, "");
-
-    // 6. 处理无序列表前缀（避免读出 "减号/星号/加号"）
     text = text.replace(/^\s*[-*+]\s+/gm, "");
-
-    // 7. 剥离加粗与斜体标记 (***bold italic***, **bold**, *italic*, ___bold italic___, __bold__, _italic_)
-    text = text.replace(/\*{3}(.*?)\*{3}/g, "$1");
-    text = text.replace(/\*{2}(.*?)\*{2}/g, "$1");
-    text = text.replace(/\*(.*?)\*/g, "$1");
-    text = text.replace(/_{3}(.*?)_{3}/g, "$1");
-    text = text.replace(/_{2}(.*?)_{2}/g, "$1");
-    text = text.replace(/_([^_]+)_/g, "$1");
-
-    // 8. 剥离删除线 (~~strikethrough~~)
+    text = text.replace(/\*{1,3}(.*?)\*{1,3}/g, "$1");
+    text = text.replace(/_{1,3}(.*?)_{1,3}/g, "$1");
     text = text.replace(/~~(.*?)~~/g, "$1");
-
-    // 9. 过滤表格边框符号 '|'
     text = text.replace(/\|/g, " ");
 
-    // 10. 彻底清除所有残留或单独出现的星号、波浪号与转义字符及非法特殊符号
+    // 9. 彻底清除所有残留或单独出现的特殊字符与转义符
     text = text.replace(/[\\`*~^{}[\]()<>@#%+=/|]/g, " ");
 
-    // 11. 换行与空白规整
+    // 10. 换行与空白规整
     text = text.replace(/\r?\n\s*\r?\n/g, "。").replace(/\r?\n/g, "，");
     text = text.replace(/\s+/g, " ");
     text = text.replace(/([，。！？；])\1+/g, "$1");
