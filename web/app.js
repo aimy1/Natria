@@ -11844,6 +11844,9 @@
         state.voiceConfig.promptAudio = file.name;
         safeStorageSet("miyu.voice.promptAudio", file.name);
         const PRESET_PROMPT_TEXTS = {
+          "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
+          "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟好不好？",
+          "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我手好了，下不为例哦。",
           "xiaoyan_clear_201.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
           "xiaoyan_clear_204.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
           "xiaoyan_clear_402.wav": "我才没有特地打扮给你看了呢，你千万别自作多情。",
@@ -12048,6 +12051,9 @@
     });
 
     const PRESET_PROMPT_TEXTS = {
+      "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
+      "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟好不好？",
+      "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我手好了，下不为例哦。",
       "xiaoyan_clear_201.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
       "xiaoyan_clear_204.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
       "xiaoyan_clear_402.wav": "我才没有特地打扮给你看了呢，你千万别自作多情。",
