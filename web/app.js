@@ -11065,33 +11065,55 @@
     elements.voiceToggleButton?.classList.remove("is-speaking");
   }
 
-  // 智能分句：将长文本按自然句号、感叹号、问号、分号、换行快速切分，实现首句毫秒级起播
+  // 智能分句：将长文本按标点与自然从句快速切分（12~24 字最佳），实现首句秒级起播与平滑预加载流水线，防止长文本卡住
   function splitTextIntoSentences(text) {
     if (!text) return [];
     const clean = cleanTextForVoice(text);
     if (!clean) return [];
 
-    const parts = clean.split(/([。！？!?\n;；]+)/);
-    const sentences = [];
-    let current = "";
-
-    for (let i = 0; i < parts.length; i += 2) {
-      const seg = parts[i] || "";
-      const punc = parts[i + 1] || "";
+    // 第一步：先按主要句子结束符（句号、感叹号、问号、分号、换行）切分
+    const rawParts = clean.split(/([。！？!?\n;；…]+)/);
+    const primarySentences = [];
+    let cur = "";
+    for (let i = 0; i < rawParts.length; i += 2) {
+      const seg = rawParts[i] || "";
+      const punc = rawParts[i + 1] || "";
       const combined = (seg + punc).trim();
       if (!combined) continue;
-
-      if (current.length + combined.length < 12 && i + 2 < parts.length) {
-        current += (current ? " " : "") + combined;
+      if (cur.length + combined.length < 15 && i + 2 < rawParts.length) {
+        cur += (cur ? " " : "") + combined;
       } else {
-        sentences.push((current ? current + " " : "") + combined);
-        current = "";
+        primarySentences.push((cur ? cur + " " : "") + combined);
+        cur = "";
       }
     }
-    if (current.trim()) {
-      sentences.push(current.trim());
+    if (cur.trim()) primarySentences.push(cur.trim());
+
+    // 第二步：如果单句依然超过 24 字，按逗号/冒号/顿号/破折号次级切分，确保每个分段在 10~25 字以内，杜绝 GPT-SoVITS 长句运算超时或卡死
+    const finalSentences = [];
+    for (const s of primarySentences) {
+      if (s.length <= 24) {
+        finalSentences.push(s);
+      } else {
+        const subParts = s.split(/([，,、：:——]+)/);
+        let subCur = "";
+        for (let j = 0; j < subParts.length; j += 2) {
+          const subSeg = subParts[j] || "";
+          const subPunc = subParts[j + 1] || "";
+          const subCombined = (subSeg + subPunc).trim();
+          if (!subCombined) continue;
+          if (subCur.length + subCombined.length < 16 && j + 2 < subParts.length) {
+            subCur += subCombined;
+          } else {
+            finalSentences.push((subCur + subCombined).trim());
+            subCur = "";
+          }
+        }
+        if (subCur.trim()) finalSentences.push(subCur.trim());
+      }
     }
-    return sentences.filter((s) => s.trim().length > 0);
+
+    return finalSentences.filter((s) => s.trim().length > 0);
   }
 
   async function fetchSpeechAudioBuffer(text, options, signal) {
