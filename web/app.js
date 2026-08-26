@@ -11066,7 +11066,7 @@
     elements.voiceToggleButton?.classList.remove("is-speaking");
   }
 
-  // 智能分句：将长文本按标点与自然从句快速切分（12~24 字最佳），实现首句秒级起播与平滑预加载流水线，防止长文本卡住
+  // 智能分句：将长文本按完整语义句（18~36 字黄金长度）切分，防止片段过短导致模型吞字/尾音自循环，或过长导致卡顿
   function splitTextIntoSentences(text) {
     if (!text) return [];
     const clean = cleanTextForVoice(text);
@@ -11081,20 +11081,21 @@
       const punc = rawParts[i + 1] || "";
       const combined = (seg + punc).trim();
       if (!combined) continue;
-      if (cur.length + combined.length < 15 && i + 2 < rawParts.length) {
-        cur += (cur ? " " : "") + combined;
+      // 避免单句过碎，若当前积累不足 18 字且未到结尾，则继续合并
+      if (cur.length + combined.length < 20 && i + 2 < rawParts.length) {
+        cur += (cur ? "" : "") + combined;
       } else {
-        primarySentences.push((cur ? cur + " " : "") + combined);
+        primarySentences.push((cur ? cur : "") + combined);
         cur = "";
       }
     }
     if (cur.trim()) primarySentences.push(cur.trim());
 
-    // 第二步：如果单句依然超过 24 字，按逗号/冒号/顿号/破折号次级切分，确保每个分段在 10~25 字以内，杜绝 GPT-SoVITS 长句运算超时或卡死
-    const finalSentences = [];
+    // 第二步：对于超过 36 字的长难句，在逗号/冒号/顿号处按 18~35 字自然切分
+    const refinedSentences = [];
     for (const s of primarySentences) {
-      if (s.length <= 24) {
-        finalSentences.push(s);
+      if (s.length <= 36) {
+        refinedSentences.push(s);
       } else {
         const subParts = s.split(/([，,、：:——]+)/);
         let subCur = "";
@@ -11103,14 +11104,28 @@
           const subPunc = subParts[j + 1] || "";
           const subCombined = (subSeg + subPunc).trim();
           if (!subCombined) continue;
-          if (subCur.length + subCombined.length < 16 && j + 2 < subParts.length) {
+          if (subCur.length + subCombined.length < 22 && j + 2 < subParts.length) {
             subCur += subCombined;
           } else {
-            finalSentences.push((subCur + subCombined).trim());
+            refinedSentences.push((subCur + subCombined).trim());
             subCur = "";
           }
         }
-        if (subCur.trim()) finalSentences.push(subCur.trim());
+        if (subCur.trim()) refinedSentences.push(subCur.trim());
+      }
+    }
+
+    // 第三步：后处理合并过短的微小尾句（< 8 字），防止模型因输入音素过少引发注意力崩溃和吞字
+    const finalSentences = [];
+    for (let k = 0; k < refinedSentences.length; k++) {
+      const sent = refinedSentences[k].trim();
+      if (!sent) continue;
+      if (sent.length < 8 && finalSentences.length > 0) {
+        finalSentences[finalSentences.length - 1] += sent;
+      } else if (sent.length < 8 && k + 1 < refinedSentences.length) {
+        refinedSentences[k + 1] = sent + refinedSentences[k + 1];
+      } else {
+        finalSentences.push(sent);
       }
     }
 
