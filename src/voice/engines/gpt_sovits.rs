@@ -102,7 +102,7 @@ impl GptSovitsEngine {
                 .or_else(|| Some(config.voice.as_str()).filter(|v| v.starts_with("local:"))),
         );
 
-        let text_lang = config.text_lang.as_deref().unwrap_or("zh");
+        let text_lang = config.text_lang.as_deref().unwrap_or("auto");
         let prompt_lang = config.prompt_lang.as_deref().unwrap_or("zh");
         let prompt_text = config.prompt_text.as_deref().unwrap_or("");
 
