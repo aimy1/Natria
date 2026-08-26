@@ -12054,11 +12054,11 @@
         const testPayload = {
           text: "服务连接测试",
           engine: state.voiceConfig.engine,
-          endpoint: state.voiceConfig.endpoint || undefined,
-          api_key: state.voiceConfig.apiKey || undefined,
-          prompt_audio: state.voiceConfig.promptAudio || undefined,
-          prompt_text: state.voiceConfig.promptText || undefined,
-          prompt_lang: state.voiceConfig.promptLang || undefined
+          endpoint: elements.voiceCloneEndpointInput?.value.trim() || state.voiceConfig.endpoint || undefined,
+          api_key: elements.voiceCloneApiKeyInput?.value.trim() || state.voiceConfig.apiKey || undefined,
+          prompt_audio: elements.voiceClonePromptAudioSelect?.value || state.voiceConfig.promptAudio || undefined,
+          prompt_text: elements.voiceClonePromptTextInput?.value || state.voiceConfig.promptText || undefined,
+          prompt_lang: elements.voiceClonePromptLangSelect?.value || state.voiceConfig.promptLang || undefined
         };
         const res = await fetch("/api/voice/synthesize", {
           method: "POST",
@@ -12070,9 +12070,11 @@
           elements.voiceCloneStatusBadge.className = "voice-status-badge is-online";
           showToast("克隆服务连接成功，状态正常！");
         } else {
-          elements.voiceCloneStatusBadge.textContent = "未启动/异常";
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData?.error?.message || "未能连接到本地克隆服务（端口未响应）";
+          elements.voiceCloneStatusBadge.textContent = "未就绪/需检查";
           elements.voiceCloneStatusBadge.className = "voice-status-badge is-offline";
-          showToast("未能连接到本地克隆服务（端口未响应），请确保后台 Python 脚本已启动", "warning");
+          showToast(errMsg, "warning");
         }
       } catch (err) {
         elements.voiceCloneStatusBadge.textContent = "无法连接";
