@@ -11819,11 +11819,17 @@
         }
         state.voiceConfig.promptAudio = file.name;
         safeStorageSet("miyu.voice.promptAudio", file.name);
-        if (file.name === "xiaoyan_sweet.wav") {
-          state.voiceConfig.promptText = "乖孩子叫声,自己来听听说不定.我就满足你的愿望呢.";
-          safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
-        } else if (file.name === "xiaoyan_ref.wav" || file.name === "2-0102.wav") {
-          state.voiceConfig.promptText = "乖孩子叫声,自己来听听说不定.";
+        const PRESET_PROMPT_TEXTS = {
+          "xiaoyan_clear_201.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+          "xiaoyan_clear_204.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+          "xiaoyan_clear_402.wav": "我才没有特地打扮给你看了呢，你千万别自作多情。",
+          "xiaoyan_clear_501.wav": "你的眼睛里只能看着我一个人听懂了吗？",
+          "xiaoyan_sweet.wav": "乖孩子叫声,自己来听听说不定.我就满足你的愿望呢.",
+          "xiaoyan_ref.wav": "乖孩子叫声,自己来听听说不定.",
+          "2-0102.wav": "乖孩子叫声,自己来听听说不定."
+        };
+        if (PRESET_PROMPT_TEXTS[file.name]) {
+          state.voiceConfig.promptText = PRESET_PROMPT_TEXTS[file.name];
           safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
         }
         updateVoiceControls();
@@ -12017,17 +12023,21 @@
       safeStorageSet("miyu.voice.endpoint", state.voiceConfig.endpoint);
     });
 
+    const PRESET_PROMPT_TEXTS = {
+      "xiaoyan_clear_201.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+      "xiaoyan_clear_204.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+      "xiaoyan_clear_402.wav": "我才没有特地打扮给你看了呢，你千万别自作多情。",
+      "xiaoyan_clear_501.wav": "你的眼睛里只能看着我一个人听懂了吗？",
+      "xiaoyan_sweet.wav": "乖孩子叫声,自己来听听说不定.我就满足你的愿望呢.",
+      "xiaoyan_ref.wav": "乖孩子叫声,自己来听听说不定.",
+      "2-0102.wav": "乖孩子叫声,自己来听听说不定."
+    };
+
     elements.voiceClonePromptAudioSelect?.addEventListener("change", (e) => {
       state.voiceConfig.promptAudio = e.target.value;
       safeStorageSet("miyu.voice.promptAudio", state.voiceConfig.promptAudio);
-      if (e.target.value === "xiaoyan_sweet.wav") {
-        state.voiceConfig.promptText = "乖孩子叫声,自己来听听说不定.我就满足你的愿望呢.";
-        safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
-        if (elements.voiceClonePromptTextInput) {
-          elements.voiceClonePromptTextInput.value = state.voiceConfig.promptText;
-        }
-      } else if (e.target.value === "xiaoyan_ref.wav" || e.target.value === "2-0102.wav") {
-        state.voiceConfig.promptText = "乖孩子叫声,自己来听听说不定.";
+      if (PRESET_PROMPT_TEXTS[e.target.value]) {
+        state.voiceConfig.promptText = PRESET_PROMPT_TEXTS[e.target.value];
         safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
         if (elements.voiceClonePromptTextInput) {
           elements.voiceClonePromptTextInput.value = state.voiceConfig.promptText;
