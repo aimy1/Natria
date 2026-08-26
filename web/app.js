@@ -11844,6 +11844,7 @@
         state.voiceConfig.promptAudio = file.name;
         safeStorageSet("miyu.voice.promptAudio", file.name);
         const PRESET_PROMPT_TEXTS = {
+          "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
           "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
           "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟好不好？",
           "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我手好了，下不为例哦。",
@@ -12051,6 +12052,7 @@
     });
 
     const PRESET_PROMPT_TEXTS = {
+      "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
       "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
       "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟好不好？",
       "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我手好了，下不为例哦。",
