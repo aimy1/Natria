@@ -1,0 +1,28 @@
+{
+  "name": "vision_analyze",
+  "display_name": "分析图片",
+  "description": "Analyze an image with the current multimodal model. Supports local image paths and http(s) image URLs.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "description": "A local image path or an http(s) image URL."
+      },
+      "prompt": {
+        "type": "string",
+        "description": "Question or instruction for the image analysis. Defaults to a concise description of the image."
+      }
+    },
+    "required": [
+      "image"
+    ],
+    "additionalProperties": false
+  },
+  "permission": "readonly",
+  "always_loaded": true,
+  "load_policy": "summary",
+  "groups": [
+    "images"
+  ]
+}

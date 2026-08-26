@@ -1,0 +1,36 @@
+{
+  "name": "run_command",
+  "display_name": "运行命令",
+  "description": "Run a shell command or complex shell script for testing, building, checks, and scripted tasks. For long-running commands (builds, dev servers, batch jobs) use background=true to run detached and attach a short title: a short job_id is returned immediately; use job(action=status) to check progress and output, job(action=stop) to stop; when the command finishes the system will automatically notify you to follow up. Prefer apply_patch for editing files; do not write source code files via shell heredoc/cat/tee unless the user explicitly asks. Inside scripts you can call structured tools under this session's identity with `miyu tool-call <name> --stdin`; --list shows exactly the set callable in this session, and --describe shows a tool's parameter contract — bash loops plus pipes are the orchestration layer, and intermediate data does not pass through the model context. Inner calls execute in the daemon-side session workspace: they do not inherit the script's environment variables or current directory; pass data across tools via parameter JSON or files.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "command": {
+        "type": "string",
+        "description": "The shell command or script to run. May contain complex multi-line commands; prefer apply_patch for file edits."
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "description": "Optional timeout in seconds. Ignored when background=true."
+      },
+      "background": {
+        "type": "boolean",
+        "description": "Run detached in the background and return a short job_id immediately. Suitable for commands expected to take longer than about 30 seconds."
+      },
+      "title": {
+        "type": "string",
+        "description": "Short title for the background command (at most 16 characters), shown in the UI status line, e.g. “release build”. Recommended when background=true."
+      }
+    },
+    "required": [
+      "command"
+    ]
+  },
+  "permission": "readonly",
+  "always_loaded": true,
+  "load_policy": "summary",
+  "groups": [
+    "shell"
+  ],
+  "timeout_seconds": 0
+}

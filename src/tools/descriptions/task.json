@@ -1,0 +1,50 @@
+{
+  "name": "task",
+  "display_name": "子代理",
+  "description": "Launch a subagent to handle a complex task independently; it has the same toolset as you.\n**The subagent starts with a completely fresh context**: it cannot see this conversation, does not know what the user wants, and does not know what you have already checked or done. It returns only one final message to you; intermediate steps do not flow back.\nSo the prompt must be self-contained: write in the background, the conclusions you have already confirmed, the goal, and **exactly what you want it to return**.\nFor long tasks, use background=true to run in the background; you are woken automatically on completion.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string",
+        "description": "Short task description, used for progress display."
+      },
+      "prompt": {
+        "type": "string",
+        "description": "The complete task prompt for the subagent; it must stand on its own outside this conversation. The subagent cannot see your conversation history or anything the user said — include the background, constraints, and conclusions you have already found, and state explicitly what information it should return in its final reply."
+      },
+      "max_steps": {
+        "type": "integer",
+        "description": "Optional cap on tool-call steps. Unlimited by default; the run ends when the task completes."
+      },
+      "tier": {
+        "type": "string",
+        "enum": [
+          "cheap",
+          "balanced",
+          "strong"
+        ],
+        "description": "Optional model tier: cheap for simple lookups, balanced for regular multi-step work, strong for hard reasoning. Defaults to balanced; unconfigured tiers fall back to the main model."
+      },
+      "background": {
+        "type": "boolean",
+        "description": "Run detached in the background: returns a job_id immediately, check progress with job(action=status), and you are woken automatically on completion."
+      },
+      "resume_id": {
+        "type": "string",
+        "description": "Optional. If the previous task failed due to a connection interruption and the error included a resume_id, pass it to resume from the last completed tool turn (valid only within this process)."
+      }
+    },
+    "required": [
+      "description",
+      "prompt"
+    ]
+  },
+  "permission": "writes",
+  "always_loaded": true,
+  "load_policy": "summary",
+  "groups": [
+    "agent"
+  ],
+  "timeout_seconds": 0
+}

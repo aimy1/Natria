@@ -1,0 +1,35 @@
+{
+  "name": "print_image",
+  "display_name": "显示图片",
+  "description": "Print/render a local image directly in the current terminal output using chafa.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "image": {
+        "type": "string",
+        "description": "Local image path."
+      },
+      "size": {
+        "type": "string",
+        "description": "Optional chafa size, e.g. 80x40. Use this or width/height to keep the output from getting too large."
+      },
+      "width": {
+        "type": "integer",
+        "description": "Optional output width in terminal cells, e.g. 80."
+      },
+      "height": {
+        "type": "integer",
+        "description": "Optional output height in terminal cells, e.g. 40."
+      }
+    },
+    "required": [
+      "image"
+    ]
+  },
+  "permission": "readonly",
+  "always_loaded": false,
+  "load_policy": "group",
+  "groups": [
+    "images"
+  ]
+}

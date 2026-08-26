@@ -1,0 +1,27 @@
+{
+  "name": "trash_path",
+  "display_name": "移入回收站",
+  "description": "Move files, directories, or symlinks to the system trash instead of deleting them permanently. When deleting multiple items, put all the paths into paths in a single call — calling once per item floods the screen.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "paths": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "description": "List of paths to move to the trash. Supports absolute paths, workspace-relative paths, and ~/ paths. When deleting multiple files, pass them all at once; do not split into multiple calls."
+      }
+    },
+    "required": [
+      "paths"
+    ]
+  },
+  "permission": "writes",
+  "always_loaded": false,
+  "load_policy": "group",
+  "groups": [
+    "dev"
+  ]
+}

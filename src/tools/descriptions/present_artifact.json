@@ -1,0 +1,23 @@
+{
+  "name": "present_artifact",
+  "display_name": "预览文件",
+  "description": "Present an existing, complete deliverable file in the WebUI Artifact workspace. Intended for reports, PDFs, images, and data files produced by commands or other tools; prefer create_artifact for new text deliverables, and do not call this for ordinary project source-code edits.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path of the file to publish"
+      },
+      "title": {
+        "type": "string",
+        "description": "Optional display title"
+      }
+    },
+    "required": ["path"],
+    "additionalProperties": false
+  },
+  "always_loaded": true,
+  "load_policy": "summary",
+  "groups": ["dev"]
+}
