@@ -10961,18 +10961,22 @@
     if (!raw) return "";
     let text = String(raw);
 
-    // 1. 去除代码块及内容、HTML 标签、图片等无声内容
+    // 1. 去除代码块及内容、HTML 标签、图片、超链接等无声内容
     text = text.replace(/```[\s\S]*?```/g, "");
     text = text.replace(/`([^`]+)`/g, "$1");
     text = text.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
     text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    text = text.replace(/https?:\/\/\S+/gi, "");
     text = text.replace(/<[^>]+>/g, "");
 
-    // 2. 去除数学公式块与行内公式定界符
+    // 2. 彻底剥离所有 Emoji 与特殊表情符号（防止模型词表 [UNK] 崩溃导致胡言乱语/无限杂音）
+    text = text.replace(/[\u{1F300}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{200D}]/gu, "");
+
+    // 3. 去除数学公式块与行内公式定界符
     text = text.replace(/\$\$[\s\S]*?\$\$/g, "");
     text = text.replace(/\$([^$]+)\$/g, "$1");
 
-    // 3. 过滤动作描写与旁白 (根据设置：全角/半角圆括号、方括号、星号动作)
+    // 4. 过滤动作描写与旁白 (根据设置：全角/半角圆括号、方括号、星号动作)
     if (state.voiceConfig?.filterActions !== false) {
       // 剥离星号动作描写，如 *脸红*、*轻叹一口气*
       text = text.replace(/\*[^*]+?\*/g, "");
@@ -10985,15 +10989,15 @@
       } while (text !== prev);
     }
 
-    // 4. 处理标题、引用、分割线
+    // 5. 处理标题、引用、分割线
     text = text.replace(/^#+\s+/gm, "");
     text = text.replace(/^>\s+/gm, "");
     text = text.replace(/^[-*_]{3,}$/gm, "");
 
-    // 4. 处理无序列表前缀（避免读出 "减号/星号/加号"）
+    // 6. 处理无序列表前缀（避免读出 "减号/星号/加号"）
     text = text.replace(/^\s*[-*+]\s+/gm, "");
 
-    // 5. 剥离加粗与斜体标记 (***bold italic***, **bold**, *italic*, ___bold italic___, __bold__, _italic_)
+    // 7. 剥离加粗与斜体标记 (***bold italic***, **bold**, *italic*, ___bold italic___, __bold__, _italic_)
     text = text.replace(/\*{3}(.*?)\*{3}/g, "$1");
     text = text.replace(/\*{2}(.*?)\*{2}/g, "$1");
     text = text.replace(/\*(.*?)\*/g, "$1");
@@ -11001,20 +11005,17 @@
     text = text.replace(/_{2}(.*?)_{2}/g, "$1");
     text = text.replace(/_([^_]+)_/g, "$1");
 
-    // 6. 剥离删除线 (~~strikethrough~~)
+    // 8. 剥离删除线 (~~strikethrough~~)
     text = text.replace(/~~(.*?)~~/g, "$1");
 
-    // 7. 过滤表格边框符号 '|'
+    // 9. 过滤表格边框符号 '|'
     text = text.replace(/\|/g, " ");
 
-    // 8. 彻底清除所有残留或单独出现的星号、波浪号与转义字符
-    text = text.replace(/\\\*/g, "");
-    text = text.replace(/\*/g, "");
-    text = text.replace(/~/g, "");
-    text = text.replace(/\\([\\`*{}[\]()#+\-.!_>])/g, "$1");
+    // 10. 彻底清除所有残留或单独出现的星号、波浪号与转义字符及非法特殊符号
+    text = text.replace(/[\\`*~^{}[\]()<>@#%+=/|]/g, " ");
 
-    // 9. 换行与空白规整
-    text = text.replace(/\r?\n\s*\r?\n/g, "，").replace(/\r?\n/g, "，");
+    // 11. 换行与空白规整
+    text = text.replace(/\r?\n\s*\r?\n/g, "。").replace(/\r?\n/g, "，");
     text = text.replace(/\s+/g, " ");
     text = text.replace(/([，。！？；])\1+/g, "$1");
     text = text.replace(/^[，、；：\s]+|[，、；：\s]+$/g, "");
@@ -11113,7 +11114,8 @@
       }
     }
 
-    return finalSentences.filter((s) => s.trim().length > 0);
+    // 过滤掉纯标点或无汉字/英文字符的空片段，防止模型发生语义丢失与死循环
+    return finalSentences.filter((s) => /[\u4e00-\u9fa5a-zA-Z0-9]/.test(s));
   }
 
   async function fetchSpeechAudioBuffer(text, options, signal) {
