@@ -103,12 +103,29 @@ impl GptSovitsEngine {
         let prompt_lang = config.prompt_lang.as_deref().unwrap_or("zh");
         let prompt_text = config.prompt_text.as_deref().unwrap_or("");
 
+        let speed_factor: f64 = config
+            .rate
+            .as_deref()
+            .and_then(|r| {
+                let clean = r.trim().trim_end_matches('%');
+                clean.parse::<f64>().ok().map(|pct| (100.0 + pct) / 100.0)
+            })
+            .unwrap_or(1.0)
+            .clamp(0.6, 1.8);
+
         let body = json!({
             "text": text,
             "text_lang": text_lang,
             "ref_audio_path": ref_audio,
             "prompt_text": prompt_text,
             "prompt_lang": prompt_lang,
+            "text_split_method": "cut5",
+            "top_k": 15,
+            "top_p": 1.0,
+            "temperature": 0.85,
+            "speed_factor": speed_factor,
+            "repetition_penalty": 1.35,
+            "sample_steps": 32,
             "media_type": "wav"
         });
 
