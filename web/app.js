@@ -351,6 +351,7 @@
     voiceLibraryList: document.getElementById("voiceLibraryList"),
     voiceFileInput: document.getElementById("voiceFileInput"),
     uploadVoiceFileButton: document.getElementById("uploadVoiceFileButton"),
+    browseVoiceFileButton: document.getElementById("browseVoiceFileButton"),
     refreshVoiceFilesButton: document.getElementById("refreshVoiceFilesButton"),
     voiceFileDropZone: document.getElementById("voiceFileDropZone"),
     voiceFileList: document.getElementById("voiceFileList"),
@@ -12187,6 +12188,11 @@
       elements.voiceFileInput?.click();
     });
 
+    elements.browseVoiceFileButton?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      elements.voiceFileInput?.click();
+    });
+
     elements.voiceFileInput?.addEventListener("change", (e) => {
       const file = e.target.files?.[0];
       if (file) {
@@ -12196,6 +12202,11 @@
     });
 
     if (elements.voiceFileDropZone) {
+      elements.voiceFileDropZone.addEventListener("click", (e) => {
+        if (e.target !== elements.browseVoiceFileButton && !elements.browseVoiceFileButton?.contains(e.target)) {
+          elements.voiceFileInput?.click();
+        }
+      });
       elements.voiceFileDropZone.addEventListener("dragover", (e) => {
         e.preventDefault();
         elements.voiceFileDropZone.classList.add("is-dragover");
