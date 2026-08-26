@@ -11819,9 +11819,15 @@
         }
         state.voiceConfig.promptAudio = file.name;
         safeStorageSet("miyu.voice.promptAudio", file.name);
+        if (file.name === "xiaoyan_ref.wav" || file.name === "2-0102.wav") {
+          if (!state.voiceConfig.promptText || state.voiceConfig.promptText === "你好，我是小盐") {
+            state.voiceConfig.promptText = "乖孩子叫声,自己来听听说不定.";
+            safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
+          }
+        }
         updateVoiceControls();
         renderVoiceFileList();
-        showToast("已将 \"" + file.name + "\" 设为克隆参考录音，请在上方输入台词");
+        showToast("已将 \"" + file.name + "\" 设为克隆参考录音");
         elements.voiceClonePromptTextInput?.focus();
       });
 
@@ -12013,6 +12019,15 @@
     elements.voiceClonePromptAudioSelect?.addEventListener("change", (e) => {
       state.voiceConfig.promptAudio = e.target.value;
       safeStorageSet("miyu.voice.promptAudio", state.voiceConfig.promptAudio);
+      if (e.target.value === "xiaoyan_ref.wav" || e.target.value === "2-0102.wav") {
+        if (!state.voiceConfig.promptText || state.voiceConfig.promptText === "你好，我是小盐") {
+          state.voiceConfig.promptText = "乖孩子叫声,自己来听听说不定.";
+          safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
+          if (elements.voiceClonePromptTextInput) {
+            elements.voiceClonePromptTextInput.value = state.voiceConfig.promptText;
+          }
+        }
+      }
       renderVoiceFileList();
     });
 
