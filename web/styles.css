@@ -1005,26 +1005,28 @@ body[data-theme="graphite"] .session-unread-dot {
   position: relative;
 }
 
-/* 模型按钮:金底小签 */
+/* 模型按钮:现代胶囊药丸按钮 */
 .model-button {
   display: inline-flex;
   min-width: 0;
-  height: 28px;
+  height: 32px;
   align-items: center;
-  padding: 0 11px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--surface-2);
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 75%, var(--surface-1));
   color: var(--text-soft);
   cursor: pointer;
-  gap: 7px;
-  transition: background 180ms ease, color 180ms ease;
+  gap: 6px;
+  transition: all 180ms ease;
 }
 
 .model-button:hover:not(:disabled),
 .model-button[aria-expanded="true"] {
-  background: var(--surface-3, var(--surface-2));
-  color: var(--text);
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--accent);
+  transform: translateY(-1px);
 }
 
 /* 菜单开着的时候箭头翻过来——不翻的话按钮看不出自己是开是关。 */
@@ -1041,12 +1043,12 @@ body[data-theme="graphite"] .session-unread-dot {
   width: 12px;
   height: 12px;
   flex-basis: 12px;
-  opacity: 0.7;
+  opacity: 0.75;
   transition: transform 160ms ease;
 }
 
 .model-label {
-  max-width: 150px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4596,19 +4598,21 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
-  border: 0;
-  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 70%, transparent);
+  border-radius: 18px;
   background: var(--surface-1);
-  box-shadow: var(--card-shadow);
-  transition: box-shadow 200ms ease;
+  box-shadow: 0 4px 24px -4px rgba(15, 23, 42, 0.08), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+  transition: border-color 220ms ease, box-shadow 220ms ease, transform 180ms ease;
 }
 
 .composer:focus-within {
-  box-shadow: var(--card-shadow), 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  box-shadow: 0 8px 30px -4px color-mix(in srgb, var(--accent) 18%, transparent), 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .composer.is-disabled {
   box-shadow: var(--bubble-shadow);
+  opacity: 0.8;
 }
 
 .composer textarea {
@@ -4616,16 +4620,16 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  min-height: 72px;
-  max-height: 200px;
+  min-height: 80px;
+  max-height: 220px;
   resize: none;
-  padding: 13px 15px 5px;
+  padding: 16px 20px 8px;
   border: 0;
   outline: 0;
   background: transparent;
   color: var(--text);
   font-size: var(--fs-chat);
-  line-height: 1.7;
+  line-height: 1.65;
 }
 
 .composer textarea::placeholder {
@@ -4829,13 +4833,17 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
 }
 
 .attach-button {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
-  border-radius: 8px;
-  background: var(--surface-2);
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1));
   color: var(--text-soft);
-  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), background 150ms ease, filter 200ms ease;
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .attach-button:disabled {
@@ -4844,17 +4852,55 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
 }
 
 .attach-button .icon-slot {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
 }
 
 .attach-button:hover:not(:disabled) {
-  filter: brightness(1.04);
-  transform: scale(1.08) rotate(8deg);
+  background: var(--surface-2);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  transform: translateY(-1px) scale(1.05);
 }
 
 .attach-button:active:not(:disabled) {
-  transform: scale(0.92);
+  transform: scale(0.94);
+}
+
+.voice-toggle-button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1));
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.voice-toggle-button .icon-slot {
+  width: 16px;
+  height: 16px;
+}
+
+.voice-toggle-button:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  transform: translateY(-1px) scale(1.05);
+}
+
+.voice-toggle-button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.voice-toggle-button.is-active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-1));
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .composer.is-dragging {
@@ -5048,15 +5094,21 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
 .composer-context {
   display: grid;
   overflow: hidden;
-  width: 132px;
+  width: 140px;
   min-width: 92px;
-  margin-right: 2px;
-  gap: 4px;
+  margin-right: 4px;
+  gap: 3px;
 }
 
 /* 数字过长时省略号截断,不允许伸到发送按钮底下 */
 .composer-context .context-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   min-width: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-family: var(--font-mono);
 }
 
 .composer-context .context-heading > span:last-child {
@@ -5065,14 +5117,19 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
   text-overflow: ellipsis;
 }
 
-.composer-context .context-heading {
-  color: var(--text-soft);
-  font-size: 10.5px;
+.composer-context .context-track {
+  height: 4px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 70%, transparent);
+  overflow: hidden;
 }
 
-.composer-context .context-track {
-  height: 5px;
-  margin-top: 1px;
+.composer-context .context-track i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--cyan, #6366f1));
 }
 
 .composer-state,
@@ -5096,27 +5153,42 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
   gap: 8px;
 }
 
-/* 发送键:38px 方形 r8 */
+/* 发送键:34px 现代微倾圆角按钮 */
 .send-button {
   display: grid;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   place-items: center;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 0;
   background: var(--accent);
   color: var(--md-sys-color-on-primary);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
   cursor: pointer;
-  transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1), background 150ms ease, filter 200ms ease;
+  transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.send-button .icon-slot {
+  width: 16px;
+  height: 16px;
 }
 
 .send-button:hover:not(:disabled) {
-  filter: brightness(1.06);
-  transform: scale(1.08) rotate(-8deg);
+  transform: translateY(-1px) scale(1.06);
+  filter: brightness(1.08);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
 .send-button:active:not(:disabled) {
-  transform: scale(0.92);
+  transform: scale(0.94);
+}
+
+.send-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Compact per-reply stop controls above the composer send button. */
