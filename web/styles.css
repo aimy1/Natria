@@ -6496,27 +6496,42 @@ textarea.config-input {
 
 /* ── 本地语音文件管理 ── */
 .voice-drop-zone {
-  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px;
   border: 2px dashed color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: 12px;
   background: color-mix(in srgb, var(--surface-2) 40%, transparent);
   text-align: center;
+  cursor: pointer;
   transition: all 200ms ease;
+}
+
+.voice-drop-zone:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  transform: translateY(-1px);
 }
 
 .voice-drop-zone.is-dragover {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
   box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .voice-drop-zone-content {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   color: var(--text-soft);
   font-size: var(--fs-meta);
+}
+
+.voice-drop-zone-content button {
+  pointer-events: auto;
 }
 
 .voice-file-item {
