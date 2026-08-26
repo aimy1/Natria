@@ -117,11 +117,11 @@ impl GptSovitsEngine {
             "prompt_text": prompt_text,
             "prompt_lang": prompt_lang,
             "text_split_method": "cut5",
-            "top_k": 15,
-            "top_p": 1.0,
-            "temperature": 0.85,
+            "top_k": 10,
+            "top_p": 0.9,
+            "temperature": 0.5,
             "speed_factor": speed_factor,
-            "repetition_penalty": 1.35,
+            "repetition_penalty": 1.25,
             "sample_steps": 32,
             "media_type": "wav"
         });
