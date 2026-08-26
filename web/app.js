@@ -594,7 +594,7 @@
       button.setAttribute("aria-label", button.title);
     }
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    if (themeColor) themeColor.content = selected === "graphite" ? "#171821" : "#f6f0e2";
+    if (themeColor) themeColor.content = selected === "graphite" ? "#171821" : "#f8fafc";
     if (persist) safeStorageSet("miyu.web.theme", selected);
   }
 
