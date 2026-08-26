@@ -23,26 +23,56 @@ impl GptSovitsEngine {
 
     /// 解析参考音频的本地完整绝对路径，供 GPT-SoVITS 本地进程读取。
     fn resolve_ref_audio_path(&self, raw: Option<&str>) -> String {
-        let Some(p) = raw else {
-            return String::new();
-        };
-        let clean = p.trim().trim_start_matches("local:");
-        if clean.is_empty() {
-            return String::new();
-        }
+        let clean = raw.map(|p| p.trim().trim_start_matches("local:")).unwrap_or("");
 
         let path = Path::new(clean);
-        if path.is_absolute() && path.exists() {
-            return clean.to_string();
+        if !clean.is_empty() && path.is_absolute() && path.exists() {
+            let s = path.to_string_lossy().to_string();
+            if let Some(stripped) = s.strip_prefix(r"\\?\UNC\") {
+                return format!(r"\\{}", stripped);
+            } else if let Some(stripped) = s.strip_prefix(r"\\?\") {
+                return stripped.to_string();
+            }
+            return s;
         }
 
-        // 尝试从 voices/ 目录查找
-        let voices_cand = PathBuf::from("voices").join(clean);
-        if voices_cand.exists() {
-            if let Ok(abs) = std::fs::canonicalize(&voices_cand) {
-                return abs.to_string_lossy().to_string();
+        // 尝试从 voices/ 目录查找指定文件名
+        if !clean.is_empty() {
+            let voices_cand = PathBuf::from("voices").join(clean);
+            if voices_cand.exists() {
+                if let Ok(abs) = std::fs::canonicalize(&voices_cand) {
+                    let s = abs.to_string_lossy().to_string();
+                    if let Some(stripped) = s.strip_prefix(r"\\?\UNC\") {
+                        return format!(r"\\{}", stripped);
+                    } else if let Some(stripped) = s.strip_prefix(r"\\?\") {
+                        return stripped.to_string();
+                    }
+                    return s;
+                }
+                return voices_cand.to_string_lossy().to_string();
             }
-            return voices_cand.to_string_lossy().to_string();
+        }
+
+        // 查找 voices/ 目录下第一个有效音频作为后备
+        if let Ok(entries) = std::fs::read_dir("voices") {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_file() {
+                    if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+                        if ext.eq_ignore_ascii_case("wav") || ext.eq_ignore_ascii_case("mp3") {
+                            if let Ok(abs) = std::fs::canonicalize(&p) {
+                                let s = abs.to_string_lossy().to_string();
+                                if let Some(stripped) = s.strip_prefix(r"\\?\UNC\") {
+                                    return format!(r"\\{}", stripped);
+                                } else if let Some(stripped) = s.strip_prefix(r"\\?\") {
+                                    return stripped.to_string();
+                                }
+                                return s;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         clean.to_string()
