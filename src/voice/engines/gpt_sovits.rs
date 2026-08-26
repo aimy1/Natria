@@ -17,7 +17,10 @@ pub struct GptSovitsEngine {
 impl GptSovitsEngine {
     pub fn new() -> Self {
         Self {
-            client: Client::builder().build().unwrap_or_default(),
+            client: Client::builder()
+                .timeout(std::time::Duration::from_secs(30))
+                .build()
+                .unwrap_or_default(),
         }
     }
 
@@ -116,7 +119,7 @@ impl GptSovitsEngine {
             "ref_audio_path": ref_audio,
             "prompt_text": prompt_text,
             "prompt_lang": prompt_lang,
-            "text_split_method": "cut5",
+            "text_split_method": "cut0",
             "top_k": 10,
             "top_p": 0.9,
             "temperature": 0.5,
