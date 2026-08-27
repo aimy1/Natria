@@ -12583,27 +12583,130 @@
   let speechBaseText = "";
   let shouldKeepListening = false;
 
+  function updateMicButtonState(listening) {
+    isSpeechListening = listening;
+    if (elements.micButton) {
+      elements.micButton.classList.toggle("is-listening", listening);
+      elements.micButton.title = listening
+        ? "正在聆听中... (再次点击完成/停止录音)"
+        : "点击开始语音输入 (识别你说的内容)";
+    }
+  }
+
+  function createAndStartRecognizer() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (speechRecognizer) {
+      try {
+        speechRecognizer.onstart = null;
+        speechRecognizer.onresult = null;
+        speechRecognizer.onerror = null;
+        speechRecognizer.onend = null;
+        speechRecognizer.abort();
+      } catch (_) {}
+      speechRecognizer = null;
+    }
+
+    const recognizer = new SpeechRecognition();
+    recognizer.continuous = true;
+    recognizer.interimResults = true;
+    recognizer.lang = "zh-CN";
+
+    recognizer.onstart = () => {
+      if (speechRecognizer !== recognizer) return;
+      speechBaseText = elements.composerInput?.value || "";
+      updateMicButtonState(true);
+      showToast("麦克风已就绪，请说话...", "info");
+    };
+
+    recognizer.onresult = (event) => {
+      if (speechRecognizer !== recognizer) return;
+      let interimTranscript = "";
+      let finalTranscript = "";
+
+      for (let i = 0; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      const currentSpeech = (finalTranscript + interimTranscript).trim();
+      if (elements.composerInput) {
+        const glue = speechBaseText && !/\s$/.test(speechBaseText) ? " " : "";
+        elements.composerInput.value = speechBaseText + (currentSpeech ? glue + currentSpeech : "");
+        resizeComposer();
+        updateCharacterCount();
+        updateControlState();
+        elements.composerInput.scrollTop = elements.composerInput.scrollHeight;
+      }
+    };
+
+    recognizer.onerror = (event) => {
+      if (speechRecognizer !== recognizer) return;
+      console.warn("[SpeechRecognition] Error:", event.error);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        shouldKeepListening = false;
+        showToast("麦克风权限被拒绝，请在浏览器地址栏允许麦克风权限", "error");
+        updateMicButtonState(false);
+      } else if (event.error === "network") {
+        shouldKeepListening = false;
+        showToast("语音识别网络服务异常，请检查网络连接或使用 Edge 浏览器", "warning");
+        updateMicButtonState(false);
+      }
+    };
+
+    recognizer.onend = () => {
+      if (speechRecognizer !== recognizer) return;
+      if (shouldKeepListening) {
+        speechBaseText = elements.composerInput?.value || "";
+        setTimeout(() => {
+          if (shouldKeepListening && speechRecognizer === recognizer) {
+            createAndStartRecognizer();
+          }
+        }, 100);
+      } else {
+        updateMicButtonState(false);
+        elements.composerInput?.focus();
+      }
+    };
+
+    speechRecognizer = recognizer;
+    try {
+      recognizer.start();
+    } catch (err) {
+      console.warn("[SpeechRecognition] Start error:", err);
+      recognizer.onend = null;
+      updateMicButtonState(false);
+    }
+  }
+
   function resetSpeechSession() {
     speechBaseText = "";
     if (speechRecognizer) {
       try {
-        speechRecognizer.stop();
+        speechRecognizer.onstart = null;
+        speechRecognizer.onresult = null;
+        speechRecognizer.onerror = null;
+        speechRecognizer.onend = null;
+        speechRecognizer.abort();
       } catch (_) {}
+      speechRecognizer = null;
+    }
+    if (shouldKeepListening) {
+      setTimeout(() => {
+        if (shouldKeepListening) {
+          createAndStartRecognizer();
+        }
+      }, 50);
     }
   }
 
   function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    const updateMicButtonState = (listening) => {
-      isSpeechListening = listening;
-      if (elements.micButton) {
-        elements.micButton.classList.toggle("is-listening", listening);
-        elements.micButton.title = listening
-          ? "正在聆听中... (再次点击完成/停止录音)"
-          : "点击开始语音输入 (识别你说的内容)";
-      }
-    };
 
     if (!SpeechRecognition) {
       elements.micButton?.addEventListener("click", () => {
@@ -12612,104 +12715,32 @@
       return;
     }
 
-    try {
-      speechRecognizer = new SpeechRecognition();
-      speechRecognizer.continuous = true;
-      speechRecognizer.interimResults = true;
-      speechRecognizer.lang = "zh-CN";
-
-      speechRecognizer.onstart = () => {
+    elements.micButton?.addEventListener("click", () => {
+      if (isSpeechListening || shouldKeepListening) {
+        shouldKeepListening = false;
+        if (speechRecognizer) {
+          try {
+            speechRecognizer.onstart = null;
+            speechRecognizer.onresult = null;
+            speechRecognizer.onerror = null;
+            speechRecognizer.onend = null;
+            speechRecognizer.abort();
+          } catch (_) {}
+          speechRecognizer = null;
+        }
+        updateMicButtonState(false);
+      } else {
+        shouldKeepListening = true;
         speechBaseText = elements.composerInput?.value || "";
-        updateMicButtonState(true);
-        showToast("麦克风已就绪，请说话...", "info");
-      };
+        createAndStartRecognizer();
+      }
+    });
 
-      speechRecognizer.onresult = (event) => {
-        let interimTranscript = "";
-        let finalTranscript = "";
-
-        // 必须从 0 遍历整个 results 列表，防止跨批次切片导致前序句子被抹去
-        for (let i = 0; i < event.results.length; ++i) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        const currentSpeech = (finalTranscript + interimTranscript).trim();
-        if (elements.composerInput) {
-          const glue = speechBaseText && !/\s$/.test(speechBaseText) ? " " : "";
-          elements.composerInput.value = speechBaseText + (currentSpeech ? glue + currentSpeech : "");
-          resizeComposer();
-          updateCharacterCount();
-          updateControlState();
-          elements.composerInput.scrollTop = elements.composerInput.scrollHeight;
-        }
-      };
-
-      speechRecognizer.onerror = (event) => {
-        console.warn("[SpeechRecognition] Error:", event.error);
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          shouldKeepListening = false;
-          showToast("麦克风权限被拒绝，请在浏览器地址栏允许麦克风权限", "error");
-          updateMicButtonState(false);
-        } else if (event.error === "network") {
-          shouldKeepListening = false;
-          showToast("语音识别网络服务异常，请检查网络连接或使用 Edge 浏览器", "warning");
-          updateMicButtonState(false);
-        } else if (event.error === "no-speech") {
-          // 静音超时，若用户未主动关闭则保持监听
-        }
-      };
-
-      speechRecognizer.onend = () => {
-        if (shouldKeepListening) {
-          // 浏览器因短暂静音触发了自动断连，若用户处于开启状态，无缝重新拉起继续识别
-          speechBaseText = elements.composerInput?.value || "";
-          try {
-            speechRecognizer.start();
-          } catch (_) {
-            updateMicButtonState(false);
-            shouldKeepListening = false;
-          }
-        } else {
-          updateMicButtonState(false);
-          elements.composerInput?.focus();
-        }
-      };
-
-      elements.micButton?.addEventListener("click", () => {
-        if (isSpeechListening) {
-          shouldKeepListening = false;
-          try { speechRecognizer.stop(); } catch (_) {}
-          updateMicButtonState(false);
-        } else {
-          shouldKeepListening = true;
-          speechBaseText = elements.composerInput?.value || "";
-          try {
-            speechRecognizer.start();
-          } catch (err) {
-            console.warn("[SpeechRecognition] Start error:", err);
-            try { speechRecognizer.stop(); } catch (_) {}
-            setTimeout(() => {
-              try { speechRecognizer.start(); } catch (e) {
-                showToast("启动语音识别失败: " + e.message, "error");
-              }
-            }, 100);
-          }
-        }
-      });
-
-      elements.composerInput?.addEventListener("input", () => {
-        if (!isSpeechListening) {
-          speechBaseText = elements.composerInput.value;
-        }
-      });
-    } catch (err) {
-      console.warn("[SpeechRecognition] Init error:", err);
-    }
+    elements.composerInput?.addEventListener("input", () => {
+      if (!isSpeechListening) {
+        speechBaseText = elements.composerInput.value;
+      }
+    });
   }
 
   function syncAppHeight() {
