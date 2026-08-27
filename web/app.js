@@ -11063,6 +11063,7 @@
 
   let webAudioCtx = null;
   let activeAudioSource = null;
+  let activeGainNode = null;
   let voiceQueueAbortController = null;
   let voicePlaybackToken = 0;
   let activeStreamingVoiceSession = null;
@@ -11080,6 +11081,48 @@
     return webAudioCtx;
   }
 
+  function stopActiveAudioSmoothly(fadeDuration = 0.07) {
+    if (activeGainNode && webAudioCtx && webAudioCtx.state === "running") {
+      try {
+        const currGain = activeGainNode.gain.value;
+        activeGainNode.gain.cancelScheduledValues(webAudioCtx.currentTime);
+        activeGainNode.gain.setValueAtTime(currGain, webAudioCtx.currentTime);
+        activeGainNode.gain.linearRampToValueAtTime(0.0001, webAudioCtx.currentTime + fadeDuration);
+        const src = activeAudioSource;
+        setTimeout(() => {
+          try { src?.stop(); } catch (_) {}
+        }, Math.round(fadeDuration * 1000) + 15);
+      } catch (_) {
+        try { activeAudioSource?.stop(); } catch (_) {}
+      }
+      activeGainNode = null;
+      activeAudioSource = null;
+    } else if (activeAudioSource) {
+      try { activeAudioSource.stop(); } catch (_) {}
+      activeAudioSource = null;
+    }
+
+    if (state.currentAudio) {
+      const a = state.currentAudio;
+      state.currentAudio = null;
+      try {
+        let vol = a.volume;
+        const fadeInterval = setInterval(() => {
+          vol = Math.max(0, vol - 0.2);
+          a.volume = vol;
+          if (vol <= 0.05) {
+            clearInterval(fadeInterval);
+            a.pause();
+            a.currentTime = 0;
+            a.src = "";
+          }
+        }, 15);
+      } catch (_) {
+        try { a.pause(); a.src = ""; } catch (_) {}
+      }
+    }
+  }
+
   function stopVoice() {
     voicePlaybackToken++;
     if (activeStreamingVoiceSession) {
@@ -11090,18 +11133,7 @@
       try { voiceQueueAbortController.abort(); } catch (_) {}
       voiceQueueAbortController = null;
     }
-    if (activeAudioSource) {
-      try { activeAudioSource.stop(); } catch (_) {}
-      activeAudioSource = null;
-    }
-    if (state.currentAudio) {
-      try {
-        state.currentAudio.pause();
-        state.currentAudio.currentTime = 0;
-        state.currentAudio.src = "";
-      } catch (_) {}
-      state.currentAudio = null;
-    }
+    stopActiveAudioSmoothly(0.06);
     document.querySelectorAll(".message-voice-button.is-playing").forEach((btn) => {
       btn.classList.remove("is-playing");
       btn.replaceChildren(makeIconSlot("volume-2"));
@@ -11295,18 +11327,7 @@
       this.ended = true;
       try { this.abortController.abort(); } catch (_) {}
       this.queue = [];
-      if (activeAudioSource) {
-        try { activeAudioSource.stop(); } catch (_) {}
-        activeAudioSource = null;
-      }
-      if (state.currentAudio) {
-        try {
-          state.currentAudio.pause();
-          state.currentAudio.currentTime = 0;
-          state.currentAudio.src = "";
-        } catch (_) {}
-        state.currentAudio = null;
-      }
+      stopActiveAudioSmoothly(0.06);
       if (activeStreamingVoiceSession === this) {
         activeStreamingVoiceSession = null;
       }
@@ -11428,22 +11449,11 @@
 
         if (!this.hasStartedPlaying) {
           this.hasStartedPlaying = true;
-          // 新语音第一包已合成完毕即将发声：无缝打断并停止上一轮旧语音
+          // 新语音第一包已合成完毕即将发声：平滑淡出并停止上一轮旧语音
           if (activeStreamingVoiceSession && activeStreamingVoiceSession !== this) {
             activeStreamingVoiceSession.interrupt();
           }
-          if (activeAudioSource) {
-            try { activeAudioSource.stop(); } catch (_) {}
-            activeAudioSource = null;
-          }
-          if (state.currentAudio) {
-            try {
-              state.currentAudio.pause();
-              state.currentAudio.currentTime = 0;
-              state.currentAudio.src = "";
-            } catch (_) {}
-            state.currentAudio = null;
-          }
+          stopActiveAudioSmoothly(0.06);
           voiceQueueAbortController = this.abortController;
           activeStreamingVoiceSession = this;
           elements.voiceToggleButton?.classList.add("is-speaking");
@@ -11457,11 +11467,23 @@
               return;
             }
             const sourceNode = ctx.createBufferSource();
+            const gainNode = ctx.createGain();
             sourceNode.buffer = audioBuffer;
-            sourceNode.connect(ctx.destination);
+            sourceNode.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            // 20ms 微淡入平滑包络，彻底消除音频首包数字爆音/咔哒声
+            gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.02);
+
             activeAudioSource = sourceNode;
+            activeGainNode = gainNode;
+
             sourceNode.onended = () => {
-              if (activeAudioSource === sourceNode) activeAudioSource = null;
+              if (activeAudioSource === sourceNode) {
+                activeAudioSource = null;
+                activeGainNode = null;
+              }
               resolve();
             };
             sourceNode.start(0);
@@ -11484,6 +11506,11 @@
             };
             audio.play().catch(resolve);
           });
+        }
+
+        // 句与句之间的拟真自然呼吸微停顿 (100ms)
+        if (this.queue.length > 0 && !this.abortController.signal.aborted && this.token === voicePlaybackToken) {
+          await new Promise((r) => setTimeout(r, 100));
         }
       }
 
