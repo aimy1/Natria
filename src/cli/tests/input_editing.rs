@@ -144,6 +144,7 @@ async fn config_reload_stops_after_the_attempt_limit() {
     assert!(error.to_string().contains('3'));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn config_reload_retries_coded_busy_frames_over_ipc() {
     let temp = tempfile::tempdir().unwrap();
@@ -174,6 +175,7 @@ async fn config_reload_retries_coded_busy_frames_over_ipc() {
     server.await.unwrap();
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn config_reload_request_times_out_when_daemon_does_not_respond() {
     let temp = tempfile::tempdir().unwrap();

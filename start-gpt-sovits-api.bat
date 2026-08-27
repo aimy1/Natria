@@ -8,8 +8,12 @@ set "PROJ_ROOT=%~dp0"
 set "GPT_DIR=%PROJ_ROOT%GPT-SoVITS-v2pro-20250604-nvidia50"
 
 if not exist "%GPT_DIR%\runtime\python.exe" (
+    set "GPT_DIR=%PROJ_ROOT%..\GPT-SoVITS-v2pro-20250604-nvidia50"
+)
+
+if not exist "%GPT_DIR%\runtime\python.exe" (
     echo [错误] 未在根目录下找到 GPT-SoVITS-v2pro-20250604-nvidia50 整合包！
-    echo 请确认整合包文件夹已放置在项目根目录。
+    echo 请确认整合包文件夹已放置在项目根目录或上一级目录。
     pause
     exit /b 1
 )

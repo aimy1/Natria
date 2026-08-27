@@ -91,6 +91,8 @@
     "message-circle": [["path", { d: "M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" }]],
     "messages-square": [["path", { d: "M14 9a2 2 0 0 1-2 2H6l-4 4V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2z" }], ["path", { d: "M18 9h2a2 2 0 0 1 2 2v10l-4-4h-6a2 2 0 0 1-2-2v-1" }]],
     moon: [["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" }]],
+    mic: [["path", { d: "M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" }], ["path", { d: "M19 10v2a7 7 0 0 1-14 0v-2" }], ["line", { x1: "12", x2: "12", y1: "19", y2: "22" }]],
+    "mic-off": [["line", { x1: "2", x2: "22", y1: "2", y2: "22" }], ["path", { d: "M18.89 13.23A7.12 7.12 0 0 0 19 12v-2" }], ["path", { d: "M5 10v2a7 7 0 0 0 12 5" }], ["path", { d: "M15 9.34V5a3 3 0 0 0-5.68-1.33" }], ["path", { d: "M9 9v3a3 3 0 0 0 5.12 2.12" }], ["line", { x1: "12", x2: "12", y1: "19", y2: "22" }]],
     "image-search": [["rect", { x: "3", y: "3", width: "14", height: "14", rx: "2" }], ["circle", { cx: "11", cy: "9", r: "2" }], ["path", { d: "m3 15 4-4 5 5" }], ["circle", { cx: "18", cy: "18", r: "3" }], ["path", { d: "m20.2 20.2 1.8 1.8" }]],
     image: [["rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }], ["circle", { cx: "8.5", cy: "8.5", r: "1.5" }], ["path", { d: "m21 15-5-5L5 21" }]],
     "file-code": [["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }], ["path", { d: "M14 2v6h6" }], ["path", { d: "m10 13-2 2 2 2" }], ["path", { d: "m14 13 2 2-2 2" }]],
@@ -313,6 +315,7 @@
     popConfirmButton: document.getElementById("popConfirmButton"),
     resetCancelButton: document.getElementById("resetCancelButton"),
     resetConfirmButton: document.getElementById("resetConfirmButton"),
+    micButton: document.getElementById("micButton"),
     voiceToggleButton: document.getElementById("voiceToggleButton"),
     voiceEnabledToggle: document.getElementById("voiceEnabledToggle"),
     voiceFilterActionsToggle: document.getElementById("voiceFilterActionsToggle"),
@@ -7260,6 +7263,15 @@
     } else {
       scheduleMarkdownRender(live.currentText);
     }
+
+    // 真·流式同步语音：当开启语音播报且当前处于可视会话时，实时分批触发语音断句与合成
+    if (state.voiceEnabled && liveViewed(live)) {
+      if (!live.voiceSession || live.voiceSession.ended) {
+        live.voiceSession = new StreamingVoiceSession(live.runId);
+      }
+      live.voiceSession.feed(text);
+    }
+
     contentAdded(live);
   }
 
@@ -8969,10 +8981,19 @@
       // 立即出现，不等下一次轮询。
       loadSessionView(state.viewSessionId, { quiet: true });
     }
-    if (kind === "completed" || kind === "cancelled") {
-      if (kind === "completed" && liveViewed(live) && state.voiceEnabled && live.assistantText) {
+    if (kind === "completed") {
+      if (live.voiceSession) {
+        live.voiceSession.finish();
+      } else if (liveViewed(live) && state.voiceEnabled && live.assistantText) {
         playVoiceText(live.assistantText);
       }
+    } else {
+      if (live.voiceSession) {
+        live.voiceSession.interrupt();
+        live.voiceSession = null;
+      }
+    }
+    if (kind === "completed" || kind === "cancelled") {
       // 上下文条跟着正在看的会话走（没有视图时退回终端车道）。
       // cancelled 也要刷新：被中断的轮次已经持久化进上下文。
       const updatesGlobalContext = !data?.session_id
@@ -11041,6 +11062,7 @@
   let activeAudioSource = null;
   let voiceQueueAbortController = null;
   let voicePlaybackToken = 0;
+  let activeStreamingVoiceSession = null;
 
   function getAudioContext() {
     if (!webAudioCtx) {
@@ -11057,6 +11079,10 @@
 
   function stopVoice() {
     voicePlaybackToken++;
+    if (activeStreamingVoiceSession) {
+      activeStreamingVoiceSession.interrupt();
+      activeStreamingVoiceSession = null;
+    }
     if (voiceQueueAbortController) {
       try { voiceQueueAbortController.abort(); } catch (_) {}
       voiceQueueAbortController = null;
@@ -11219,6 +11245,214 @@
       return await ctx.decodeAudioData(arrayBuffer.slice(0));
     }
     return arrayBuffer;
+  }
+
+  class StreamingVoiceSession {
+    constructor(runId, options = {}) {
+      this.runId = runId;
+      this.options = {
+        voice: options.voice || state.voiceConfig.voice || "zh-CN-XiaoxiaoNeural",
+        pitch: options.pitch || state.voiceConfig.pitch || "+0Hz",
+        rate: options.rate || state.voiceConfig.rate || "+0%",
+        volume: options.volume || state.voiceConfig.volume || "+0%",
+        engine: options.engine || state.voiceConfig.engine || "edge_tts",
+        endpoint: options.endpoint || state.voiceConfig.endpoint || undefined,
+        apiKey: options.apiKey || state.voiceConfig.apiKey || undefined,
+        promptAudio: options.promptAudio || state.voiceConfig.promptAudio || undefined,
+        promptText: options.promptText || state.voiceConfig.promptText || undefined,
+        promptLang: options.promptLang || state.voiceConfig.promptLang || undefined,
+      };
+      this.token = ++voicePlaybackToken;
+      this.abortController = new AbortController();
+      voiceQueueAbortController = this.abortController;
+      activeStreamingVoiceSession = this;
+      this.buffer = "";
+      this.inCodeBlock = false;
+      this.queue = [];
+      this.ended = false;
+      this.consumerRunning = false;
+    }
+
+    feed(delta) {
+      if (this.ended || this.abortController.signal.aborted || this.token !== voicePlaybackToken) return;
+      this.buffer += String(delta || "");
+      this.extractSentences(false);
+    }
+
+    finish() {
+      if (this.ended || this.abortController.signal.aborted || this.token !== voicePlaybackToken) return;
+      this.ended = true;
+      this.extractSentences(true);
+      if (this.queue.length === 0 && !this.consumerRunning) {
+        if (activeStreamingVoiceSession === this) activeStreamingVoiceSession = null;
+        elements.voiceToggleButton?.classList.remove("is-speaking");
+      }
+    }
+
+    interrupt() {
+      this.ended = true;
+      try { this.abortController.abort(); } catch (_) {}
+      this.queue = [];
+      if (activeAudioSource) {
+        try { activeAudioSource.stop(); } catch (_) {}
+        activeAudioSource = null;
+      }
+      if (state.currentAudio) {
+        try {
+          state.currentAudio.pause();
+          state.currentAudio.currentTime = 0;
+          state.currentAudio.src = "";
+        } catch (_) {}
+        state.currentAudio = null;
+      }
+      if (activeStreamingVoiceSession === this) {
+        activeStreamingVoiceSession = null;
+      }
+      elements.voiceToggleButton?.classList.remove("is-speaking");
+    }
+
+    extractSentences(isFinal) {
+      while (this.buffer.length > 0) {
+        if (state.voiceConfig?.readCodeBlocks === false) {
+          const fenceIdx = this.buffer.indexOf("```");
+          if (fenceIdx !== -1) {
+            if (!this.inCodeBlock) {
+              const textBefore = this.buffer.slice(0, fenceIdx);
+              this.buffer = this.buffer.slice(fenceIdx + 3);
+              this.inCodeBlock = true;
+              this.dispatchText(textBefore);
+              continue;
+            } else {
+              this.buffer = this.buffer.slice(fenceIdx + 3);
+              this.inCodeBlock = false;
+              continue;
+            }
+          } else if (this.inCodeBlock) {
+            if (isFinal) this.buffer = "";
+            break;
+          }
+        }
+
+        const cut = this.findCutPoint(isFinal);
+        if (cut !== null) {
+          const rawSegment = this.buffer.slice(0, cut);
+          this.buffer = this.buffer.slice(cut);
+          this.dispatchText(rawSegment);
+        } else {
+          break;
+        }
+      }
+    }
+
+    findCutPoint(isFinal) {
+      if (!this.buffer) return null;
+      const strongPunct = /[。！？!?\n;；…]/;
+      const weakPunct = /[，,、：:]/;
+
+      for (let i = 0; i < this.buffer.length; i++) {
+        const char = this.buffer[i];
+        if (strongPunct.test(char)) {
+          return i + 1;
+        }
+        if (weakPunct.test(char) && i >= 18) {
+          return i + 1;
+        }
+      }
+      if (isFinal && this.buffer.trim().length > 0) {
+        return this.buffer.length;
+      }
+      return null;
+    }
+
+    dispatchText(rawText) {
+      if (!rawText) return;
+      const sentences = splitTextIntoSentences(rawText);
+      for (const sent of sentences) {
+        const cleaned = cleanTextForVoice(sent);
+        if (cleaned && /[\u4e00-\u9fa5a-zA-Z0-9]/.test(cleaned)) {
+          this.enqueueSentence(cleaned);
+        }
+      }
+    }
+
+    enqueueSentence(sentence) {
+      if (this.abortController.signal.aborted || this.token !== voicePlaybackToken) return;
+
+      const item = {
+        sentence,
+        promise: fetchSpeechAudioBuffer(sentence, this.options, this.abortController.signal).catch((err) => {
+          if (err.name !== "AbortError") console.warn("[StreamingVoice] 单句语音拉取失败:", err);
+          return null;
+        })
+      };
+      this.queue.push(item);
+      if (!this.consumerRunning) {
+        this.runConsumer();
+      }
+    }
+
+    async runConsumer() {
+      this.consumerRunning = true;
+      elements.voiceToggleButton?.classList.add("is-speaking");
+
+      while (this.queue.length > 0) {
+        if (this.token !== voicePlaybackToken || this.abortController.signal.aborted) {
+          break;
+        }
+        const item = this.queue.shift();
+        const audioBuffer = await item.promise;
+
+        if (this.token !== voicePlaybackToken || this.abortController.signal.aborted) {
+          break;
+        }
+        if (!audioBuffer) continue;
+
+        const ctx = getAudioContext();
+        if (ctx && audioBuffer instanceof AudioBuffer) {
+          await new Promise((resolve) => {
+            if (this.token !== voicePlaybackToken || this.abortController.signal.aborted) {
+              resolve();
+              return;
+            }
+            const sourceNode = ctx.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+            sourceNode.connect(ctx.destination);
+            activeAudioSource = sourceNode;
+            sourceNode.onended = () => {
+              if (activeAudioSource === sourceNode) activeAudioSource = null;
+              resolve();
+            };
+            sourceNode.start(0);
+          });
+        } else if (audioBuffer instanceof ArrayBuffer) {
+          const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
+          const audioUrl = URL.createObjectURL(blob);
+          const audio = new Audio(audioUrl);
+          state.currentAudio = audio;
+          await new Promise((resolve) => {
+            audio.onended = () => {
+              state.currentAudio = null;
+              URL.revokeObjectURL(audioUrl);
+              resolve();
+            };
+            audio.onerror = () => {
+              state.currentAudio = null;
+              URL.revokeObjectURL(audioUrl);
+              resolve();
+            };
+            audio.play().catch(resolve);
+          });
+        }
+      }
+
+      this.consumerRunning = false;
+      if (this.queue.length === 0 && this.ended) {
+        if (this.token === voicePlaybackToken) {
+          elements.voiceToggleButton?.classList.remove("is-speaking");
+          if (activeStreamingVoiceSession === this) activeStreamingVoiceSession = null;
+        }
+      }
+    }
   }
 
   async function playVoiceText(text, customOptions = {}, onStart = null, onEnd = null) {
@@ -12321,6 +12555,104 @@
     updateVoiceControls();
   }
 
+  let speechRecognizer = null;
+  let isSpeechListening = false;
+  let speechBaseText = "";
+
+  function initSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    const updateMicButtonState = (listening) => {
+      isSpeechListening = listening;
+      if (elements.micButton) {
+        elements.micButton.classList.toggle("is-listening", listening);
+        elements.micButton.title = listening
+          ? "正在聆听中... (再次点击完成/停止录音)"
+          : "点击开始语音输入 (识别你说的内容)";
+      }
+    };
+
+    if (!SpeechRecognition) {
+      elements.micButton?.addEventListener("click", () => {
+        showToast("当前浏览器暂未开启原生语音识别 API，建议使用 Chrome / Edge 浏览器体验最佳语音输入", "warning");
+      });
+      return;
+    }
+
+    try {
+      speechRecognizer = new SpeechRecognition();
+      speechRecognizer.continuous = true;
+      speechRecognizer.interimResults = true;
+      speechRecognizer.lang = "zh-CN";
+
+      speechRecognizer.onstart = () => {
+        speechBaseText = elements.composerInput?.value || "";
+        updateMicButtonState(true);
+        showToast("麦克风已就绪，请说话...", "info");
+      };
+
+      speechRecognizer.onresult = (event) => {
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        const currentSpeech = (finalTranscript + interimTranscript).trim();
+        if (elements.composerInput) {
+          const glue = speechBaseText && !/\s$/.test(speechBaseText) ? " " : "";
+          elements.composerInput.value = speechBaseText + (currentSpeech ? glue + currentSpeech : "");
+          resizeComposer();
+          updateCharacterCount();
+          updateControlState();
+          elements.composerInput.scrollTop = elements.composerInput.scrollHeight;
+        }
+      };
+
+      speechRecognizer.onerror = (event) => {
+        console.warn("[SpeechRecognition] Error:", event.error);
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          showToast("麦克风权限被拒绝，请在浏览器地址栏允许麦克风权限", "error");
+        } else if (event.error === "network") {
+          showToast("语音识别网络服务异常，请检查网络连接", "warning");
+        }
+        updateMicButtonState(false);
+      };
+
+      speechRecognizer.onend = () => {
+        updateMicButtonState(false);
+        elements.composerInput?.focus();
+      };
+
+      elements.micButton?.addEventListener("click", () => {
+        if (isSpeechListening) {
+          try { speechRecognizer.stop(); } catch (_) {}
+          updateMicButtonState(false);
+        } else {
+          try {
+            speechRecognizer.start();
+          } catch (err) {
+            console.warn("[SpeechRecognition] Start error:", err);
+            try { speechRecognizer.stop(); } catch (_) {}
+            setTimeout(() => {
+              try { speechRecognizer.start(); } catch (e) {
+                showToast("启动语音识别失败: " + e.message, "error");
+              }
+            }, 100);
+          }
+        }
+      });
+    } catch (err) {
+      console.warn("[SpeechRecognition] Init error:", err);
+    }
+  }
+
   function syncAppHeight() {
     const viewport = window.visualViewport;
     if (!viewport) return;
@@ -12346,6 +12678,7 @@
     setSettingsView("interface");
     bindEvents();
     initVoiceUI();
+    initSpeechRecognition();
     resizeComposer();
     updateSettingsControls();
     // 命令目录从服务端拉，前端不维护第二份清单。拉失败就当没有命令，

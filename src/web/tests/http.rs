@@ -228,8 +228,10 @@ fn persisted_meme_assets_hide_their_descriptive_caption() {
 
 /// comm 字段可以合法地包含空格和右括号(如进程改名成 "a) b"),解析必须
 /// 锚定在最后一个 ')' 之后,否则字段错位会把别的数字当成 tpgid。
+#[cfg(unix)]
 #[test]
 fn stat_parse_survives_hostile_comm() {
+    use crate::web::tty::parse_stat_pgrp_tpgid;
     // 正常 fish:pgrp==tpgid(停在提示符)
     let stat = "1234 (fish) S 1000 1234 1234 34816 1234 4194304 1 0 0 0";
     assert_eq!(parse_stat_pgrp_tpgid(stat), Some((1234, 1234)));
@@ -245,8 +247,10 @@ fn stat_parse_survives_hostile_comm() {
 /// 真 PTY 全链路:python pty.fork 造出「会话首进程挂在 pts 上且是前台」的
 /// 假 shell(exec sleep),验证 ① 在提示符判定为真 ② 写回的字节真从 master
 /// 端读出来 ③ 进程死后判定翻假。覆盖 /proc 探测和 tty 写入两段真实内核路径。
+#[cfg(unix)]
 #[test]
 fn origin_tty_gates_and_writeback_against_real_pty() {
+    use crate::web::tty::*;
     // 这段 Python 的缩进是语义的一部分。拆分模块时被重排过一次(缩进全被
     // 抹平),脚本变成 IndentationError 秒死、无 stdout,下面 `lines.next()`
     // 拿到 None 就 panic —— 报错指向 Rust 侧,真凶却在字符串里。改这里之后
