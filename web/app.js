@@ -9656,6 +9656,7 @@
     const queueing = conversationRunning();
     const updateTarget = queueing ? activeTurnUpdateTarget(sessionId) : null;
     const content = elements.composerInput.value.trim();
+    resetSpeechSession();
     // 命中命令表就当命令执行，不当消息发。不命中的 `/xxx` 照常发给模型
     // ——与 REPL 同一语义（slash_commands::parse_repl_input）。
     if (window.MiyuCommands?.match(content)) {
@@ -12582,6 +12583,15 @@
   let speechBaseText = "";
   let shouldKeepListening = false;
 
+  function resetSpeechSession() {
+    speechBaseText = "";
+    if (speechRecognizer) {
+      try {
+        speechRecognizer.stop();
+      } catch (_) {}
+    }
+  }
+
   function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -12689,6 +12699,12 @@
               }
             }, 100);
           }
+        }
+      });
+
+      elements.composerInput?.addEventListener("input", () => {
+        if (!isSpeechListening) {
+          speechBaseText = elements.composerInput.value;
         }
       });
     } catch (err) {
