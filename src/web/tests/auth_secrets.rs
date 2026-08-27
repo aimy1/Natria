@@ -7,9 +7,10 @@ fn cookie_parser_matches_an_exact_cookie_name() {
     let mut headers = HeaderMap::new();
     headers.insert(
         COOKIE,
-        HeaderValue::from_static("other=1; miyu_session=secret-token; suffix=2"),
+        HeaderValue::from_static("other=1; natria_session=secret-token; miyu_session=legacy-token; suffix=2"),
     );
     assert_eq!(cookie_value(&headers, AUTH_COOKIE), Some("secret-token"));
+    assert_eq!(cookie_value(&headers, LEGACY_AUTH_COOKIE), Some("legacy-token"));
     assert_eq!(cookie_value(&headers, "session"), None);
 }
 

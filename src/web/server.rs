@@ -53,17 +53,17 @@ pub async fn run(paths: MiyuPaths, args: WebArgs) -> Result<()> {
                 requested_port = args.port,
                 "{}",
                 t(
-                    "Miyu WebUI default port is occupied; selecting an ephemeral port",
-                    "Miyu WebUI 默认端口已被占用；将选择临时端口"
+                    "Natria WebUI default port is occupied; selecting an ephemeral port",
+                    "Natria WebUI 默认端口已被占用；将选择临时端口"
                 )
             );
             tokio::net::TcpListener::bind(SocketAddr::new(bind_ip, 0))
                 .await
-                .context("binding Miyu WebUI to an ephemeral fallback port")?
+                .context("binding Natria WebUI to an ephemeral fallback port")?
         }
         Err(error) => {
             return Err(error)
-                .with_context(|| format!("binding Miyu WebUI to {bind_ip}:{}", args.port));
+                .with_context(|| format!("binding Natria WebUI to {bind_ip}:{}", args.port));
         }
     };
     let port = listener.local_addr()?.port();
@@ -169,7 +169,7 @@ pub async fn run(paths: MiyuPaths, args: WebArgs) -> Result<()> {
         .map_err(|_| anyhow::anyhow!("WebUI actor thread panicked"))?;
     memory_organizer.shutdown();
     drop(ipc_lease);
-    serve_result.context("serving Miyu WebUI")?;
+    serve_result.context("serving Natria WebUI")?;
     actor_result
 }
 
@@ -217,7 +217,7 @@ pub(in crate::web) async fn follow_run<S: AsyncWriteExt + Unpin>(
         if record.kind == "resync_required" {
             ipc::send(
                 stream,
-                &IpcFrame::error("Miyu core event history was exhausted"),
+                &IpcFrame::error("Natria core event history was exhausted"),
             )
             .await?;
             break;
@@ -274,7 +274,7 @@ pub(in crate::web) fn router(state: DaemonState) -> Router {
         .route("/vendor/katex/fonts/{font}", get(katex_font_asset))
         .route("/api/media", get(media_stream))
         .route("/assets/natria-logo.png", get(logo_asset))
-        .route("/assets/nayria-logo.png", get(logo_asset))
+        .route("/assets/natriawallpaper.png", get(wallpaper_asset))
         .route("/assets/miyu-logo.png", get(logo_asset))
         .route("/assets/miyuwallpaper.png", get(wallpaper_asset))
         .route("/api/health", get(health))
@@ -399,7 +399,7 @@ pub(in crate::web) fn router(state: DaemonState) -> Router {
 /// never pin a stale file.
 pub(in crate::web) fn build_etag() -> &'static HeaderValue {
     static ETAG_VALUE: std::sync::LazyLock<HeaderValue> = std::sync::LazyLock::new(|| {
-        HeaderValue::from_str(concat!("\"", env!("MIYU_BUILD_ID"), "\""))
+        HeaderValue::from_str(concat!("\"", env!("NATRIA_BUILD_ID"), "\""))
             .expect("build id forms a valid header value")
     });
     &ETAG_VALUE

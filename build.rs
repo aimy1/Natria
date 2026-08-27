@@ -22,13 +22,12 @@ fn main() {
     println!("cargo:rerun-if-changed=web/index.html");
     println!("cargo:rerun-if-changed=web/styles.css");
     println!("cargo:rerun-if-changed=web/app.js");
-    println!(
-        "cargo:rustc-env=MIYU_BUILD_ID={}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|duration| duration.as_nanos())
-            .unwrap_or(0)
-    );
+    let build_id = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    println!("cargo:rustc-env=NATRIA_BUILD_ID={build_id}");
+    println!("cargo:rustc-env=MIYU_BUILD_ID={build_id}");
 
     let obfuscate = |path: &str| {
         let content = fs::read(path).unwrap_or_else(|_| panic!("read {path}"));

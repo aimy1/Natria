@@ -25,7 +25,8 @@ pub(crate) enum ActorCommand {
         origin_tty: Option<crate::ipc::OriginTty>,
         audience: PromptAudience,
         /// Platform-only per-turn overrides. CLI/WebUI turns leave this empty.
-        profile: Option<crate::platforms::TurnProfile>,
+        /// Boxed to keep ActorCommand within the 512-byte queue guard.
+        profile: Option<Box<crate::platforms::TurnProfile>>,
         cancel: tokio::sync::watch::Receiver<bool>,
         /// 回合发起来源(缺省 Human;goal 驱动器与 job 唤醒如实声明)。
         /// 装箱:GoalRound 变体带 String,内联会顶爆 ActorCommand 的

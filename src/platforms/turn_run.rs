@@ -64,7 +64,7 @@ pub(crate) async fn run_platform_turn(
     {
         let mut manager = state.manager.lock().unwrap();
         if manager.admin_busy {
-            bail!("Miyu is busy with another operation");
+            bail!("Natria is busy with another operation");
         }
         manager.active_runs.insert(
             run_id.clone(),
@@ -112,14 +112,14 @@ pub(crate) async fn run_platform_turn(
             cwd: None,
             origin_tty: None,
             audience: PromptAudience::External,
-            profile: Some(profile),
+            profile: Some(Box::new(profile)),
             cancel: cancel_rx,
             turn_origin: Box::new(crate::tools::workspace::TurnOrigin::Human),
         })
         .is_err()
     {
         crate::runtime::finish_run(&state.manager, &run_id, None);
-        bail!("Miyu core worker is unavailable");
+        bail!("Natria core worker is unavailable");
     }
     // Cancels the run if this task dies before the turn settles.
     let mut run_guard = IpcRunGuard {
@@ -151,7 +151,7 @@ pub(crate) async fn run_platform_turn(
                 }
                 Ok(Err(broadcast::error::RecvError::Closed)) => {
                     break TurnDispatch::Failed(
-                        crate::i18n::text("Miyu core stopped", "Miyu 核心已停止").to_string(),
+                        crate::i18n::text("Natria core stopped", "Natria 核心已停止").to_string(),
                     );
                 }
             }

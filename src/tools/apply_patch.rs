@@ -949,6 +949,7 @@ mod tests {
         assert_eq!(artifacts, [report, notes]);
     }
 
+    #[cfg(unix)]
     #[test]
     fn artifact_patch_rejects_unsafe_paths_and_symlinks_but_allows_delete() {
         use std::os::unix::fs::symlink;

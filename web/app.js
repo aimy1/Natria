@@ -394,7 +394,7 @@
     persona: {
       name: "小盐",
       avatar_url: "/assets/natria-logo.png",
-      board_image_url: "/assets/miyuwallpaper.png",
+      board_image_url: "/assets/natriawallpaper.png",
       board_title: DEFAULT_BOARD_TITLE,
       board_subtitle: DEFAULT_BOARD_SUBTITLE,
       starter_prompts: DEFAULT_STARTER_PROMPTS
@@ -5618,7 +5618,8 @@
     state.stageTodos = todos?.length ? todos : null;
     const panel = elements.stageTodos;
     panel.replaceChildren();
-    const card = state.stageTodos ? window.MiyuTodos?.renderList(state.stageTodos) : null;
+    const todosModule = window.NatriaTodos || window.MiyuTodos;
+    const card = state.stageTodos ? todosModule?.renderList(state.stageTodos) : null;
     if (!card) {
       panel.hidden = true;
       return;
@@ -5900,7 +5901,8 @@
       const response = await apiRequest(`/api/sessions/${encodeURIComponent(scope)}/todos`);
       const payload = await response.json();
       if (generation !== state.stageTodosGeneration) return;
-      renderStageTodos(window.MiyuTodos?.normalize(payload?.todos) || null);
+      const todosModule = window.NatriaTodos || window.MiyuTodos;
+      renderStageTodos(todosModule?.normalize(payload?.todos) || null);
     } catch (_) {
       // 面板是附带信息,拿不到就空着,不打扰对话。
       if (generation === state.stageTodosGeneration) renderStageTodos(null);
@@ -6327,7 +6329,8 @@
       visual.setAttribute("role", "button");
       visual.setAttribute("aria-label", `放大预览 ${alt}`);
       const openLightbox = () => {
-        window.MiyuLightbox?.open({
+        const lightbox = window.NatriaLightbox || window.MiyuLightbox;
+        lightbox?.open({
           url,
           name: alt,
           onOpenInWorkspace: () => {
@@ -6501,8 +6504,9 @@
         blocks.appendChild(createPersistedToolCard(call));
         // share_file 的富预览(播放器/图片/下载条)重建:实时靠 tool.finished
         // 的输出渲染,刷新/切换后从落库的 tool_flow 输出里复原同一份。
-        if (window.MiyuShared?.isShareTool(String(call?.name || ""))) {
-          const shared = window.MiyuShared.renderCard(String(call?.output || ""));
+        const sharedModule = window.NatriaShared || window.MiyuShared;
+        if (sharedModule?.isShareTool(String(call?.name || ""))) {
+          const shared = sharedModule.renderCard(String(call?.output || ""));
           if (shared) blocks.appendChild(shared);
         }
       }
@@ -6796,7 +6800,8 @@
       for (const turn of turns) renderPersistedTurn(turn);
     }
     // 命令回执不是回合，不在 state.turns 里；timeline 每次重建都要补回来。
-    window.MiyuCommands?.renderNotices(elements.timeline, state.viewSessionId);
+    const commandsModule = window.NatriaCommands || window.MiyuCommands;
+    commandsModule?.renderNotices(elements.timeline, state.viewSessionId);
     reattachLiveArticles();
     // 落盘回合数为 0 不等于屏幕上没内容：回执和正在流式输出的气泡都不在
     // state.turns 里。只按 turns 判空的话，运行中一次重绘就把画面整个换成
@@ -7629,11 +7634,13 @@
       body.appendChild(detail.wrapper);
     }
     card.append(head, body);
+    const todosModule = window.NatriaTodos || window.MiyuTodos;
+    const sharedModule = window.NatriaShared || window.MiyuShared;
     // 待办列表挂在签外面,收起态也看得见——那是给人看的产出,不是调试信息。
-    const todos = window.MiyuTodos?.isTodoTool(name) ? window.MiyuTodos.render(output) : null;
+    const todos = todosModule?.isTodoTool(name) ? todosModule.render(output) : null;
     if (todos) card.appendChild(todos);
     // 分享附件同理:文件卡片是交付物,直接出现在气泡里,点击即下载。
-    const shared = window.MiyuShared?.isShareTool(name) ? window.MiyuShared.renderCard(output) : null;
+    const shared = sharedModule?.isShareTool(name) ? sharedModule.renderCard(output) : null;
     if (shared) card.appendChild(shared);
     return card;
   }
@@ -8060,21 +8067,23 @@
       tool.resultDetail.wrapper.hidden = !tool.resultDetail.raw;
       const ok = Boolean(data?.ok);
       resetPreparingWindow(live);
+      const todosModule = window.NatriaTodos || window.MiyuTodos;
+      const sharedModule = window.NatriaShared || window.MiyuShared;
       // 只刷正在看的那个会话——后台会话的 todowrite 不该改屏幕上这块面板。
-      if (ok && window.MiyuTodos?.isTodoTool(tool.name)
+      if (ok && todosModule?.isTodoTool(tool.name)
         && runSessionId(live.runId) === String(state.viewSessionId || "")) {
-        renderStageTodos(window.MiyuTodos.parse(output));
+        renderStageTodos(todosModule.parse(output));
       }
       // 与回看那份同构（`createPersistedToolCard`）：待办列表挂在签外面。
       // 只在这里画会让实时和刷新后长得不一样,那正是工具签之前踩过的坑。
-      if (ok && window.MiyuTodos?.isTodoTool(tool.name)) {
-        const todos = window.MiyuTodos.render(output);
+      if (ok && todosModule?.isTodoTool(tool.name)) {
+        const todos = todosModule.render(output);
         tool.card.querySelector(".todo-panel")?.remove();
         if (todos) tool.card.appendChild(todos);
       }
       // 分享附件同坑同修:实时完成时也要挂,否则只有刷新后才能看到卡片。
-      if (ok && window.MiyuShared?.isShareTool(tool.name)) {
-        const shared = window.MiyuShared.renderCard(output);
+      if (ok && sharedModule?.isShareTool(tool.name)) {
+        const shared = sharedModule.renderCard(output);
         tool.card.querySelector(".shared-attachment")?.remove();
         if (shared) tool.card.appendChild(shared);
       }
@@ -9679,8 +9688,9 @@
     resetSpeechSession();
     // 命中命令表就当命令执行，不当消息发。不命中的 `/xxx` 照常发给模型
     // ——与 REPL 同一语义（slash_commands::parse_repl_input）。
-    if (window.MiyuCommands?.match(content)) {
-      window.MiyuCommands.hide();
+    const commandsModule = window.NatriaCommands || window.MiyuCommands;
+    if (commandsModule?.match(content)) {
+      commandsModule.hide();
       // 同一条命令不能重入。命令往往要等服务端干完活（/reset 要清库、/compact
       // 要重算上下文），这期间用户看不出回车生效没有，很自然会再敲一次。
       if (state.commandRunning) return;
@@ -9692,7 +9702,7 @@
       updateControlState();
       let handled = false;
       try {
-        handled = await window.MiyuCommands.tryRun(content, {
+        handled = await commandsModule.tryRun(content, {
           apiRequest,
           sessionId: state.viewSessionId,
           mode: viewSessionEntry()?.mode === "dev" ? "dev" : "normal",
@@ -10004,7 +10014,7 @@
       && !typingSomewhere()
       && !state.blocked
       && !consoleIsOpen()
-      && !window.MiyuLightbox?.isOpen()
+      && !(window.NatriaLightbox || window.MiyuLightbox)?.isOpen()
       && !elements.resetDialog.open
       && !elements.composerInput.disabled) {
       event.preventDefault();
@@ -10894,13 +10904,13 @@
     elements.composerInput.addEventListener("input", resizeComposer);
     // 斜杠命令的补全菜单（逻辑在 commands.js，这里只喂输入、收回填）
     elements.composerInput.addEventListener("input", () => {
-      window.MiyuCommands?.onInput(elements.composerInput.value, elements.composerDock, (name) => {
+      (window.NatriaCommands || window.MiyuCommands)?.onInput(elements.composerInput.value, elements.composerDock, (name) => {
         elements.composerInput.value = name;
         elements.composerInput.focus();
         resizeComposer();
       });
     });
-    elements.composerInput.addEventListener("blur", () => window.MiyuCommands?.hide());
+    elements.composerInput.addEventListener("blur", () => (window.NatriaCommands || window.MiyuCommands)?.hide());
     elements.attachButton.addEventListener("click", () => elements.attachmentInput.click());
     elements.attachmentInput.addEventListener("change", () => {
       addComposerFiles(elements.attachmentInput.files);
@@ -10946,7 +10956,7 @@
     elements.composerInput.addEventListener("keydown", (event) => {
       // 菜单开着时它先吃掉上下键与 Tab/Enter：补全后再按一次回车才执行，
       // 与 REPL 一致，用户有机会反悔。
-      if (window.MiyuCommands?.handleKey(event)) {
+      if ((window.NatriaCommands || window.MiyuCommands)?.handleKey(event)) {
         event.preventDefault();
         return;
       }
@@ -12889,13 +12899,16 @@
     updateSettingsControls();
     // 命令目录从服务端拉，前端不维护第二份清单。拉失败就当没有命令，
     // 所有 / 开头的输入照常发给模型。
-    window.MiyuCommands?.load(apiRequest);
+    (window.NatriaCommands || window.MiyuCommands)?.load(apiRequest);
     // 灯箱自己不会画图标（图标集在这边），把工厂函数递过去。
-    window.MiyuLightbox?.init({ makeIconSlot });
+    (window.NatriaLightbox || window.MiyuLightbox)?.init({ makeIconSlot });
     startBrailleTicker();
-    // G2:页面不可见时给 body 挂 miyu-paused,CSS 据此暂停全部装饰动画。
+    // G2:页面不可见时给 body 挂 natria-paused/miyu-paused,CSS 据此暂停全部装饰动画。
     // 实测(Xvfb+Chrome)不挂这个时隐藏窗口的合成负载与可见时完全一样。
-    const syncPaused = () => document.body.classList.toggle("miyu-paused", document.hidden);
+    const syncPaused = () => {
+      document.body.classList.toggle("natria-paused", document.hidden);
+      document.body.classList.toggle("miyu-paused", document.hidden);
+    };
     document.addEventListener("visibilitychange", syncPaused);
     syncPaused();
     loadBootstrap();

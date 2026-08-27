@@ -214,8 +214,8 @@ pub(in crate::web) async fn handle_session_command(
                     "tool error: {:#}. {}",
                     registry.unknown_tool_error(&name),
                     t(
-                        "run `miyu tool-call --list` to see tools callable in this session",
-                        "用 `miyu tool-call --list` 查看本会话可调用的工具"
+                        "run `natria tool-call --list` to see tools callable in this session",
+                        "用 `natria tool-call --list` 查看本会话可调用的工具"
                     )
                 ));
             }

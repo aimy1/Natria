@@ -214,6 +214,7 @@ fn resource_path_remapping_includes_the_legacy_xdg_config_root() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn resource_migration_defers_for_starters_except_inside_the_spawned_daemon() {
     let temp = tempfile::tempdir().unwrap();
@@ -235,6 +236,7 @@ fn resource_migration_defers_for_starters_except_inside_the_spawned_daemon() {
     assert!(!daemon_is_running_at(&runtime_dir, true));
 }
 
+#[cfg(unix)]
 #[test]
 fn resource_migration_holds_runtime_exclusion_through_commit() {
     let temp = tempfile::tempdir().unwrap();

@@ -80,8 +80,8 @@ pub(in crate::platforms::onebot) async fn execute_builtin_command(
                             )
                             .to_string(),
                             Err(PlatformSessionResetError::Unavailable) => t(
-                                "The Miyu core is unavailable, so the conversation was not reset.",
-                                "Miyu 核心当前不可用，会话未重置。",
+                                "The Natria core is unavailable, so the conversation was not reset.",
+                                "Natria 核心当前不可用，会话未重置。",
                             )
                             .to_string(),
                             Err(PlatformSessionResetError::Internal(error)) => {
@@ -113,8 +113,8 @@ pub(in crate::platforms::onebot) async fn execute_builtin_command(
                     )
                     .to_string(),
                     Err(PlatformPersonaResetError::Busy) => t(
-                        "Miyu is busy. Try again shortly.",
-                        "Miyu 正忙，请稍后重试。",
+                        "Natria is busy. Try again shortly.",
+                        "Natria 正忙，请稍后重试。",
                     )
                     .to_string(),
                     Err(PlatformPersonaResetError::Unavailable) => t(
@@ -262,8 +262,8 @@ pub(in crate::platforms::onebot) fn execute_models_command(state: &DaemonState, 
     };
     if manager.admin_busy {
         return t(
-            "Miyu is busy with another admin operation. Try again shortly.",
-            "Miyu 正忙于其他管理操作，请稍后再试。",
+            "Natria is busy with another admin operation. Try again shortly.",
+            "Natria 正忙于其他管理操作，请稍后再试。",
         )
         .to_string();
     }

@@ -85,7 +85,7 @@ pub(in crate::web) async fn actor_loop(
                     },
                     mode,
                     audience,
-                    profile,
+                    profile.map(|p| *p),
                     cancel,
                     resource_cache.clone(),
                     turn_engine.clone(),

@@ -286,8 +286,9 @@ fn persona_identity_uses_default_and_custom_values() {
     let mut config = AppConfig::default();
     let prompts = PromptDocuments::default();
     let default = persona_identity(&config, &prompts);
-    assert_eq!(default.name, "Miyu");
+    assert_eq!(default.name, "小盐");
     assert_eq!(default.avatar_url.as_deref(), Some("/assets/natria-logo.png"));
+    assert_eq!(default.board_image_url.as_deref(), Some("/assets/natriawallpaper.png"));
 
     config.prompt.active_persona = "Alice.md".to_string();
     let prompts = PromptDocuments {

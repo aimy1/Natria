@@ -11,7 +11,8 @@ use crate::web::*;
 
 pub(in crate::web) const MAX_SECRET_CHARS: usize = 100_000;
 
-pub(in crate::web) const AUTH_COOKIE: &str = "miyu_session";
+pub(in crate::web) const AUTH_COOKIE: &str = "natria_session";
+pub(in crate::web) const LEGACY_AUTH_COOKIE: &str = "miyu_session";
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -251,9 +252,10 @@ pub(in crate::web) fn is_local_webui_request(audience: PromptAudience, has_turn_
 }
 
 pub(in crate::web) fn require_auth(headers: &HeaderMap, state: &DaemonState) -> std::result::Result<(), ApiError> {
+    let auth_token = cookie_value(headers, AUTH_COOKIE).or_else(|| cookie_value(headers, LEGACY_AUTH_COOKIE));
     if state
         .auth
-        .is_authenticated(cookie_value(headers, AUTH_COOKIE))
+        .is_authenticated(auth_token)
     {
         Ok(())
     } else {

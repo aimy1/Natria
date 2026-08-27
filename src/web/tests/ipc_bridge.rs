@@ -557,6 +557,7 @@ async fn dev_sessions_resolve_by_id_and_list_under_dev_mode() {
         .all(|session| session["session_id"].as_str() != Some(dev.session_id.as_str())));
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn config_reload_applies_disk_config() {
     let temp = tempfile::tempdir().unwrap();
@@ -588,6 +589,7 @@ async fn config_reload_applies_disk_config() {
     actor_join.join().unwrap().unwrap();
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn failed_config_reload_preserves_the_candidate_file() {
     let temp = tempfile::tempdir().unwrap();
@@ -634,6 +636,7 @@ async fn failed_config_reload_preserves_the_candidate_file() {
     assert!(!manager.admin_busy);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn busy_config_reload_returns_an_error_frame() {
     let temp = tempfile::tempdir().unwrap();
@@ -673,6 +676,7 @@ async fn busy_config_reload_returns_an_error_frame() {
     actor_join.join().unwrap().unwrap();
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn config_reload_succeeds_and_keeps_turns_running() {
     let temp = tempfile::tempdir().unwrap();

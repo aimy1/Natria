@@ -26,7 +26,7 @@ pub(in crate::cli) async fn run_web(paths: &MiyuPaths, mut args: WebArgs) -> Res
         let port = args.port;
         let bind = args.bind.unwrap_or(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
         for url in ipc::web_access_urls_for(bind, port) {
-            println!("Miyu WebUI: {url}");
+            println!("Natria WebUI: {url}");
         }
         return crate::daemon::run(paths.clone(), args).await;
     }
@@ -39,13 +39,13 @@ pub(in crate::cli) async fn run_web(paths: &MiyuPaths, mut args: WebArgs) -> Res
                     bail!(
                         "{}",
                         t(
-                            "the running Miyu daemon already owns Web settings; restart it to change them",
-                            "当前 Miyu daemon 已接管 Web 设置；如需修改请先重启 daemon"
+                            "the running Natria daemon already owns Web settings; restart it to change them",
+                            "当前 Natria daemon 已接管 Web 设置；如需修改请先重启 daemon"
                         )
                     );
                 }
                 for url in daemon_web_access_urls(&info) {
-                    println!("Miyu WebUI: {url}");
+                    println!("Natria WebUI: {url}");
                 }
                 return Ok(());
             }
@@ -60,7 +60,7 @@ pub(in crate::cli) async fn run_web(paths: &MiyuPaths, mut args: WebArgs) -> Res
         let launch = web_launch_config(paths, &args)?;
         let info = ipc::ensure_daemon(paths, launch.as_ref()).await?;
         for url in daemon_web_access_urls(&info) {
-            println!("Miyu WebUI: {url}");
+            println!("Natria WebUI: {url}");
         }
         Ok(())
     }
@@ -133,8 +133,8 @@ pub(in crate::cli) async fn run_daemon_command(paths: &MiyuPaths, args: DaemonAr
                 bail!(
                     "{}",
                     t(
-                        "the running Miyu daemon already owns Web settings; use `miyu daemon restart` to change the port",
-                        "当前 Miyu daemon 已接管 Web 设置；如需修改端口请使用 `miyu daemon restart`"
+                        "the running Natria daemon already owns Web settings; use `natria daemon restart` to change the port",
+                        "当前 Natria daemon 已接管 Web 设置；如需修改端口请使用 `natria daemon restart`"
                     )
                 );
             }
@@ -184,9 +184,9 @@ pub(in crate::cli) async fn stop_daemon(paths: &MiyuPaths) -> Result<()> {
     match ipc::daemon_info(paths).await {
         Some(info) => {
             ipc::shutdown_daemon(paths, &info).await?;
-            println!("{}", t("Miyu daemon stopped", "Miyu daemon 已停止"));
+            println!("{}", t("Natria daemon stopped", "Natria daemon 已停止"));
         }
-        None => println!("{}", t("Miyu daemon is not running", "Miyu daemon 未运行")),
+        None => println!("{}", t("Natria daemon is not running", "Natria daemon 未运行")),
     }
     // info 文件只指向最后一次 start 的进程:历史上多次 start 互相覆盖,会留
     // 下仍占 8300 的孤儿 daemon——stop 谎报成功,后续测试全打在旧代码上,新
@@ -267,13 +267,13 @@ async fn sweep_stray_daemons(paths: &MiyuPaths) -> usize {
 
 pub(in crate::cli) async fn print_daemon_status(paths: &MiyuPaths) -> Result<()> {
     let Some(info) = ipc::daemon_info(paths).await else {
-        println!("{}", t("Miyu daemon: stopped", "Miyu daemon：已停止"));
+        println!("{}", t("Natria daemon: stopped", "Natria daemon：已停止"));
         return Ok(());
     };
     let (_, data) = send_ipc_admin(paths, IpcCommand::GetStatus).await?;
     println!(
         "{} {} (PID {})",
-        t("Miyu daemon:", "Miyu daemon："),
+        t("Natria daemon:", "Natria daemon："),
         t("running", "运行中"),
         info.pid,
     );
@@ -346,8 +346,8 @@ pub(in crate::cli) async fn run_request_monitor(paths: &MiyuPaths) -> Result<()>
         bail!(
             "{}",
             t(
-                "the daemon is not running; start it first (miyu daemon start)",
-                "daemon 未运行;先 miyu daemon start"
+                "the daemon is not running; start it first (natria daemon start)",
+                "daemon 未运行;先 natria daemon start"
             )
         );
     }
@@ -528,15 +528,15 @@ pub(in crate::cli) async fn request_config_reload_at(
     .await
     .with_context(|| {
         t(
-            "timed out waiting for Miyu daemon to reload configuration",
-            "等待 Miyu daemon 重新加载配置超时",
+            "timed out waiting for Natria daemon to reload configuration",
+            "等待 Natria daemon 重新加载配置超时",
         )
     })?
 }
 
 pub(in crate::cli) async fn run_reload(paths: &MiyuPaths) -> Result<()> {
     if ipc::daemon_info(paths).await.is_none() {
-        bail!("{}", t("Miyu daemon is not running", "Miyu daemon 未运行"));
+        bail!("{}", t("Natria daemon is not running", "Natria daemon 未运行"));
     }
     retry_config_reload(RELOAD_MAX_ATTEMPTS, RELOAD_RETRY_INTERVAL, || {
         request_config_reload(paths)
@@ -566,11 +566,11 @@ where
                 let seconds = retry_interval.as_secs();
                 let message = if is_zh() {
                     format!(
-                        "Miyu daemon 正忙；将在 {seconds} 秒后重试配置重载（{attempt}/{max_attempts}）"
+                        "Natria daemon 正忙；将在 {seconds} 秒后重试配置重载（{attempt}/{max_attempts}）"
                     )
                 } else {
                     format!(
-                        "Miyu daemon is busy; retrying configuration reload in {seconds} seconds ({attempt}/{max_attempts})"
+                        "Natria daemon is busy; retrying configuration reload in {seconds} seconds ({attempt}/{max_attempts})"
                     )
                 };
                 eprintln!("{message}");
@@ -578,10 +578,10 @@ where
             }
             ConfigReloadResponse::Busy => {
                 let message = if is_zh() {
-                    format!("Miyu daemon 在 {max_attempts} 次配置重载尝试后仍然忙碌")
+                    format!("Natria daemon 在 {max_attempts} 次配置重载尝试后仍然忙碌")
                 } else {
                     format!(
-                        "Miyu daemon remained busy after {max_attempts} configuration reload attempts"
+                        "Natria daemon remained busy after {max_attempts} configuration reload attempts"
                     )
                 };
                 bail!("{message}");

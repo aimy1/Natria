@@ -57,31 +57,31 @@ pub(in crate::web) async fn index_asset(headers: HeaderMap) -> Response {
     // serve a stale app.js/styles.css after an upgrade.
     static VERSIONED_INDEX: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
         INDEX_HTML
-            .replace("href=\"/styles.css\"", concat!("href=\"/styles.css?v=", env!("MIYU_BUILD_ID"), "\""))
-            .replace("src=\"/app.js\"", concat!("src=\"/app.js?v=", env!("MIYU_BUILD_ID"), "\""))
+            .replace("href=\"/styles.css\"", concat!("href=\"/styles.css?v=", env!("NATRIA_BUILD_ID"), "\""))
+            .replace("src=\"/app.js\"", concat!("src=\"/app.js?v=", env!("NATRIA_BUILD_ID"), "\""))
             .replace(
                 "src=\"/commands.js\"",
-                concat!("src=\"/commands.js?v=", env!("MIYU_BUILD_ID"), "\""),
+                concat!("src=\"/commands.js?v=", env!("NATRIA_BUILD_ID"), "\""),
             )
             .replace(
                 "src=\"/lightbox.js\"",
-                concat!("src=\"/lightbox.js?v=", env!("MIYU_BUILD_ID"), "\""),
+                concat!("src=\"/lightbox.js?v=", env!("NATRIA_BUILD_ID"), "\""),
             )
             .replace(
                 "src=\"/todos.js\"",
-                concat!("src=\"/todos.js?v=", env!("MIYU_BUILD_ID"), "\""),
+                concat!("src=\"/todos.js?v=", env!("NATRIA_BUILD_ID"), "\""),
             )
             .replace(
                 "src=\"/shared.js\"",
-                concat!("src=\"/shared.js?v=", env!("MIYU_BUILD_ID"), "\""),
+                concat!("src=\"/shared.js?v=", env!("NATRIA_BUILD_ID"), "\""),
             )
             .replace(
                 "href=\"/vendor/katex/katex.min.css\"",
-                concat!("href=\"/vendor/katex/katex.min.css?v=", env!("MIYU_BUILD_ID"), "\""),
+                concat!("href=\"/vendor/katex/katex.min.css?v=", env!("NATRIA_BUILD_ID"), "\""),
             )
             .replace(
                 "src=\"/vendor/katex/katex.min.js\"",
-                concat!("src=\"/vendor/katex/katex.min.js?v=", env!("MIYU_BUILD_ID"), "\""),
+                concat!("src=\"/vendor/katex/katex.min.js?v=", env!("NATRIA_BUILD_ID"), "\""),
             )
     });
     embedded_asset(&headers, VERSIONED_INDEX.as_bytes(), "text/html; charset=utf-8")
@@ -255,10 +255,10 @@ pub(in crate::web) async fn store_persona_asset(
     match write_result {
         Ok(()) => {
             let _ = tokio::fs::remove_file(&temporary).await;
-            let directory = tokio::fs::File::open(directory)
-                .await
-                .map_err(ApiError::internal)?;
-            directory.sync_all().await.map_err(ApiError::internal)?;
+            #[cfg(unix)]
+            if let Ok(directory) = tokio::fs::File::open(directory).await {
+                let _ = directory.sync_all().await;
+            }
             Ok(())
         }
         Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {

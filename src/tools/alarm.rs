@@ -55,7 +55,7 @@ async fn set_alarm(args: Value, paths: MiyuPaths) -> Result<String> {
     let label = args
         .get("label")
         .and_then(Value::as_str)
-        .unwrap_or("Miyu alarm")
+        .unwrap_or("Natria alarm")
         .trim();
     let audio_file = args
         .get("audio_file")

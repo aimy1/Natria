@@ -419,6 +419,7 @@ fn legacy_data_and_state_alias_is_migrated_once() {
     assert!(!legacy.data_dir.exists());
 }
 
+#[cfg(unix)]
 #[test]
 fn legacy_layout_stays_put_while_the_core_lock_is_held() {
     let temp = tempfile::tempdir().unwrap();
@@ -444,6 +445,7 @@ fn legacy_layout_stays_put_while_the_core_lock_is_held() {
     assert!(!legacy_daemon_is_running_at(&legacy, None));
 }
 
+#[cfg(unix)]
 #[test]
 fn legacy_layout_stays_put_while_the_starter_lock_is_held() {
     let temp = tempfile::tempdir().unwrap();

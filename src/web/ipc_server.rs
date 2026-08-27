@@ -309,7 +309,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 release_admin(&state.manager);
                 ipc::send(
                     &mut stream,
-                    &IpcFrame::error("Miyu core worker is unavailable"),
+                    &IpcFrame::error("Natria core worker is unavailable"),
                 )
                 .await?;
                 return Ok(());
@@ -341,7 +341,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                     release_admin(&state.manager);
                     ipc::send(
                         &mut stream,
-                        &IpcFrame::error("Miyu core stopped while reloading configuration"),
+                        &IpcFrame::error("Natria core stopped while reloading configuration"),
                     )
                     .await?
                 }
@@ -368,7 +368,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 .is_err()
             {
                 release_admin(&state.manager);
-                anyhow::bail!("Miyu core worker is unavailable");
+                anyhow::bail!("Natria core worker is unavailable");
             }
             match receiver.await {
                 Ok(Ok(())) => {
@@ -386,7 +386,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 }
                 Err(_) => {
                     release_admin(&state.manager);
-                    anyhow::bail!("Miyu core stopped while resetting the conversation");
+                    anyhow::bail!("Natria core stopped while resetting the conversation");
                 }
             }
         }
@@ -412,7 +412,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                     .await?;
                 }
                 Err(PlatformPersonaResetError::Unavailable) => {
-                    anyhow::bail!("Miyu core worker is unavailable");
+                    anyhow::bail!("Natria core worker is unavailable");
                 }
                 Err(PlatformPersonaResetError::Internal(message)) => {
                     ipc::send(&mut stream, &IpcFrame::error(message)).await?;
@@ -440,7 +440,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 .is_err()
             {
                 release_admin(&state.manager);
-                anyhow::bail!("Miyu core worker is unavailable");
+                anyhow::bail!("Natria core worker is unavailable");
             }
             match receiver.await {
                 Ok(Ok(data)) => {
@@ -458,7 +458,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 }
                 Err(_) => {
                     release_admin(&state.manager);
-                    anyhow::bail!("Miyu core stopped while undoing the conversation");
+                    anyhow::bail!("Natria core stopped while undoing the conversation");
                 }
             }
         }
@@ -484,7 +484,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 .is_err()
             {
                 release_admin(&state.manager);
-                anyhow::bail!("Miyu core worker is unavailable");
+                anyhow::bail!("Natria core worker is unavailable");
             }
             match receiver.await {
                 Ok(Ok(data)) => {
@@ -502,7 +502,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 }
                 Err(_) => {
                     release_admin(&state.manager);
-                    anyhow::bail!("Miyu core stopped while popping the conversation");
+                    anyhow::bail!("Natria core stopped while popping the conversation");
                 }
             }
         }
@@ -527,7 +527,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 .is_err()
             {
                 release_admin(&state.manager);
-                anyhow::bail!("Miyu core worker is unavailable");
+                anyhow::bail!("Natria core worker is unavailable");
             }
             match receiver.await {
                 Ok(Ok(data)) => {
@@ -545,7 +545,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
                 }
                 Err(_) => {
                     release_admin(&state.manager);
-                    anyhow::bail!("Miyu core stopped while compacting the conversation");
+                    anyhow::bail!("Natria core stopped while compacting the conversation");
                 }
             }
         }
@@ -705,14 +705,14 @@ pub(in crate::web) async fn switch_session_via_actor(
         .is_err()
     {
         release_admin(&state.manager);
-        return Err("Miyu core worker is unavailable".to_string());
+        return Err("Natria core worker is unavailable".to_string());
     }
     match receiver.await {
         Ok(Ok(())) => Ok(()),
         Ok(Err(AdminFailure::Invalid(message) | AdminFailure::Internal(message))) => Err(message),
         Err(_) => {
             release_admin(&state.manager);
-            Err("Miyu core stopped while switching sessions".to_string())
+            Err("Natria core stopped while switching sessions".to_string())
         }
     }
 }
@@ -731,12 +731,12 @@ pub(in crate::web) async fn switch_session_via_actor_reserved(
         })
         .is_err()
     {
-        return Err("Miyu core worker is unavailable".to_string());
+        return Err("Natria core worker is unavailable".to_string());
     }
     match receiver.await {
         Ok(Ok(())) => Ok(()),
         Ok(Err(AdminFailure::Invalid(message) | AdminFailure::Internal(message))) => Err(message),
-        Err(_) => Err("Miyu core stopped while switching sessions".to_string()),
+        Err(_) => Err("Natria core stopped while switching sessions".to_string()),
     }
 }
 
@@ -836,7 +836,7 @@ pub(in crate::web) async fn handle_ipc_turn<S: AsyncReadExt + AsyncWriteExt + Un
         .is_err()
     {
         finish_run(&state.manager, &run_id, None);
-        ipc::send(stream, &IpcFrame::error("Miyu core worker is unavailable")).await?;
+        ipc::send(stream, &IpcFrame::error("Natria core worker is unavailable")).await?;
         return Ok(());
     }
     let mut run_guard = IpcRunGuard {
@@ -870,7 +870,7 @@ pub(in crate::web) async fn handle_ipc_turn<S: AsyncReadExt + AsyncWriteExt + Un
         if record.kind == "resync_required" {
             ipc::send(
                 stream,
-                &IpcFrame::error("Miyu core event history was exhausted; the turn was cancelled"),
+                &IpcFrame::error("Natria core event history was exhausted; the turn was cancelled"),
             )
             .await?;
             break;

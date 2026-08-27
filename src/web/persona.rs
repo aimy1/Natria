@@ -112,7 +112,7 @@ pub(in crate::web) fn persona_identity(config: &AppConfig, prompts: &PromptDocum
         return PersonaIdentity {
             name: "小盐".to_string(),
             avatar_url: Some("/assets/natria-logo.png".to_string()),
-            board_image_url: Some("/assets/miyuwallpaper.png".to_string()),
+            board_image_url: Some("/assets/natriawallpaper.png".to_string()),
             board_title: DEFAULT_BOARD_TITLE.to_string(),
             board_subtitle: DEFAULT_BOARD_SUBTITLE.to_string(),
             starter_prompts: DEFAULT_STARTER_PROMPTS.map(str::to_string).to_vec(),

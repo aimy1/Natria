@@ -100,7 +100,8 @@ fn reload_applies_config_without_restarting_daemon() {
         );
         let status = run(&binary, &home, &runtime, &["daemon", "status"]);
         if status.status.success()
-            && String::from_utf8_lossy(&status.stdout).contains("Miyu daemon: running")
+            && (String::from_utf8_lossy(&status.stdout).contains("Natria daemon: running")
+                || String::from_utf8_lossy(&status.stdout).contains("Miyu daemon: running"))
         {
             break;
         }

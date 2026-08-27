@@ -37,8 +37,11 @@ echo "{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"session_
 "#,
     )
     .unwrap();
-    use std::os::unix::fs::PermissionsExt as _;
-    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt as _;
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
     script
 }
 

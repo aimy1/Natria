@@ -24,12 +24,12 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 #[cfg(unix)]
 use tokio::net::UnixStream;
 
-pub const ADMIN_BUSY_MESSAGE: &str = "Miyu is busy with another operation";
+pub const ADMIN_BUSY_MESSAGE: &str = "Natria is busy with another operation";
 
 /// Unique id of this build, stamped by build.rs. A daemon whose build id
 /// differs from the client's is restarted transparently so a rebuild never
 /// keeps serving stale code.
-pub const BUILD_ID: &str = env!("MIYU_BUILD_ID");
+pub const BUILD_ID: &str = env!("NATRIA_BUILD_ID");
 
 #[cfg(test)]
 mod tests {
