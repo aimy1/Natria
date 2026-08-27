@@ -10932,13 +10932,11 @@
       }
       if (event.key === "Enter" && !event.shiftKey && !event.isComposing && !state.composing && event.keyCode !== 229) {
         event.preventDefault();
-        stopVoice();
         if (!elements.sendButton.disabled) elements.composerForm.requestSubmit();
       }
     });
     elements.composerForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      stopVoice();
       submitTurn();
     });
     elements.loginForm.addEventListener("submit", (event) => {
@@ -11269,13 +11267,12 @@
       };
       this.token = ++voicePlaybackToken;
       this.abortController = new AbortController();
-      voiceQueueAbortController = this.abortController;
-      activeStreamingVoiceSession = this;
       this.buffer = "";
       this.inCodeBlock = false;
       this.queue = [];
       this.ended = false;
       this.consumerRunning = false;
+      this.hasStartedPlaying = false;
     }
 
     feed(delta) {
@@ -11416,7 +11413,6 @@
 
     async runConsumer() {
       this.consumerRunning = true;
-      elements.voiceToggleButton?.classList.add("is-speaking");
 
       while (this.queue.length > 0) {
         if (this.token !== voicePlaybackToken || this.abortController.signal.aborted) {
@@ -11429,6 +11425,29 @@
           break;
         }
         if (!audioBuffer) continue;
+
+        if (!this.hasStartedPlaying) {
+          this.hasStartedPlaying = true;
+          // 新语音第一包已合成完毕即将发声：无缝打断并停止上一轮旧语音
+          if (activeStreamingVoiceSession && activeStreamingVoiceSession !== this) {
+            activeStreamingVoiceSession.interrupt();
+          }
+          if (activeAudioSource) {
+            try { activeAudioSource.stop(); } catch (_) {}
+            activeAudioSource = null;
+          }
+          if (state.currentAudio) {
+            try {
+              state.currentAudio.pause();
+              state.currentAudio.currentTime = 0;
+              state.currentAudio.src = "";
+            } catch (_) {}
+            state.currentAudio = null;
+          }
+          voiceQueueAbortController = this.abortController;
+          activeStreamingVoiceSession = this;
+          elements.voiceToggleButton?.classList.add("is-speaking");
+        }
 
         const ctx = getAudioContext();
         if (ctx && audioBuffer instanceof AudioBuffer) {
