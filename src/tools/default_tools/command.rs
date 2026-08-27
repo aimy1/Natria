@@ -14,26 +14,41 @@ pub(in crate::tools) async fn run_command(
     args: Value,
     allowed: bool,
     progress: ToolProgress,
+    windows_config: Option<crate::config::WindowsCommandPluginConfig>,
 ) -> Result<String> {
     if !allowed {
         bail!("{}", "command execution is disabled; set skills.allow_command_execution=true in config.jsonc to enable run_command");
     }
+    #[cfg(windows)]
+    if let Some(win_cfg) = &windows_config {
+        if !win_cfg.enabled {
+            bail!("{}", "Windows 命令执行已在插件设置中禁用；请在设置的「插件 -> Windows 命令」中启用 (plugins.windows_command.enabled = true)。");
+        }
+    }
     let command = required(&args, "command")?;
+    let shell = windows_config.as_ref().map(|c| c.shell.as_str()).unwrap_or("powershell");
     if args
         .get("background")
         .and_then(Value::as_bool)
         .unwrap_or(false)
     {
+        #[cfg(windows)]
+        if let Some(win_cfg) = &windows_config {
+            if !win_cfg.allow_background {
+                bail!("{}", "Windows 后台命令执行已在插件设置中禁用 (plugins.windows_command.allow_background = false)");
+            }
+        }
         let title = args.get("title").and_then(Value::as_str);
-        return crate::tools::jobs::spawn_background(&command, title, &progress).await;
+        return crate::tools::jobs::spawn_background_with_shell(&command, title, &progress, shell).await;
     }
+    let default_timeout = windows_config.as_ref().map(|c| c.timeout_seconds).unwrap_or(30);
     // 下限 1:timeout_seconds=0 会立即超时,命令根本没机会执行。
     let timeout = args
         .get("timeout_seconds")
         .and_then(Value::as_u64)
-        .unwrap_or(30)
-        .clamp(1, 120);
-    execute_command(&command, timeout, progress).await
+        .unwrap_or(default_timeout)
+        .clamp(1, 300);
+    execute_command_with_shell(&command, timeout, progress, shell).await
 }
 
 pub(in crate::tools) async fn execute_command(
@@ -41,19 +56,46 @@ pub(in crate::tools) async fn execute_command(
     timeout: u64,
     progress: ToolProgress,
 ) -> Result<String> {
+    execute_command_with_shell(command, timeout, progress, "powershell").await
+}
+
+pub(in crate::tools) async fn execute_command_with_shell(
+    command: &str,
+    timeout: u64,
+    progress: ToolProgress,
+    shell: &str,
+) -> Result<String> {
     #[cfg(windows)]
     let mut command_process = {
-        let mut cmd = Command::new("powershell.exe");
-        cmd.arg("-NoProfile")
-            .arg("-NonInteractive")
-            .arg("-ExecutionPolicy")
-            .arg("Bypass")
-            .arg("-Command")
-            .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+        let trimmed_shell = shell.trim();
+        let cmd = if trimmed_shell.eq_ignore_ascii_case("cmd") || trimmed_shell.eq_ignore_ascii_case("cmd.exe") {
+            let mut c = Command::new("cmd.exe");
+            c.arg("/C").arg(command);
+            c
+        } else if trimmed_shell.eq_ignore_ascii_case("pwsh") || trimmed_shell.eq_ignore_ascii_case("pwsh.exe") {
+            let mut c = Command::new("pwsh.exe");
+            c.arg("-NoProfile")
+                .arg("-NonInteractive")
+                .arg("-ExecutionPolicy")
+                .arg("Bypass")
+                .arg("-Command")
+                .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+            c
+        } else {
+            let mut c = Command::new("powershell.exe");
+            c.arg("-NoProfile")
+                .arg("-NonInteractive")
+                .arg("-ExecutionPolicy")
+                .arg("Bypass")
+                .arg("-Command")
+                .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+            c
+        };
         cmd
     };
     #[cfg(not(windows))]
     let mut command_process = {
+        let _ = shell;
         let mut cmd = Command::new("sh");
         cmd.arg("-lc").arg(command);
         cmd
@@ -247,4 +289,35 @@ pub(in crate::tools) struct ClippedOutput {
     pub(in crate::tools) text: String,
     pub(in crate::tools) truncated: bool,
     pub(in crate::tools) omitted_chars: usize,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn run_command_disabled_by_windows_plugin() {
+        let windows_config = crate::config::WindowsCommandPluginConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        let result = run_command(
+            serde_json::json!({ "command": "echo test" }),
+            true,
+            crate::tools::ToolProgress::default(),
+            Some(windows_config),
+        )
+        .await;
+
+        #[cfg(windows)]
+        {
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(err.contains("Windows 命令执行已在插件设置中禁用"));
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = result;
+        }
+    }
 }

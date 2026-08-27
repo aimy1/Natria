@@ -381,7 +381,11 @@ pub fn builtin_registry(config: &AppConfig, paths: &MiyuPaths) -> ToolRegistry {
     let mut registry = ToolRegistry::new();
     registry.set_default_timeout_secs(config.tools.default_timeout_secs);
     install_builtin_guards(&mut registry, config);
-    default_tools::register(&mut registry, config.skills.allow_command_execution);
+    default_tools::register(
+        &mut registry,
+        config.skills.allow_command_execution,
+        Some(config.plugins.windows_command.clone()),
+    );
     jobs::register_management(&mut registry);
     usage_query::register(
         &mut registry,
@@ -562,7 +566,11 @@ pub fn dev_registry(config: &AppConfig, paths: &MiyuPaths) -> ToolRegistry {
     // (read_file/glob/grep)、check_os_info、trash_path、知识库全砍;
     // 编辑只留 apply_patch(Add/Update/Delete File 全聚合,留它是为了
     // diff 渲染),write_file/edit_file/edit_string 一并退场。
-    default_tools::register_run_command(&mut registry, config.skills.allow_command_execution);
+    default_tools::register_run_command(
+        &mut registry,
+        config.skills.allow_command_execution,
+        Some(config.plugins.windows_command.clone()),
+    );
     jobs::register_management(&mut registry);
     apply_patch::register(&mut registry);
     todowrite::register(&mut registry, paths.clone());

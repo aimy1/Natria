@@ -19,6 +19,15 @@ fn vision_timeouts_have_stable_defaults() {
 }
 
 #[test]
+fn windows_command_plugin_defaults() {
+    let config: WindowsCommandPluginConfig = serde_json::from_value(serde_json::json!({})).unwrap();
+    assert!(config.enabled);
+    assert_eq!(config.shell, "powershell");
+    assert_eq!(config.timeout_seconds, 30);
+    assert!(config.allow_background);
+}
+
+#[test]
 fn mixed_context_window_uses_the_global_default_when_model_metadata_is_missing() {
     let mut config = AppConfig::default();
     let provider = &mut config.providers[0];

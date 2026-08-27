@@ -52,6 +52,8 @@ pub struct PluginsConfig {
     pub file_sharing: FileSharingPluginConfig,
     #[serde(default)]
     pub claude_code: ClaudeCodePluginConfig,
+    #[serde(default)]
+    pub windows_command: WindowsCommandPluginConfig,
 }
 
 /// 本机 Claude Code CLI 接入：`claude_code` 委托工具与 `claude-code` 供应商
@@ -121,6 +123,30 @@ impl Default for FileSharingPluginConfig {
         Self {
             enabled: true,
             max_shared_file_bytes: 0,
+        }
+    }
+}
+
+/// Windows 命令执行插件配置。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WindowsCommandPluginConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_windows_command_shell")]
+    pub shell: String,
+    #[serde(default = "default_windows_command_timeout_seconds")]
+    pub timeout_seconds: u64,
+    #[serde(default = "default_true")]
+    pub allow_background: bool,
+}
+
+impl Default for WindowsCommandPluginConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_true(),
+            shell: default_windows_command_shell(),
+            timeout_seconds: default_windows_command_timeout_seconds(),
+            allow_background: true,
         }
     }
 }
@@ -494,6 +520,7 @@ impl Default for PluginsConfig {
             api_quota: ApiQuotaPluginConfig::default(),
             memory: MemoryConfig::default(),
             claude_code: ClaudeCodePluginConfig::default(),
+            windows_command: WindowsCommandPluginConfig::default(),
         }
     }
 }

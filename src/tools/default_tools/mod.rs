@@ -23,9 +23,13 @@ use tokio::process::Command;
 /// 而不是当成一闪而过的进度。回收站用它交代失败清单。
 pub(crate) const TOOL_SUMMARY_PREFIX: &str = "__tool_summary__";
 
-pub fn register(registry: &mut ToolRegistry, allow_command_execution: bool) {
+pub fn register(
+    registry: &mut ToolRegistry,
+    allow_command_execution: bool,
+    windows_config: Option<crate::config::WindowsCommandPluginConfig>,
+) {
     register_readonly(registry);
-    register_run_command(registry, allow_command_execution);
+    register_run_command(registry, allow_command_execution, windows_config);
     registry.register(ToolSpec::new_with_progress(
         "trash_path",
         "Move files, directories, or symlinks to the system Trash instead of permanently deleting them. Pass every path in one call — one call per path floods the transcript. Use this when the user asks to delete/remove/clean up local paths; do not use rm unless explicitly requested.",
@@ -36,13 +40,20 @@ pub fn register(registry: &mut ToolRegistry, allow_command_execution: bool) {
 
 /// `run_command` 单独可注册:dev 模式只挂它(+后台任务管理),不连带
 /// coreutils 可替代的读写全家(验收三轮裁剪)。
-pub fn register_run_command(registry: &mut ToolRegistry, allow_command_execution: bool) {
+pub fn register_run_command(
+    registry: &mut ToolRegistry,
+    allow_command_execution: bool,
+    windows_config: Option<crate::config::WindowsCommandPluginConfig>,
+) {
     registry.register(ToolSpec::new_with_progress(
         "run_command",
-        "Run a shell command in the workspace when skills.allow_command_execution is enabled. Set background=true for long-running commands (builds, dev servers): it returns a job_id immediately; poll with job(action=status) and stop with job(action=stop).",
-        json!({"type":"object","properties":{"command":{"type":"string","description": "Command to run."},"timeout_seconds":{"type":"integer","description": "Optional timeout in seconds (1-120, default 30). Ignored when background=true."},"background":{"type":"boolean","description": "Run detached as a background command and return a short job_id immediately."},"title":{"type":"string","description": "Short display title (<=16 chars) for the background command."}},"required":["command"],"additionalProperties":false}),
-        move |args, progress| async move {
-            run_command(args, allow_command_execution, progress).await
+        "Run a shell command in the workspace when command execution is enabled. Set background=true for long-running commands (builds, dev servers): it returns a job_id immediately; poll with job(action=status) and stop with job(action=stop).",
+        json!({"type":"object","properties":{"command":{"type":"string","description": "Command to run."},"timeout_seconds":{"type":"integer","description": "Optional timeout in seconds (1-300, default 30). Ignored when background=true."},"background":{"type":"boolean","description": "Run detached as a background command and return a short job_id immediately."},"title":{"type":"string","description": "Short display title (<=16 chars) for the background command."}},"required":["command"],"additionalProperties":false}),
+        move |args, progress| {
+            let win_cfg = windows_config.clone();
+            async move {
+                run_command(args, allow_command_execution, progress, win_cfg).await
+            }
         },
     ).writes());
 }

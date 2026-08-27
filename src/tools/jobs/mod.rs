@@ -312,6 +312,15 @@ pub async fn spawn_background(
     title: Option<&str>,
     progress: &ToolProgress,
 ) -> Result<String> {
+    spawn_background_with_shell(command, title, progress, "powershell").await
+}
+
+pub async fn spawn_background_with_shell(
+    command: &str,
+    title: Option<&str>,
+    progress: &ToolProgress,
+    shell: &str,
+) -> Result<String> {
     let host = require_host()?;
     let title = title
         .map(str::trim)
@@ -334,17 +343,35 @@ pub async fn spawn_background(
     let workspace = super::workspace::effective_workdir();
     #[cfg(windows)]
     let mut process = {
-        let mut cmd = Command::new("powershell.exe");
-        cmd.arg("-NoProfile")
-            .arg("-NonInteractive")
-            .arg("-ExecutionPolicy")
-            .arg("Bypass")
-            .arg("-Command")
-            .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+        let trimmed_shell = shell.trim();
+        let cmd = if trimmed_shell.eq_ignore_ascii_case("cmd") || trimmed_shell.eq_ignore_ascii_case("cmd.exe") {
+            let mut c = Command::new("cmd.exe");
+            c.arg("/C").arg(command);
+            c
+        } else if trimmed_shell.eq_ignore_ascii_case("pwsh") || trimmed_shell.eq_ignore_ascii_case("pwsh.exe") {
+            let mut c = Command::new("pwsh.exe");
+            c.arg("-NoProfile")
+                .arg("-NonInteractive")
+                .arg("-ExecutionPolicy")
+                .arg("Bypass")
+                .arg("-Command")
+                .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+            c
+        } else {
+            let mut c = Command::new("powershell.exe");
+            c.arg("-NoProfile")
+                .arg("-NonInteractive")
+                .arg("-ExecutionPolicy")
+                .arg("Bypass")
+                .arg("-Command")
+                .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+            c
+        };
         cmd
     };
     #[cfg(not(windows))]
     let mut process = {
+        let _ = shell;
         let mut cmd = Command::new("sh");
         cmd.arg("-lc").arg(command);
         cmd

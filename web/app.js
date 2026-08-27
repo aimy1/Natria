@@ -1,4 +1,4 @@
-﻿(() => {
+(() => {
   "use strict";
 
   const MAX_CONTENT_CHARS = 20_000;
@@ -2131,7 +2131,8 @@
     vision: "识图", exchange_rate: "汇率", xuanxue: "玄学", image_generation: "生图", print_image: "打印图片",
     memes: "表情包", knowledge_base: "知识库", archlinux: "Arch Linux", man: "在线手册", moegirl: "萌娘百科",
     hash_codec: "哈希与编解码", calculator: "计算器", package_advisor: "AUR 审查",
-    deep_research_linux_game_compatibility: "Linux 游戏兼容", diagnostics: "系统诊断", api_quota: "大模型额度查询", memory: "记忆"
+    deep_research_linux_game_compatibility: "Linux 游戏兼容", diagnostics: "系统诊断", api_quota: "大模型额度查询", memory: "记忆",
+    windows_command: "Windows 命令"
   };
 
   const SECRET_PLUGIN_PATHS = new Map([
@@ -2162,10 +2163,30 @@
     const path = `plugins.${pluginKey}.${fieldKey}`;
     const secretKey = SECRET_PLUGIN_PATHS.get(`${pluginKey}.${fieldKey}`);
     if (secretKey) return secretEditor(humanizeConfigKey(fieldKey), secretKey, { multiline: Array.isArray(value) });
-    if (typeof value === "boolean") return booleanConfigField(humanizeConfigKey(fieldKey), path);
-    if (typeof value === "number") return textConfigField(humanizeConfigKey(fieldKey), path, { type: "number", integer: Number.isInteger(value), inputType: "number", step: Number.isInteger(value) ? 1 : 0.01 });
-    if (typeof value === "string") return textConfigField(humanizeConfigKey(fieldKey), path, { multiline: value.length > 100, rows: 3 });
-    return textConfigField(humanizeConfigKey(fieldKey), path, { type: "json", multiline: true, rows: 5 });
+    if (pluginKey === "windows_command" && fieldKey === "shell") {
+      return selectConfigField(
+        "执行 Shell",
+        path,
+        [
+          { value: "powershell", label: "PowerShell (powershell.exe)" },
+          { value: "pwsh", label: "PowerShell 7 (pwsh.exe)" },
+          { value: "cmd", label: "命令提示符 (cmd.exe)" }
+        ],
+        "AI 执行 Windows 命令时调用的解释器"
+      );
+    }
+    const label = (pluginKey === "windows_command" && fieldKey === "enabled")
+      ? "启用 Windows 命令执行"
+      : (pluginKey === "windows_command" && fieldKey === "timeout_seconds")
+      ? "执行超时（秒）"
+      : (pluginKey === "windows_command" && fieldKey === "allow_background")
+      ? "允许后台任务"
+      : humanizeConfigKey(fieldKey);
+
+    if (typeof value === "boolean") return booleanConfigField(label, path);
+    if (typeof value === "number") return textConfigField(label, path, { type: "number", integer: Number.isInteger(value), inputType: "number", step: Number.isInteger(value) ? 1 : 0.01 });
+    if (typeof value === "string") return textConfigField(label, path, { multiline: value.length > 100, rows: 3 });
+    return textConfigField(label, path, { type: "json", multiline: true, rows: 5 });
   }
 
   function apiQuotaProviderEditor(providerKey, provider) {

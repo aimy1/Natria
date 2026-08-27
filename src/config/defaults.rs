@@ -454,3 +454,11 @@ pub(crate) fn default_claude_code_idle_timeout_seconds() -> u64 {
 pub(crate) fn bool_is_true(value: &bool) -> bool {
     *value
 }
+
+pub(crate) fn default_windows_command_shell() -> String {
+    "powershell".to_string()
+}
+
+pub(crate) fn default_windows_command_timeout_seconds() -> u64 {
+    30
+}
