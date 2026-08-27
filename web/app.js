@@ -11642,6 +11642,7 @@
     };
 
     const options = {
+      ...customOptions,
       voice: customOptions.voice || state.voiceConfig.voice || "zh-CN-XiaoxiaoNeural",
       pitch: customOptions.pitch || state.voiceConfig.pitch || "+0Hz",
       rate: customOptions.rate || state.voiceConfig.rate || "+0%",
@@ -12276,17 +12277,18 @@
         state.voiceConfig.promptAudio = file.name;
         safeStorageSet("natria.voice.promptAudio", file.name);
         const PRESET_PROMPT_TEXTS = {
-          "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
-          "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
-          "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟好不好？",
-          "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我手好了，下不为例哦。",
+          "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+          "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+          "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
+          "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
           "xiaoyan_clear_201.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
           "xiaoyan_clear_204.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
-          "xiaoyan_clear_402.wav": "我才没有特地打扮给你看了呢，你千万别自作多情。",
-          "xiaoyan_clear_501.wav": "你的眼睛里只能看着我一个人听懂了吗？",
-          "xiaoyan_sweet.wav": "乖孩子叫声,自己来听听说不定.我就满足你的愿望呢.",
-          "xiaoyan_ref.wav": "乖孩子叫声,自己来听听说不定.",
-          "2-0102.wav": "乖孩子叫声,自己来听听说不定."
+          "xiaoyan_clear_402.wav": "我才没有特地打扮给你看呢，你千万别自作多情哦。",
+          "xiaoyan_clear_501.wav": "你的眼睛里只能看着我一个人，听懂了吗？",
+          "xiaoyan_sweet.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+          "xiaoyan_v2proplus.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+          "xiaoyan_ref.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+          "2-0102.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。"
         };
         if (PRESET_PROMPT_TEXTS[file.name]) {
           state.voiceConfig.promptText = PRESET_PROMPT_TEXTS[file.name];
@@ -12549,8 +12551,8 @@
       try {
         const testPayload = {
           text: "服务连接测试",
-          engine: state.voiceConfig.engine,
-          endpoint: elements.voiceCloneEndpointInput?.value.trim() || state.voiceConfig.endpoint || undefined,
+          engine: elements.voiceCloneEngineSubSelect?.value || state.voiceConfig.engine || "gpt_sovits",
+          endpoint: elements.voiceCloneEndpointInput?.value.trim() || state.voiceConfig.endpoint || "http://127.0.0.1:9880",
           api_key: elements.voiceCloneApiKeyInput?.value.trim() || state.voiceConfig.apiKey || undefined,
           prompt_audio: elements.voiceClonePromptAudioSelect?.value || state.voiceConfig.promptAudio || undefined,
           prompt_text: elements.voiceClonePromptTextInput?.value || state.voiceConfig.promptText || undefined,
@@ -12633,17 +12635,23 @@
 
     // 本地声音克隆 试听发音
     elements.voiceCloneTestButton?.addEventListener("click", () => {
-      if (!state.voiceConfig.promptAudio) {
+      const promptAudio = elements.voiceClonePromptAudioSelect?.value || state.voiceConfig.promptAudio;
+      const promptText = elements.voiceClonePromptTextInput?.value || state.voiceConfig.promptText;
+      const promptLang = elements.voiceClonePromptLangSelect?.value || state.voiceConfig.promptLang || "zh";
+      const endpoint = elements.voiceCloneEndpointInput?.value.trim() || state.voiceConfig.endpoint || "http://127.0.0.1:9880";
+      const engine = elements.voiceCloneEngineSubSelect?.value || state.voiceConfig.engine || "gpt_sovits";
+
+      if (!promptAudio) {
         showToast("请先在下方上传或选取一段参考录音音频", "warning");
         return;
       }
       playVoiceText("你好，这是一段使用本地声音克隆技术合成的语音测试。", {
-        engine: state.voiceConfig.engine,
-        endpoint: state.voiceConfig.endpoint,
-        promptAudio: state.voiceConfig.promptAudio,
-        promptText: state.voiceConfig.promptText,
-        promptLang: state.voiceConfig.promptLang,
-        apiKey: state.voiceConfig.apiKey
+        engine: engine,
+        endpoint: endpoint,
+        promptAudio: promptAudio,
+        promptText: promptText,
+        promptLang: promptLang,
+        apiKey: elements.voiceCloneApiKeyInput?.value.trim() || state.voiceConfig.apiKey
       });
     });
 
