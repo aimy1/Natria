@@ -351,10 +351,12 @@ pub async fn spawn_background(
     };
     process
         .current_dir(&workspace)
-        // 工具桥环境:后台脚本里的 `miyu tool-call` 也能以本会话身份执行。
+        // 工具桥环境:后台脚本里的 `natria tool-call` 也能以本会话身份执行。
         .envs(
-            super::workspace::try_session()
-                .map(|session| ("MIYU_SESSION".to_string(), session.to_string())),
+            super::workspace::try_session().map(|session| [
+                ("NATRIA_SESSION".to_string(), session.to_string()),
+                ("MIYU_SESSION".to_string(), session.to_string()),
+            ]).into_iter().flatten(),
         )
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::from(log.try_clone()?))

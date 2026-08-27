@@ -21,14 +21,22 @@ pub fn miyu_executable() -> Result<PathBuf> {
     if let Some(path) = EXECUTABLE.get() {
         return Ok(path.clone());
     }
-    let raw = std::env::current_exe().context("locating the Miyu executable")?;
+    let raw = std::env::current_exe().context("locating the Natria executable")?;
     let resolved = strip_deleted_suffix(&raw).unwrap_or(raw);
     Ok(EXECUTABLE.get_or_init(|| resolved).clone())
+}
+
+pub fn natria_executable() -> Result<PathBuf> {
+    miyu_executable()
 }
 
 /// 进程启动早期预热一次，趁二进制还没被换掉。
 pub fn prime_miyu_executable() {
     let _ = miyu_executable();
+}
+
+pub fn prime_natria_executable() {
+    prime_miyu_executable();
 }
 
 /// `/proc/self/exe` 在文件被替换后会读出 `".../miyu (deleted)"`。
@@ -77,6 +85,8 @@ pub struct MiyuPaths {
     pub system_scripts_dir: PathBuf,
 }
 
+pub type NatriaPaths = MiyuPaths;
+
 impl MiyuPaths {
     pub fn new() -> Result<Self> {
         let base = BaseDirs::new().context(t(
@@ -98,10 +108,20 @@ impl MiyuPaths {
             .map(PathBuf::from)
             .or_else(|| UserDirs::new().and_then(|dirs| dirs.picture_dir().map(PathBuf::from)))
             .unwrap_or_else(|| base.home_dir().join("Pictures"));
-        let explicit_home = std::env::var_os("MIYU_HOME").map(PathBuf::from);
+        let explicit_home = std::env::var_os("NATRIA_HOME")
+            .or_else(|| std::env::var_os("MIYU_HOME"))
+            .map(PathBuf::from);
+        let default_natria = base.home_dir().join(".natria");
+        let default_miyu = base.home_dir().join(".miyu");
         let root_dir = explicit_home
             .clone()
-            .unwrap_or_else(|| base.home_dir().join(".miyu"));
+            .unwrap_or_else(|| {
+                if default_natria.exists() || !default_miyu.exists() {
+                    default_natria
+                } else {
+                    default_miyu
+                }
+            });
         let config_dir = root_dir.join("config");
         let data_dir = root_dir.join("data");
         let cache_dir = root_dir.join("cache");

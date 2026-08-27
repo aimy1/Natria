@@ -75,7 +75,7 @@ fn register_create(registry: &mut ToolRegistry, root: PathBuf, session_id: &str)
     let session_id = session_id.to_string();
     registry.register(ToolSpec::new_with_progress(
         "create_artifact",
-        "Create or update a completed deliverable in Miyu's managed Artifact workspace and display it in the WebUI. Use this for reports, documents, standalone code, HTML, JSON, CSV, and other files the user should inspect. Do not use it for routine project source edits.",
+        "Create or update a completed deliverable in Natria's managed Artifact workspace and display it in the WebUI. Use this for reports, documents, standalone code, HTML, JSON, CSV, and other files the user should inspect. Do not use it for routine project source edits.",
         json!({
             "type": "object",
             "properties": {

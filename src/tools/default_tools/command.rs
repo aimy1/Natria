@@ -65,15 +65,16 @@ pub(in crate::tools) async fn execute_command(
     // 工具桥环境(任务#12):脚本里 `miyu tool-call` 凭这些以本回合的
     // 会话身份/来源打回 daemon 执行结构化工具,内层调用照走 guard 管线。
     if let Some(session) = crate::tools::workspace::try_session() {
+        command_process.env("NATRIA_SESSION", &*session);
         command_process.env("MIYU_SESSION", &*session);
     }
     if let Ok(origin) = serde_json::to_string(&crate::tools::workspace::current_turn_origin()) {
+        command_process.env("NATRIA_TURN_ORIGIN", &origin);
         command_process.env("MIYU_TURN_ORIGIN", origin);
     }
-    command_process.env(
-        "MIYU_BRIDGE_DEPTH",
-        crate::tools::workspace::current_bridge_depth().to_string(),
-    );
+    let depth_str = crate::tools::workspace::current_bridge_depth().to_string();
+    command_process.env("NATRIA_BRIDGE_DEPTH", &depth_str);
+    command_process.env("MIYU_BRIDGE_DEPTH", depth_str);
     command_process
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

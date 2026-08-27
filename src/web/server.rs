@@ -132,7 +132,7 @@ pub async fn run(paths: MiyuPaths, args: WebArgs) -> Result<()> {
     // share_file 工具用这些地址把相对下载路径拼成局域网完整链接。
     tools::set_share_url_bases(urls.clone());
     for url in &urls {
-        println!("Miyu WebUI: {url}");
+        println!("Natria WebUI: {url}");
     }
     if password.is_none() && !bind_ip.is_loopback() {
         eprintln!(

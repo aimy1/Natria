@@ -57,7 +57,7 @@ git clone https://github.com/aimy1/Natria.git
 cd Natria
 
 # 编译并运行 WebUI 模式
-cargo run --release --bin miyu -- web --port 8300
+cargo run --release --bin natria -- web --port 8300
 ```
 
 打开浏览器访问：👉 **`http://127.0.0.1:8300`**
@@ -66,23 +66,23 @@ cargo run --release --bin miyu -- web --port 8300
 
 ```bash
 # 启动 WebUI 伴随服务
-miyu web --port 8300
+natria web --port 8300
 
 # 交互式终端 REPL 模式
-miyu normal
+natria normal
 
 # 打开终端可视化配置面板 (TUI)
-miyu config
+natria config
 
 # 检查当前服务守护进程状态
-miyu daemon status
+natria daemon status
 ```
 
 ---
 
 ## ⚙️ 配置文件说明
 
-全局配置文件位于 `~/.miyu/config/config.jsonc`（Windows 下位于 `%USERPROFILE%\.miyu\config\config.jsonc`）：
+全局配置文件位于 `~/.natria/config/config.jsonc`（Windows 下位于 `%USERPROFILE%\.natria\config\config.jsonc`，同时向下兼容 `~/.miyu`）：
 
 - **`active_provider`**：设置当前活跃的模型供应商（如 `antigravity`、`openai`、`deepseek`、`anthropic` 等）；
 - **`providers`**：配置各供应商的 `base_url`、`api_key` 和模型列表；

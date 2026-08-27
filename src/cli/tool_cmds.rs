@@ -21,7 +21,9 @@ pub(in crate::cli) async fn run_tool(paths: &MiyuPaths, mode: AgentMode, args: T
 /// 形态)则本地执行,语义一致但 jobs 等 daemon 态不可见。
 pub(in crate::cli) async fn run_tool_call(paths: &MiyuPaths, args: ToolCallArgs) -> Result<()> {
     let config = AppConfig::load_or_default(paths)?;
-    let env_mode = std::env::var("MIYU_TURN_MODE").unwrap_or_default();
+    let env_mode = std::env::var("NATRIA_TURN_MODE")
+        .or_else(|_| std::env::var("MIYU_TURN_MODE"))
+        .unwrap_or_default();
     let mode = if env_mode == "dev" {
         AgentMode::Dev
     } else {
@@ -33,10 +35,13 @@ pub(in crate::cli) async fn run_tool_call(paths: &MiyuPaths, args: ToolCallArgs)
         }
         // daemon 存活时目录走 IPC:与 ToolCall 同一条会话→模式→registry
         // 解析链,--list 列出的就是本会话真能调的集合。此前本地建表按
-        // MIYU_TURN_MODE 环境变量定模式(run_command 并不注入它),dev 会话
+        // NATRIA_TURN_MODE 环境变量定模式(run_command 并不注入它),dev 会话
         // 里 --list 展示普通人格全量目录,实测逐个调用全报 unknown tool。
         if ipc::daemon_info(paths).await.is_some() {
-            let session = std::env::var("MIYU_SESSION").ok().filter(|s| !s.is_empty());
+            let session = std::env::var("NATRIA_SESSION")
+                .or_else(|_| std::env::var("MIYU_SESSION"))
+                .ok()
+                .filter(|s| !s.is_empty());
             let (_, data) = send_ipc_admin(
                 paths,
                 IpcCommand::ToolCatalog {
@@ -144,9 +149,16 @@ pub(in crate::cli) async fn run_tool_call(paths: &MiyuPaths, args: ToolCallArgs)
     } else {
         args.arguments.clone().unwrap_or_else(|| "{}".to_string())
     };
-    let session = std::env::var("MIYU_SESSION").ok().filter(|s| !s.is_empty());
-    let origin = std::env::var("MIYU_TURN_ORIGIN").ok().filter(|s| !s.is_empty());
-    let depth: u32 = std::env::var("MIYU_BRIDGE_DEPTH")
+    let session = std::env::var("NATRIA_SESSION")
+        .or_else(|_| std::env::var("MIYU_SESSION"))
+        .ok()
+        .filter(|s| !s.is_empty());
+    let origin = std::env::var("NATRIA_TURN_ORIGIN")
+        .or_else(|_| std::env::var("MIYU_TURN_ORIGIN"))
+        .ok()
+        .filter(|s| !s.is_empty());
+    let depth: u32 = std::env::var("NATRIA_BRIDGE_DEPTH")
+        .or_else(|_| std::env::var("MIYU_BRIDGE_DEPTH"))
         .ok()
         .and_then(|raw| raw.parse().ok())
         .unwrap_or(0);
@@ -182,8 +194,8 @@ pub(in crate::cli) async fn run_tool_call(paths: &MiyuPaths, args: ToolCallArgs)
             "{:#}. {}",
             registry.unknown_tool_error(&name),
             t(
-                "run `miyu tool-call --list` to see tools callable in this session",
-                "用 `miyu tool-call --list` 查看本会话可调用的工具"
+                "run `natria tool-call --list` to see tools callable in this session",
+                "用 `natria tool-call --list` 查看本会话可调用的工具"
             )
         );
     }

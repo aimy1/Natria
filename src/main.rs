@@ -4,7 +4,7 @@
 fn main() {
     limit_malloc_arenas();
     let thread = std::thread::Builder::new()
-        .name("miyu-main".into())
+        .name("natria-main".into())
         .stack_size(8 * 1024 * 1024);
 
     let handle = thread
@@ -14,8 +14,8 @@ fn main() {
                 .build()
                 .expect("failed to build tokio runtime");
             rt.block_on(async {
-                if let Err(error) = miyu::run().await {
-                    eprintln!("{}: {error:#}", miyu::error_label());
+                if let Err(error) = natria::run().await {
+                    eprintln!("{}: {error:#}", natria::error_label());
                     std::process::exit(1);
                 }
             });

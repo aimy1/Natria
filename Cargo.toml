@@ -1,5 +1,5 @@
 [package]
-name = "miyu"
+name = "natria"
 version = "0.4.5"
 edition = "2021"
 rust-version = "1.89"
@@ -9,11 +9,11 @@ description = "Natria - Intelligent Pair-Programming & AI Companion"
 autobins = false
 
 [lib]
-name = "miyu"
+name = "natria"
 path = "src/lib.rs"
 
 [[bin]]
-name = "miyu"
+name = "natria"
 path = "src/main.rs"
 
 [dependencies]
