@@ -4250,7 +4250,7 @@
 
   function conversationRunning() {
     for (const live of state.liveRuns.values()) {
-      if (liveViewed(live)) return true;
+      if (live && !live.ended && liveViewed(live)) return true;
     }
     return Boolean(state.viewRunningTurnId);
   }
@@ -4267,8 +4267,10 @@
 
   function hasPendingQuestion() {
     for (const live of state.liveRuns.values()) {
-      for (const question of live.questions.values()) {
-        if (question.pending) return true;
+      if (live && !live.ended) {
+        for (const question of live.questions.values()) {
+          if (question.pending) return true;
+        }
       }
     }
     return false;
@@ -12816,6 +12818,7 @@
         updateMicButtonState(false);
       } else {
         shouldKeepListening = true;
+        stopVoice();
         speechBaseText = elements.composerInput?.value || "";
         createAndStartRecognizer();
       }
