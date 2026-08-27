@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   "use strict";
 
   const MAX_CONTENT_CHARS = 20_000;
@@ -362,17 +362,17 @@
   };
 
   const state = {
-    voiceEnabled: (localStorage.getItem("natria.voice.enabled") ?? localStorage.getItem("miyu.voice.enabled")) === "1",
+    voiceEnabled: (localStorage.getItem("natria.voice.enabled") ?? localStorage.getItem("natria.voice.enabled")) === "1",
     voiceList: [],
     voiceFiles: [],
     voiceConfig: {
-      engine: localStorage.getItem("natria.voice.engine") || localStorage.getItem("miyu.voice.engine") || "edge_tts",
-      endpoint: localStorage.getItem("natria.voice.endpoint") || localStorage.getItem("miyu.voice.endpoint") || "",
-      promptAudio: localStorage.getItem("natria.voice.promptAudio") || localStorage.getItem("miyu.voice.promptAudio") || "",
-      promptText: localStorage.getItem("natria.voice.promptText") || localStorage.getItem("miyu.voice.promptText") || "",
-      promptLang: localStorage.getItem("natria.voice.promptLang") || localStorage.getItem("miyu.voice.promptLang") || "zh",
-      apiKey: localStorage.getItem("natria.voice.apiKey") || localStorage.getItem("miyu.voice.apiKey") || "",
-      filterActions: (localStorage.getItem("natria.voice.filterActions") ?? localStorage.getItem("miyu.voice.filterActions")) !== "0",
+      engine: localStorage.getItem("natria.voice.engine") || localStorage.getItem("natria.voice.engine") || "edge_tts",
+      endpoint: localStorage.getItem("natria.voice.endpoint") || localStorage.getItem("natria.voice.endpoint") || "",
+      promptAudio: localStorage.getItem("natria.voice.promptAudio") || localStorage.getItem("natria.voice.promptAudio") || "",
+      promptText: localStorage.getItem("natria.voice.promptText") || localStorage.getItem("natria.voice.promptText") || "",
+      promptLang: localStorage.getItem("natria.voice.promptLang") || localStorage.getItem("natria.voice.promptLang") || "zh",
+      apiKey: localStorage.getItem("natria.voice.apiKey") || localStorage.getItem("natria.voice.apiKey") || "",
+      filterActions: (localStorage.getItem("natria.voice.filterActions") ?? localStorage.getItem("natria.voice.filterActions")) !== "0",
       voice: "zh-CN-XiaoxiaoNeural",
       pitch: "+0Hz",
       rate: "+0%",
@@ -380,7 +380,7 @@
     },
     currentAudio: null,
     backgroundJobs: new Map(),
-    jobsStripOpen: (localStorage.getItem("natria.web.jobsStripOpen") ?? localStorage.getItem("miyu.web.jobsStripOpen")) === "1",
+    jobsStripOpen: (localStorage.getItem("natria.web.jobsStripOpen") ?? localStorage.getItem("natria.web.jobsStripOpen")) === "1",
     bootId: null,
     latestEventId: 0,
     lastEventId: 0,
@@ -573,13 +573,21 @@
     return key;
   }
 
+  function legacyStorageKey(key) {
+    if (typeof key === "string" && key.startsWith("natria.")) {
+      return "miyu." + key.slice(7);
+    }
+    return key;
+  }
+
   function safeStorageGet(key) {
     try {
       const primaryKey = normalizeStorageKey(key);
       const val = window.localStorage.getItem(primaryKey);
       if (val !== null) return val;
-      if (typeof key === "string" && key.startsWith("miyu.")) {
-        return window.localStorage.getItem(key);
+      const legacy = legacyStorageKey(key);
+      if (legacy !== primaryKey) {
+        return window.localStorage.getItem(legacy);
       }
       return null;
     } catch (_) {
@@ -591,9 +599,6 @@
     try {
       const primaryKey = normalizeStorageKey(key);
       window.localStorage.setItem(primaryKey, value);
-      if (typeof key === "string" && key.startsWith("miyu.")) {
-        window.localStorage.setItem(key, value);
-      }
     } catch (_) {
       // Storage can be unavailable in hardened browser profiles.
     }
@@ -615,7 +620,7 @@
     }
     const themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.content = selected === "graphite" ? "#171821" : "#f8fafc";
-    if (persist) safeStorageSet("miyu.web.theme", selected);
+    if (persist) safeStorageSet("natria.web.theme", selected);
   }
 
   /*
@@ -637,7 +642,7 @@
       // 探测不到 matugen 输出时,「壁纸取色」整个选项不显示。
       if (button.dataset.schemeChoice === "matugen") button.hidden = state.matugenAvailable !== true;
     });
-    if (persist) safeStorageSet("miyu.web.colorScheme", requested);
+    if (persist) safeStorageSet("natria.web.colorScheme", requested);
   }
 
   async function probeMatugenTheme() {
@@ -648,7 +653,7 @@
       state.matugenAvailable = false;
     }
     // 无持久化记录时:matugen 可用则维持现状(matugen),否则窗边。默认值不写入存储。
-    setColorScheme(safeStorageGet("miyu.web.colorScheme") || (state.matugenAvailable ? "matugen" : "madobe"), false);
+    setColorScheme(safeStorageGet("natria.web.colorScheme") || (state.matugenAvailable ? "matugen" : "madobe"), false);
   }
 
   /* 仅 WebUI 的本地显示偏好(localStorage,不写入 config) */
@@ -663,7 +668,7 @@
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     });
-    if (persist) safeStorageSet("miyu.web.chatFontSize", selected);
+    if (persist) safeStorageSet("natria.web.chatFontSize", selected);
   }
 
   function setReasoningExpanded(value, persist = true) {
@@ -673,7 +678,7 @@
     document.querySelectorAll(".reasoning-block").forEach((block) => {
       block.open = state.reasoningExpanded;
     });
-    if (persist) safeStorageSet("miyu.web.reasoningExpanded", String(state.reasoningExpanded));
+    if (persist) safeStorageSet("natria.web.reasoningExpanded", String(state.reasoningExpanded));
   }
 
   function setToolExpanded(value, persist = true) {
@@ -684,7 +689,7 @@
       card.classList.toggle("collapsed", !state.toolExpanded);
       card.querySelector(".tool-head")?.setAttribute("aria-expanded", String(state.toolExpanded));
     });
-    if (persist) safeStorageSet("miyu.web.toolExpanded", String(state.toolExpanded));
+    if (persist) safeStorageSet("natria.web.toolExpanded", String(state.toolExpanded));
   }
 
   function thinkingVariantLabel(variant, short = false) {
@@ -756,7 +761,7 @@
     if (elements.sidebarExpandButton) elements.sidebarExpandButton.hidden = !state.sidebarCollapsed;
     if (elements.sidebarCollapseButton) elements.sidebarCollapseButton.hidden = state.sidebarCollapsed;
     if (state.sidebarCollapsed) closeSidebar();
-    if (!automatic) safeStorageSet("miyu.web.sidebarCollapsed", String(state.sidebarCollapsed));
+    if (!automatic) safeStorageSet("natria.web.sidebarCollapsed", String(state.sidebarCollapsed));
     syncArtifactLayout?.();
   }
 
@@ -6354,7 +6359,7 @@
   /*
    * display.reasoning 只决定后端产生什么(摘要/完整/不产生);
    * WebUI 是否渲染仅以「有没有思考内容」为准,hidden 时若仍收到文本则不渲染(保底)。
-   * 默认展开/收起由本地偏好 miyu.web.reasoningExpanded 决定,与 summary/full 无关。
+   * 默认展开/收起由本地偏好 natria.web.reasoningExpanded 决定,与 summary/full 无关。
    */
   function reasoningHidden() {
     return state.display?.reasoning === "hidden";
@@ -8704,7 +8709,7 @@
       toggle.replaceChildren(toggleMarker, toggleText);
       toggle.addEventListener("click", () => {
         state.jobsStripOpen = !state.jobsStripOpen;
-        localStorage.setItem("miyu.web.jobsStripOpen", state.jobsStripOpen ? "1" : "0");
+        localStorage.setItem("natria.web.jobsStripOpen", state.jobsStripOpen ? "1" : "0");
         renderJobsStrip();
       });
       fragment.appendChild(toggle);
@@ -9420,7 +9425,7 @@
     if (unauthorized) window.requestAnimationFrame(() => elements.loginPassword.focus());
   }
 
-  const VIEW_SESSION_KEY = "miyu.web.viewSession";
+  const VIEW_SESSION_KEY = "natria.web.viewSession";
 
   /// 页面加载后该打开哪个会话。
   ///
@@ -10808,7 +10813,7 @@
           window.cancelAnimationFrame(resizeFrame);
           applyResize();
         }
-        safeStorageSet("miyu.web.artifactWidthRatio.v2", String(state.artifactWidthRatio));
+        safeStorageSet("natria.web.artifactWidthRatio.v2", String(state.artifactWidthRatio));
         elements.artifactResizeHandle.removeEventListener("pointermove", move);
         elements.artifactResizeHandle.removeEventListener("pointerup", finish);
         elements.artifactResizeHandle.removeEventListener("pointercancel", finish);
@@ -11773,14 +11778,14 @@
 
   function loadVoiceList() {
     try {
-      const raw = safeStorageGet("miyu.voice.voice_list");
+      const raw = safeStorageGet("natria.voice.voice_list");
       if (raw) {
         state.voiceList = JSON.parse(raw);
         if (!Array.isArray(state.voiceList) || state.voiceList.length === 0) {
           state.voiceList = JSON.parse(JSON.stringify(DEFAULT_PRESET_VOICES));
         }
       } else {
-        const legacyCustom = safeStorageGet("miyu.voice.custom_voices");
+        const legacyCustom = safeStorageGet("natria.voice.custom_voices");
         const customArr = legacyCustom ? JSON.parse(legacyCustom) : [];
         state.voiceList = JSON.parse(JSON.stringify(DEFAULT_PRESET_VOICES));
         if (Array.isArray(customArr)) {
@@ -11797,7 +11802,7 @@
   }
 
   function saveVoiceList() {
-    safeStorageSet("miyu.voice.voice_list", JSON.stringify(state.voiceList));
+    safeStorageSet("natria.voice.voice_list", JSON.stringify(state.voiceList));
   }
 
   function resetPresetVoices() {
@@ -11805,7 +11810,7 @@
     saveVoiceList();
     if (!state.voiceList.some((v) => v.id === state.voiceConfig.voice)) {
       state.voiceConfig.voice = state.voiceList[0].id;
-      safeStorageSet("miyu.voice.voice", state.voiceConfig.voice);
+      safeStorageSet("natria.voice.voice", state.voiceConfig.voice);
     }
     renderVoiceSelect();
     renderVoiceLibraryList();
@@ -11866,7 +11871,7 @@
     if (state.voiceConfig.voice && !state.voiceList.some((v) => v.id === state.voiceConfig.voice)) {
       if (state.voiceList.length > 0) {
         state.voiceConfig.voice = state.voiceList[0].id;
-        safeStorageSet("miyu.voice.voice", state.voiceConfig.voice);
+        safeStorageSet("natria.voice.voice", state.voiceConfig.voice);
       }
     }
 
@@ -11943,7 +11948,7 @@
       if (isSelected) useBtn.disabled = true;
       useBtn.addEventListener("click", () => {
         state.voiceConfig.voice = voice.id;
-        safeStorageSet("miyu.voice.voice", voice.id);
+        safeStorageSet("natria.voice.voice", voice.id);
         renderVoiceSelect();
         renderVoiceLibraryList();
         renderVoiceFileList();
@@ -11960,7 +11965,7 @@
         saveVoiceList();
         if (state.voiceConfig.voice === voice.id) {
           state.voiceConfig.voice = state.voiceList[0]?.id || "zh-CN-XiaoxiaoNeural";
-          safeStorageSet("miyu.voice.voice", state.voiceConfig.voice);
+          safeStorageSet("natria.voice.voice", state.voiceConfig.voice);
         }
         renderVoiceSelect();
         renderVoiceLibraryList();
@@ -12005,7 +12010,7 @@
     });
     saveVoiceList();
     state.voiceConfig.voice = voiceId;
-    safeStorageSet("miyu.voice.voice", voiceId);
+    safeStorageSet("natria.voice.voice", voiceId);
 
     if (elements.customVoiceNameInput) elements.customVoiceNameInput.value = "";
     if (elements.customVoiceIdInput) elements.customVoiceIdInput.value = "";
@@ -12241,10 +12246,10 @@
       cloneRefBtn.addEventListener("click", () => {
         if (!["gpt_sovits", "cosyvoice"].includes(state.voiceConfig.engine)) {
           state.voiceConfig.engine = "gpt_sovits";
-          safeStorageSet("miyu.voice.engine", "gpt_sovits");
+          safeStorageSet("natria.voice.engine", "gpt_sovits");
         }
         state.voiceConfig.promptAudio = file.name;
-        safeStorageSet("miyu.voice.promptAudio", file.name);
+        safeStorageSet("natria.voice.promptAudio", file.name);
         const PRESET_PROMPT_TEXTS = {
           "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
           "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
@@ -12260,7 +12265,7 @@
         };
         if (PRESET_PROMPT_TEXTS[file.name]) {
           state.voiceConfig.promptText = PRESET_PROMPT_TEXTS[file.name];
-          safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
+          safeStorageSet("natria.voice.promptText", state.voiceConfig.promptText);
         }
         updateVoiceControls();
         renderVoiceFileList();
@@ -12282,7 +12287,7 @@
             showToast("已删除：" + file.name);
             if (state.voiceConfig.promptAudio === file.name) {
               state.voiceConfig.promptAudio = "";
-              safeStorageSet("miyu.voice.promptAudio", "");
+              safeStorageSet("natria.voice.promptAudio", "");
             }
             await loadVoiceFiles();
           } else {
@@ -12369,24 +12374,24 @@
 
   function initVoiceUI() {
     loadVoiceList();
-    const savedVoice = safeStorageGet("miyu.voice.voice");
+    const savedVoice = safeStorageGet("natria.voice.voice");
     if (savedVoice) state.voiceConfig.voice = savedVoice;
-    const savedRate = safeStorageGet("miyu.voice.rate");
+    const savedRate = safeStorageGet("natria.voice.rate");
     if (savedRate) state.voiceConfig.rate = savedRate;
-    const savedPitch = safeStorageGet("miyu.voice.pitch");
+    const savedPitch = safeStorageGet("natria.voice.pitch");
     if (savedPitch) state.voiceConfig.pitch = savedPitch;
 
-    const savedEngine = safeStorageGet("miyu.voice.engine");
+    const savedEngine = safeStorageGet("natria.voice.engine");
     if (savedEngine) state.voiceConfig.engine = savedEngine;
-    const savedEndpoint = safeStorageGet("miyu.voice.endpoint");
+    const savedEndpoint = safeStorageGet("natria.voice.endpoint");
     if (savedEndpoint) state.voiceConfig.endpoint = savedEndpoint;
-    const savedPromptAudio = safeStorageGet("miyu.voice.promptAudio");
+    const savedPromptAudio = safeStorageGet("natria.voice.promptAudio");
     if (savedPromptAudio) state.voiceConfig.promptAudio = savedPromptAudio;
-    const savedPromptText = safeStorageGet("miyu.voice.promptText");
+    const savedPromptText = safeStorageGet("natria.voice.promptText");
     if (savedPromptText) state.voiceConfig.promptText = savedPromptText;
-    const savedPromptLang = safeStorageGet("miyu.voice.promptLang");
+    const savedPromptLang = safeStorageGet("natria.voice.promptLang");
     if (savedPromptLang) state.voiceConfig.promptLang = savedPromptLang;
-    const savedApiKey = safeStorageGet("miyu.voice.apiKey");
+    const savedApiKey = safeStorageGet("natria.voice.apiKey");
     if (savedApiKey) state.voiceConfig.apiKey = savedApiKey;
 
     renderVoiceSelect();
@@ -12406,8 +12411,8 @@
         } else if (tabMode === "custom") {
           state.voiceConfig.engine = elements.voiceCustomEngineSubSelect?.value || "openai";
         }
-        safeStorageSet("miyu.voice.engine", state.voiceConfig.engine);
-        safeStorageSet("miyu.voice.endpoint", state.voiceConfig.endpoint || "");
+        safeStorageSet("natria.voice.engine", state.voiceConfig.engine);
+        safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint || "");
         updateVoiceControls();
         showToast(`已切换发音方式为：${tab.querySelector(".tab-title")?.textContent || tabMode}`);
       });
@@ -12431,13 +12436,13 @@
     // 克隆子引擎选择
     elements.voiceCloneEngineSubSelect?.addEventListener("change", (e) => {
       state.voiceConfig.engine = e.target.value;
-      safeStorageSet("miyu.voice.engine", state.voiceConfig.engine);
+      safeStorageSet("natria.voice.engine", state.voiceConfig.engine);
       if (state.voiceConfig.engine === "gpt_sovits") {
         state.voiceConfig.endpoint = "http://127.0.0.1:9880";
       } else if (state.voiceConfig.engine === "cosyvoice") {
         state.voiceConfig.endpoint = "http://127.0.0.1:9233";
       }
-      safeStorageSet("miyu.voice.endpoint", state.voiceConfig.endpoint);
+      safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint);
       updateVoiceControls();
       showToast(`已选用克隆引擎：${e.target.selectedOptions[0]?.text || e.target.value}`);
     });
@@ -12445,13 +12450,13 @@
     // 自定义子引擎选择
     elements.voiceCustomEngineSubSelect?.addEventListener("change", (e) => {
       state.voiceConfig.engine = e.target.value;
-      safeStorageSet("miyu.voice.engine", state.voiceConfig.engine);
+      safeStorageSet("natria.voice.engine", state.voiceConfig.engine);
       updateVoiceControls();
     });
 
     elements.voiceCloneEndpointInput?.addEventListener("input", (e) => {
       state.voiceConfig.endpoint = e.target.value.trim();
-      safeStorageSet("miyu.voice.endpoint", state.voiceConfig.endpoint);
+      safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint);
     });
 
     const PRESET_PROMPT_TEXTS = {
@@ -12470,10 +12475,10 @@
 
     elements.voiceClonePromptAudioSelect?.addEventListener("change", (e) => {
       state.voiceConfig.promptAudio = e.target.value;
-      safeStorageSet("miyu.voice.promptAudio", state.voiceConfig.promptAudio);
+      safeStorageSet("natria.voice.promptAudio", state.voiceConfig.promptAudio);
       if (PRESET_PROMPT_TEXTS[e.target.value]) {
         state.voiceConfig.promptText = PRESET_PROMPT_TEXTS[e.target.value];
-        safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
+        safeStorageSet("natria.voice.promptText", state.voiceConfig.promptText);
         if (elements.voiceClonePromptTextInput) {
           elements.voiceClonePromptTextInput.value = state.voiceConfig.promptText;
         }
@@ -12483,32 +12488,32 @@
 
     elements.voiceClonePromptTextInput?.addEventListener("input", (e) => {
       state.voiceConfig.promptText = e.target.value;
-      safeStorageSet("miyu.voice.promptText", state.voiceConfig.promptText);
+      safeStorageSet("natria.voice.promptText", state.voiceConfig.promptText);
     });
 
     elements.voiceClonePromptLangSelect?.addEventListener("change", (e) => {
       state.voiceConfig.promptLang = e.target.value;
-      safeStorageSet("miyu.voice.promptLang", state.voiceConfig.promptLang);
+      safeStorageSet("natria.voice.promptLang", state.voiceConfig.promptLang);
     });
 
     elements.voiceCloneApiKeyInput?.addEventListener("input", (e) => {
       state.voiceConfig.apiKey = e.target.value.trim();
-      safeStorageSet("miyu.voice.apiKey", state.voiceConfig.apiKey);
+      safeStorageSet("natria.voice.apiKey", state.voiceConfig.apiKey);
     });
 
     elements.voiceCustomEndpointInput?.addEventListener("input", (e) => {
       state.voiceConfig.endpoint = e.target.value.trim();
-      safeStorageSet("miyu.voice.endpoint", state.voiceConfig.endpoint);
+      safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint);
     });
 
     elements.voiceCustomVoiceInput?.addEventListener("input", (e) => {
       state.voiceConfig.voice = e.target.value.trim();
-      safeStorageSet("miyu.voice.voice", state.voiceConfig.voice);
+      safeStorageSet("natria.voice.voice", state.voiceConfig.voice);
     });
 
     elements.voiceCustomApiKeyInput?.addEventListener("input", (e) => {
       state.voiceConfig.apiKey = e.target.value.trim();
-      safeStorageSet("miyu.voice.apiKey", state.voiceConfig.apiKey);
+      safeStorageSet("natria.voice.apiKey", state.voiceConfig.apiKey);
     });
 
     elements.checkVoiceCloneHealthButton?.addEventListener("click", async () => {
@@ -12550,7 +12555,7 @@
 
     elements.voiceToggleButton?.addEventListener("click", () => {
       state.voiceEnabled = !state.voiceEnabled;
-      safeStorageSet("miyu.voice.enabled", state.voiceEnabled ? "1" : "0");
+      safeStorageSet("natria.voice.enabled", state.voiceEnabled ? "1" : "0");
       updateVoiceControls();
       showToast(state.voiceEnabled ? "已开启语音播报" : "已关闭语音播报");
       if (!state.voiceEnabled) stopVoice();
@@ -12558,21 +12563,21 @@
 
     elements.voiceEnabledToggle?.addEventListener("click", () => {
       state.voiceEnabled = !state.voiceEnabled;
-      safeStorageSet("miyu.voice.enabled", state.voiceEnabled ? "1" : "0");
+      safeStorageSet("natria.voice.enabled", state.voiceEnabled ? "1" : "0");
       updateVoiceControls();
       if (!state.voiceEnabled) stopVoice();
     });
 
     elements.voiceFilterActionsToggle?.addEventListener("click", () => {
       state.voiceConfig.filterActions = !(state.voiceConfig.filterActions !== false);
-      safeStorageSet("miyu.voice.filterActions", state.voiceConfig.filterActions ? "1" : "0");
+      safeStorageSet("natria.voice.filterActions", state.voiceConfig.filterActions ? "1" : "0");
       updateVoiceControls();
       showToast(state.voiceConfig.filterActions ? "已开启过滤动作描写与旁白" : "已关闭过滤动作描写与旁白", "info");
     });
 
     elements.voiceSelect?.addEventListener("change", (e) => {
       state.voiceConfig.voice = e.target.value;
-      safeStorageSet("miyu.voice.voice", state.voiceConfig.voice);
+      safeStorageSet("natria.voice.voice", state.voiceConfig.voice);
       renderVoiceLibraryList();
     });
 
@@ -12580,14 +12585,14 @@
       const val = parseInt(e.target.value) || 0;
       state.voiceConfig.rate = `${val >= 0 ? "+" : ""}${val}%`;
       if (elements.voiceRateLabel) elements.voiceRateLabel.textContent = state.voiceConfig.rate;
-      safeStorageSet("miyu.voice.rate", state.voiceConfig.rate);
+      safeStorageSet("natria.voice.rate", state.voiceConfig.rate);
     });
 
     elements.voicePitchSlider?.addEventListener("input", (e) => {
       const val = parseInt(e.target.value) || 0;
       state.voiceConfig.pitch = `${val >= 0 ? "+" : ""}${val}Hz`;
       if (elements.voicePitchLabel) elements.voicePitchLabel.textContent = state.voiceConfig.pitch;
-      safeStorageSet("miyu.voice.pitch", state.voiceConfig.pitch);
+      safeStorageSet("natria.voice.pitch", state.voiceConfig.pitch);
     });
 
     // 微软 Edge-TTS 试听发音
@@ -12878,18 +12883,18 @@
   function initialize() {
     renderIconSlots();
     if (window.location.hash.includes("console")) consoleOpen();
-    setTheme(safeStorageGet("miyu.web.theme") || "graphite", false);
-    const storedScheme = safeStorageGet("miyu.web.colorScheme");
+    setTheme(safeStorageGet("natria.web.theme") || "graphite", false);
+    const storedScheme = safeStorageGet("natria.web.colorScheme");
     if (storedScheme) setColorScheme(storedScheme, false);
     probeMatugenTheme();
-    setChatFontSize(safeStorageGet("miyu.web.chatFontSize") || "15px", false);
-    setReasoningExpanded(safeStorageGet("miyu.web.reasoningExpanded") === "true", false);
-    setToolExpanded(safeStorageGet("miyu.web.toolExpanded") === "true", false);
-    const artifactRatio = Number(safeStorageGet("miyu.web.artifactWidthRatio.v2"));
+    setChatFontSize(safeStorageGet("natria.web.chatFontSize") || "15px", false);
+    setReasoningExpanded(safeStorageGet("natria.web.reasoningExpanded") === "true", false);
+    setToolExpanded(safeStorageGet("natria.web.toolExpanded") === "true", false);
+    const artifactRatio = Number(safeStorageGet("natria.web.artifactWidthRatio.v2"));
     if (Number.isFinite(artifactRatio) && artifactRatio >= 0.25 && artifactRatio <= 0.9) {
       state.artifactWidthRatio = artifactRatio;
     }
-    setSidebarCollapsed(safeStorageGet("miyu.web.sidebarCollapsed") === "true");
+    setSidebarCollapsed(safeStorageGet("natria.web.sidebarCollapsed") === "true");
     syncArtifactLayout();
     setSettingsView("interface");
     bindEvents();

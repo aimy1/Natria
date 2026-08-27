@@ -25,18 +25,23 @@ pub(in crate::platforms::plugins::renderer) const CODE_FONT_FILE: &str =
 
 pub(in crate::platforms::plugins::renderer) const EMOJI_FONT_FILE: &str = "NotoColorEmoji.ttf";
 
-pub(in crate::platforms::plugins::renderer) const RENDERER_FONTS_ENV: &str = "MIYU_RENDERER_FONTS_DIR";
+pub(in crate::platforms::plugins::renderer) const RENDERER_FONTS_ENV: &str =
+    "NATRIA_RENDERER_FONTS_DIR";
+pub(in crate::platforms::plugins::renderer) const LEGACY_RENDERER_FONTS_ENV: &str =
+    "MIYU_RENDERER_FONTS_DIR";
 
 pub(in crate::platforms::plugins::renderer) fn renderer_fonts_dir() -> Result<PathBuf> {
     let mut candidates = Vec::new();
-    if let Some(path) = std::env::var_os(RENDERER_FONTS_ENV) {
+    if let Some(path) = std::env::var_os(RENDERER_FONTS_ENV).or_else(|| std::env::var_os(LEGACY_RENDERER_FONTS_ENV)) {
         candidates.push(PathBuf::from(path));
     }
     #[cfg(debug_assertions)]
     candidates.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/fonts"));
+    candidates.push(PathBuf::from("/usr/share/natria/fonts"));
     candidates.push(PathBuf::from("/usr/share/miyu/fonts"));
-    if let Ok(executable) = crate::paths::miyu_executable() {
+    if let Ok(executable) = crate::paths::natria_executable() {
         if let Some(prefix) = executable.parent().and_then(std::path::Path::parent) {
+            candidates.push(prefix.join("share/natria/fonts"));
             candidates.push(prefix.join("share/miyu/fonts"));
         }
         if let Some(workspace) = executable
@@ -47,7 +52,7 @@ pub(in crate::platforms::plugins::renderer) fn renderer_fonts_dir() -> Result<Pa
             candidates.push(workspace.join("assets/fonts"));
         }
     }
-    // 兜底:发行版 noto-fonts-cjk 的标准安装路径。miyu 专用字体目录缺失
+    // 兜底:发行版 noto-fonts-cjk 的标准安装路径。natria 专用字体目录缺失
     // (比如误装了不带字体的 release 资产包)时,长文转图靠系统字体继续工作。
     candidates.push(PathBuf::from("/usr/share/fonts/noto-cjk"));
     for candidate in &candidates {
@@ -61,7 +66,7 @@ pub(in crate::platforms::plugins::renderer) fn renderer_fonts_dir() -> Result<Pa
         .collect::<Vec<_>>()
         .join(", ");
     bail!(
-        "renderer font is missing; install {CJK_FONT_FILE} in /usr/share/miyu/fonts or set {RENDERER_FONTS_ENV} (searched: {searched})"
+        "renderer font is missing; install {CJK_FONT_FILE} in /usr/share/natria/fonts or set {RENDERER_FONTS_ENV} (searched: {searched})"
     )
 }
 

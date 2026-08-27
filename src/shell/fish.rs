@@ -26,8 +26,8 @@ fn completion_entries() -> [(&'static str, &'static str); 16] {
         (
             "reload",
             t(
-                "Reload configuration in the running Miyu daemon",
-                "在运行中的 Miyu daemon 内重新加载配置",
+                "Reload configuration in the running Natria daemon",
+                "在运行中的 Natria daemon 内重新加载配置",
             ),
         ),
         ("models", t("List or switch models", "列出或切换模型")),
@@ -55,15 +55,15 @@ fn completion_entries() -> [(&'static str, &'static str); 16] {
         (
             "remove-shell-hook",
             t(
-                "Remove installed Miyu shell hooks",
-                "安全删除已安装的 Miyu shell hook",
+                "Remove installed Natria shell hooks",
+                "安全删除已安装的 Natria shell hook",
             ),
         ),
         ("history", t("Show conversation history", "显示会话历史")),
         ("kb", t("Manage the local knowledge base", "管理本地知识库")),
         (
             "update-default-kb",
-            t("Update the default knowledge base", "更新 Miyu 默认知识库"),
+            t("Update the default knowledge base", "更新 Natria 默认知识库"),
         ),
         (
             "memory",

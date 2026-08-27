@@ -843,8 +843,10 @@ mod reclaim_probe {
     #[test]
     #[ignore]
     fn reclaim_on_a_real_database() {
-        let Some(dir) = std::env::var_os("MIYU_RECLAIM_PROBE_DIR") else {
-            println!("\n  跳过：没给 MIYU_RECLAIM_PROBE_DIR");
+        let Some(dir) = std::env::var_os("NATRIA_RECLAIM_PROBE_DIR")
+            .or_else(|| std::env::var_os("MIYU_RECLAIM_PROBE_DIR"))
+        else {
+            println!("\n  跳过：没给 NATRIA_RECLAIM_PROBE_DIR");
             return;
         };
         let dir = std::path::PathBuf::from(dir);

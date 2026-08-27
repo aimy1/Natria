@@ -308,7 +308,7 @@ mod remote_tool_image_tests {
         assert!(validate_ipc_command_response(Some(IpcFrame::Ack)).is_ok());
         let rejected = validate_ipc_command_response(Some(IpcFrame::Error {
             code: None,
-            message: "Miyu is busy with another operation".to_string(),
+            message: "Natria is busy with another operation".to_string(),
         }))
         .unwrap_err();
         assert!(rejected.to_string().contains("busy with another operation"));

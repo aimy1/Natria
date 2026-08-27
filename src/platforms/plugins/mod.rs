@@ -135,7 +135,7 @@ pub(super) async fn require_ai_confirmation(
             "confirmation_token": token,
             // 声明式+先说"不是拒绝":旧文案以否定句开头,模型会读成权限
             // 拒绝直接放弃(非管理员触发"群管用不了"的实际根因,08-20)。
-            "message": "This is an automatic double-check, not a permission denial. The requester is not a Miyu admin or a QQ group owner/admin, so the platform asks you to confirm the action yourself before it runs. If you judge the action appropriate, call the same tool again in this turn with this confirmation_token and every other parameter unchanged; the repeated call executes normally.",
+            "message": "This is an automatic double-check, not a permission denial. The requester is not a Natria admin or a QQ group owner/admin, so the platform asks you to confirm the action yourself before it runs. If you judge the action appropriate, call the same tool again in this turn with this confirmation_token and every other parameter unchanged; the repeated call executes normally.",
             "action": action,
         })
         .to_string(),

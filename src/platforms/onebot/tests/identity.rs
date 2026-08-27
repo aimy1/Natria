@@ -377,7 +377,7 @@ async fn qq_conversation_persona_drives_context_and_session_binding() {
         custom.config.active_persona_scope()
     );
 
-    config.platforms.qq.conversations[0].persona = crate::config::PlatformPersonaOverride::Miyu;
+    config.platforms.qq.conversations[0].persona = crate::config::PlatformPersonaOverride::Natria;
     let miyu = platform_turn_context(&state, connection, target, &event, config, None).unwrap();
     assert!(miyu.config.prompt.active_persona.is_empty());
     let miyu_session = resolve_onebot_session(&state, &miyu, target, &event).unwrap();

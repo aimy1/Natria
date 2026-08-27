@@ -265,7 +265,7 @@ pub(in crate::config_tui) fn platform_persona_summary(persona: &PlatformPersonaO
         PlatformPersonaOverride::Inherit => {
             t("inherit current persona", "继承当前人格").to_string()
         }
-        PlatformPersonaOverride::Miyu => "Miyu".to_string(),
+        PlatformPersonaOverride::Natria => "Natria".to_string(),
         PlatformPersonaOverride::Custom { name } => persona_display_name(name).to_string(),
     }
 }

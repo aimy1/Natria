@@ -167,8 +167,10 @@ static KATEX_FONTS: &[(&str, &[u8])] = &[
 // 多背 7.2 MiB。降到 256×256 和 1280×720（2x DPR 仍有富余）后纹理 3.7 MiB。
 // 原图留在 `pics/` 不动：README、终端演示、外部链接还在引用。
 // 重新生成见 `scripts/gen_web_assets.py`。
-const MIYU_LOGO: &[u8] = include_bytes!("../../web/assets/natria-logo.png");
-const MIYU_WALLPAPER: &[u8] = include_bytes!("../../web/assets/natriawallpaper.png");
+const NATRIA_LOGO: &[u8] = include_bytes!("../../web/assets/natria-logo.png");
+const NATRIA_WALLPAPER: &[u8] = include_bytes!("../../web/assets/natriawallpaper.png");
+const MIYU_LOGO: &[u8] = NATRIA_LOGO;
+const MIYU_WALLPAPER: &[u8] = NATRIA_WALLPAPER;
 
 
 

@@ -92,10 +92,10 @@ impl Agent {
                         }
                         Ok(Ok((None, _, _))) => {}
                         Ok(Err(error)) => {
-                            tracing::warn!(error = %error, "failed to refresh Miyu skill catalog")
+                            tracing::warn!(error = %error, "failed to refresh Natria skill catalog")
                         }
                         Err(error) => {
-                            tracing::warn!(error = %error, "Miyu skill catalog worker stopped")
+                            tracing::warn!(error = %error, "Natria skill catalog worker stopped")
                         }
                     }
                 }

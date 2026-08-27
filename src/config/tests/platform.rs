@@ -460,7 +460,7 @@ fn qq_conversation_persona_override_is_explicit_and_tracks_renames() {
     );
     assert!(config.validate().is_ok());
 
-    config.platforms.qq.conversations[0].persona = PlatformPersonaOverride::Miyu;
+    config.platforms.qq.conversations[0].persona = PlatformPersonaOverride::Natria;
     config.apply_qq_conversation_persona(PlatformConversationKind::Group, "20002");
     assert!(config.prompt.active_persona.is_empty());
 }

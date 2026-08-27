@@ -496,7 +496,8 @@ impl Default for PlatformMemoryConfig {
 pub enum PlatformPersonaOverride {
     #[default]
     Inherit,
-    Miyu,
+    #[serde(alias = "miyu")]
+    Natria,
     Custom {
         name: String,
     },

@@ -45,7 +45,7 @@ pub fn uninstall(paths: &MiyuPaths) -> Result<bool> {
     if removed {
         println!(
             "{}: zsh",
-            t("removed Miyu shell hook", "已移除 Miyu shell hook")
+            t("removed Natria shell hook", "已移除 Natria shell hook")
         );
     }
     Ok(removed)

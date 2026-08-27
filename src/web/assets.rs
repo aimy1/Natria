@@ -128,7 +128,7 @@ pub(in crate::web) async fn shared_js_asset(headers: HeaderMap) -> Response {
 }
 
 pub(in crate::web) async fn logo_asset(headers: HeaderMap) -> Response {
-    embedded_asset(&headers, MIYU_LOGO, "image/png")
+    embedded_asset(&headers, NATRIA_LOGO, "image/png")
 }
 
 pub(in crate::web) async fn katex_js_asset(headers: HeaderMap) -> Response {
@@ -147,7 +147,7 @@ pub(in crate::web) async fn katex_font_asset(headers: HeaderMap, Path(font): Pat
 }
 
 pub(in crate::web) async fn wallpaper_asset(headers: HeaderMap) -> Response {
-    embedded_asset(&headers, MIYU_WALLPAPER, "image/png")
+    embedded_asset(&headers, NATRIA_WALLPAPER, "image/png")
 }
 
 pub(in crate::web) async fn upload_persona_asset(

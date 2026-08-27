@@ -68,14 +68,14 @@ fn qq_conversation_labels_are_localized_and_id_label_tracks_type() {
 }
 
 #[test]
-fn qq_conversation_persona_summary_distinguishes_inheritance_and_miyu() {
+fn qq_conversation_persona_summary_distinguishes_inheritance_and_natria() {
     assert_eq!(
         platform_persona_summary(&PlatformPersonaOverride::Inherit),
         t("inherit current persona", "继承当前人格")
     );
     assert_eq!(
-        platform_persona_summary(&PlatformPersonaOverride::Miyu),
-        "Miyu"
+        platform_persona_summary(&PlatformPersonaOverride::Natria),
+        "Natria"
     );
     assert_eq!(
         platform_persona_summary(&PlatformPersonaOverride::Custom {

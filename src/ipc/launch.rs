@@ -196,7 +196,7 @@ pub(crate) fn remap_managed_password(
 }
 
 pub(crate) fn write_private_state(path: &Path, contents: &[u8]) -> Result<()> {
-    let parent = path.parent().context("Miyu state file has no parent")?;
+    let parent = path.parent().context("Natria state file has no parent")?;
     std::fs::create_dir_all(parent)?;
     crate::platform_fs::set_file_mode(parent, 0o700)?;
     let temporary = parent.join(format!(
@@ -234,7 +234,7 @@ pub(crate) fn finish_private_state_commit(parent: &Path, directory_sync: std::io
         tracing::warn!(
             directory = %parent.display(),
             error = %error,
-            "Miyu state file was committed, but syncing its parent directory failed"
+            "Natria state file was committed, but syncing its parent directory failed"
         );
     }
     Ok(())

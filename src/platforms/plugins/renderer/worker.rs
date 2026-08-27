@@ -30,7 +30,8 @@ pub(in crate::platforms::plugins::renderer) const MAX_ERROR_FRAME_BYTES: usize =
 
 pub(in crate::platforms::plugins::renderer) const MAX_RESPONSE_IMAGES: usize = 1;
 
-pub(in crate::platforms::plugins::renderer) const WORKER_ENV: &str = "MIYU_INTERNAL_RENDERER_WORKER";
+pub(in crate::platforms::plugins::renderer) const WORKER_ENV: &str = "NATRIA_INTERNAL_RENDERER_WORKER";
+pub(in crate::platforms::plugins::renderer) const LEGACY_WORKER_ENV: &str = "MIYU_INTERNAL_RENDERER_WORKER";
 
 pub(in crate::platforms::plugins::renderer) const WORKER_ARG: &str = "__renderer-worker";
 
@@ -63,7 +64,7 @@ impl Drop for WorkerSlot {
 
 impl WorkerProcess {
     pub(in crate::platforms::plugins::renderer) async fn spawn() -> Result<Self> {
-        let executable = crate::paths::miyu_executable()?;
+        let executable = crate::paths::natria_executable()?;
         let executable_for_error = executable.clone();
         let mut command = tokio::process::Command::new(executable);
         command
@@ -76,7 +77,7 @@ impl WorkerProcess {
         let mut child = command.spawn().with_context(|| {
             format!(
                 "starting the long-image renderer worker ({}); \
-                 if Miyu was upgraded or rebuilt while running, restart the daemon",
+                 if Natria was upgraded or rebuilt while running, restart the daemon",
                 executable_for_error.display()
             )
         })?;
@@ -129,7 +130,8 @@ pub(in crate::platforms::plugins::renderer) async fn stop_worker(mut worker: Wor
 }
 
 pub(crate) fn renderer_worker_requested() -> bool {
-    std::env::var_os(WORKER_ENV).as_deref() == Some(std::ffi::OsStr::new("1"))
+    (std::env::var_os(WORKER_ENV).as_deref() == Some(std::ffi::OsStr::new("1"))
+        || std::env::var_os(LEGACY_WORKER_ENV).as_deref() == Some(std::ffi::OsStr::new("1")))
         && std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new(WORKER_ARG))
 }
 

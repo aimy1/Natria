@@ -49,7 +49,7 @@ impl MemoryOrganizer {
         let shutdown = Arc::new(AtomicBool::new(false));
         let worker_shutdown = shutdown.clone();
         let join = std::thread::Builder::new()
-            .name("miyu-memory-organizer".to_string())
+            .name("natria-memory-organizer".to_string())
             // 同 daemon-core：防 tiktoken 正则编译递归在 debug 构建下打穿默认栈
             .stack_size(16 * 1024 * 1024)
             .spawn(move || {

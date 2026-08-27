@@ -24,7 +24,10 @@ pub fn install_dir(dir: PathBuf) {
 
 fn env_init() {
     ENV_INIT.get_or_init(|| {
-        if std::env::var_os("MIYU_LOG_REQUESTS").is_some_and(|value| value != "0") {
+        if std::env::var_os("NATRIA_LOG_REQUESTS")
+            .or_else(|| std::env::var_os("MIYU_LOG_REQUESTS"))
+            .is_some_and(|value| value != "0")
+        {
             ENABLED.store(true, Ordering::Relaxed);
         }
     });

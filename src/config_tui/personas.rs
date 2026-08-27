@@ -167,11 +167,16 @@ impl PersonaMenuTarget {
         }
     }
 
-    pub(in crate::config_tui) fn is_miyu(&self, config: &AppConfig) -> bool {
+    pub(in crate::config_tui) fn is_natria(&self, config: &AppConfig) -> bool {
         match self {
             Self::Global => config.prompt.active_persona.trim().is_empty(),
-            Self::Platform(persona) => matches!(persona, PlatformPersonaOverride::Miyu),
+            Self::Platform(persona) => matches!(persona, PlatformPersonaOverride::Natria),
         }
+    }
+
+    #[allow(dead_code)]
+    pub(in crate::config_tui) fn is_miyu(&self, config: &AppConfig) -> bool {
+        self.is_natria(config)
     }
 
     pub(in crate::config_tui) fn custom_name<'a>(
@@ -191,11 +196,16 @@ impl PersonaMenuTarget {
         }
     }
 
-    pub(in crate::config_tui) fn activate_miyu(&mut self, config: &mut AppConfig) {
+    pub(in crate::config_tui) fn activate_natria(&mut self, config: &mut AppConfig) {
         match self {
             Self::Global => config.prompt.active_persona.clear(),
-            Self::Platform(persona) => *persona = PlatformPersonaOverride::Miyu,
+            Self::Platform(persona) => *persona = PlatformPersonaOverride::Natria,
         }
+    }
+
+    #[allow(dead_code)]
+    pub(in crate::config_tui) fn activate_miyu(&mut self, config: &mut AppConfig) {
+        self.activate_natria(config);
     }
 
     pub(in crate::config_tui) fn activate_custom(&mut self, config: &mut AppConfig, name: String) {

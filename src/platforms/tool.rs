@@ -93,7 +93,7 @@ fn register_mention(registry: &mut ToolRegistry, context: Arc<PlatformTurnContex
     registry.register(
         ToolSpec::new(
             "qq_mention_users",
-            "Make Miyu's next outgoing message in the current QQ group natively @ one or more members. Provide exact QQ IDs; use get_group_members_info first when only names are known. These explicit targets replace the automatic reply mention but preserve its message-quote behavior. This tool does not send a separate message.",
+            "Make Natria's next outgoing message in the current QQ group natively @ one or more members. Provide exact QQ IDs; use get_group_members_info first when only names are known. These explicit targets replace the automatic reply mention but preserve its message-quote behavior. This tool does not send a separate message.",
             json!({
                 "type": "object",
                 "properties": {
@@ -355,7 +355,7 @@ fn register_usage_query(registry: &mut ToolRegistry, context: Arc<PlatformTurnCo
     registry.register(
         ToolSpec::new(
             "query_token_usage",
-            "Query Miyu's token usage statistics: totals, request count, cache hit rate, and the per-source (agent / messaging platforms) model breakdown. range: 1d (rolling 24h, default) / 7d / 30d / all.",
+            "Query Natria's token usage statistics: totals, request count, cache hit rate, and the per-source (agent / messaging platforms) model breakdown. range: 1d (rolling 24h, default) / 7d / 30d / all.",
             json!({
                 "type": "object",
                 "properties": {

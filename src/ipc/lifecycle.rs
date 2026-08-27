@@ -104,8 +104,8 @@ pub(crate) fn acquire_lock(lock_path: PathBuf) -> Result<File> {
             bail!(
                 "{}",
                 crate::i18n::text(
-                    "another Miyu core (the daemon or another direct REPL) holds this home; stop it (miyu daemon stop) or drop MIYU_DIRECT to attach to the daemon",
-                    "另一个 Miyu 核心(daemon 或另一个直连 REPL)正占用本机身份;直连模式与它互斥——先 miyu daemon stop,或去掉 MIYU_DIRECT 改为连接 daemon"
+                    "another Natria core (the daemon or another direct REPL) holds this home; stop it (natria daemon stop) or drop NATRIA_DIRECT to attach to the daemon",
+                    "另一个 Natria 核心(daemon 或另一个直连 REPL)正占用本机身份;直连模式与它互斥——先 natria daemon stop,或去掉 NATRIA_DIRECT 改为连接 daemon"
                 )
             );
         }
@@ -126,7 +126,7 @@ pub(crate) fn unlock(lock_file: &File) {
 pub async fn connect(path: &Path) -> Result<UnixStream> {
     UnixStream::connect(path)
         .await
-        .with_context(|| format!("connecting to Miyu core at {}", path.display()))
+        .with_context(|| format!("connecting to Natria core at {}", path.display()))
 }
 
 #[cfg(not(unix))]
@@ -206,7 +206,7 @@ pub async fn ensure_daemon(
     let mut current = daemon_info(&active_paths).await;
     if current.is_none() {
         let previous_paths = active_paths.clone();
-        active_paths = match MiyuPaths::new().context("refreshing Miyu paths before daemon startup")
+        active_paths = match MiyuPaths::new().context("refreshing Natria paths before daemon startup")
         {
             Ok(paths) => paths,
             Err(error) => {
@@ -238,7 +238,7 @@ pub async fn ensure_daemon(
             }
             return Err(error);
         }
-        active_paths = match MiyuPaths::new().context("refreshing Miyu paths after daemon shutdown")
+        active_paths = match MiyuPaths::new().context("refreshing Natria paths after daemon shutdown")
         {
             Ok(paths) => paths,
             Err(error) => {
@@ -274,7 +274,7 @@ pub async fn ensure_daemon(
             return Err(error);
         }
         drop(starter);
-        active_paths = match MiyuPaths::new().context("refreshing Miyu paths after daemon shutdown")
+        active_paths = match MiyuPaths::new().context("refreshing Natria paths after daemon shutdown")
         {
             Ok(paths) => paths,
             Err(error) => {
@@ -310,10 +310,10 @@ pub async fn ensure_daemon(
             spawn_daemon_reaper(child);
             return Ok(info);
         }
-        match child.try_wait().context("checking Miyu daemon process") {
+        match child.try_wait().context("checking Natria daemon process") {
             Ok(Some(status)) => {
                 abandon_daemon_launch_candidate(&active_paths, &launch);
-                bail!("Miyu daemon exited before becoming ready ({status})");
+                bail!("Natria daemon exited before becoming ready ({status})");
             }
             Ok(None) => {}
             Err(error) => {
@@ -327,7 +327,7 @@ pub async fn ensure_daemon(
             let _ = child.kill();
             let _ = child.wait();
             abandon_daemon_launch_candidate(&active_paths, &launch);
-            bail!("Miyu daemon did not become ready within 8 seconds");
+            bail!("Natria daemon did not become ready within 8 seconds");
         }
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
@@ -338,7 +338,7 @@ pub async fn ensure_daemon(
 pub(crate) async fn restart_stale_daemon(paths: &MiyuPaths, info: &DaemonInfo) -> Result<()> {
     shutdown_daemon(paths, info)
         .await
-        .context("waiting for the outdated Miyu daemon to stop")
+        .context("waiting for the outdated Natria daemon to stop")
 }
 
 pub async fn shutdown_daemon(paths: &MiyuPaths, info: &DaemonInfo) -> Result<()> {
@@ -372,7 +372,7 @@ pub async fn wait_for_daemon_exit(process: DaemonProcessIdentity, timeout: Durat
         }
         if tokio::time::Instant::now() >= deadline {
             bail!(
-                "Miyu daemon PID {} did not stop within {} seconds",
+                "Natria daemon PID {} did not stop within {} seconds",
                 process.pid,
                 timeout.as_secs()
             );
@@ -452,8 +452,8 @@ pub(crate) fn start_daemon_process(
         .open(paths.logs_dir().join("daemon.log"))?;
     // The daemon is this very binary re-executed with a hidden subcommand,
     // so a single installed file is always sufficient.
-    let executable = crate::paths::miyu_executable()
-        .context("resolving the Miyu executable to spawn the daemon")?;
+    let executable = crate::paths::natria_executable()
+        .context("resolving the Natria executable to spawn the daemon")?;
     let mut command = std::process::Command::new(executable);
     command.arg("__daemon");
     append_daemon_process_args(&mut command, launch);
@@ -470,7 +470,7 @@ pub(crate) fn start_daemon_process(
             Ok(())
         });
     }
-    command.spawn().context("starting Miyu daemon")
+    command.spawn().context("starting Natria daemon")
 }
 
 pub(crate) fn spawn_daemon_reaper(mut child: std::process::Child) {
