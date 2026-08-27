@@ -12580,6 +12580,7 @@
   let speechRecognizer = null;
   let isSpeechListening = false;
   let speechBaseText = "";
+  let shouldKeepListening = false;
 
   function initSpeechRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -12617,7 +12618,8 @@
         let interimTranscript = "";
         let finalTranscript = "";
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        // 必须从 0 遍历整个 results 列表，防止跨批次切片导致前序句子被抹去
+        for (let i = 0; i < event.results.length; ++i) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
             finalTranscript += transcript;
@@ -12640,23 +12642,42 @@
       speechRecognizer.onerror = (event) => {
         console.warn("[SpeechRecognition] Error:", event.error);
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          shouldKeepListening = false;
           showToast("麦克风权限被拒绝，请在浏览器地址栏允许麦克风权限", "error");
+          updateMicButtonState(false);
         } else if (event.error === "network") {
-          showToast("语音识别网络服务异常，请检查网络连接", "warning");
+          shouldKeepListening = false;
+          showToast("语音识别网络服务异常，请检查网络连接或使用 Edge 浏览器", "warning");
+          updateMicButtonState(false);
+        } else if (event.error === "no-speech") {
+          // 静音超时，若用户未主动关闭则保持监听
         }
-        updateMicButtonState(false);
       };
 
       speechRecognizer.onend = () => {
-        updateMicButtonState(false);
-        elements.composerInput?.focus();
+        if (shouldKeepListening) {
+          // 浏览器因短暂静音触发了自动断连，若用户处于开启状态，无缝重新拉起继续识别
+          speechBaseText = elements.composerInput?.value || "";
+          try {
+            speechRecognizer.start();
+          } catch (_) {
+            updateMicButtonState(false);
+            shouldKeepListening = false;
+          }
+        } else {
+          updateMicButtonState(false);
+          elements.composerInput?.focus();
+        }
       };
 
       elements.micButton?.addEventListener("click", () => {
         if (isSpeechListening) {
+          shouldKeepListening = false;
           try { speechRecognizer.stop(); } catch (_) {}
           updateMicButtonState(false);
         } else {
+          shouldKeepListening = true;
+          speechBaseText = elements.composerInput?.value || "";
           try {
             speechRecognizer.start();
           } catch (err) {
