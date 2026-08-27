@@ -12485,17 +12485,18 @@
     });
 
     const PRESET_PROMPT_TEXTS = {
-      "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
-      "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你哦，除非你自己想被吃掉。",
-      "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟好不好？",
-      "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我手好了，下不为例哦。",
+      "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+      "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+      "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
+      "xiaoyan_tsundere_403.wav": "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
       "xiaoyan_clear_201.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
       "xiaoyan_clear_204.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
-      "xiaoyan_clear_402.wav": "我才没有特地打扮给你看了呢，你千万别自作多情。",
-      "xiaoyan_clear_501.wav": "你的眼睛里只能看着我一个人听懂了吗？",
-      "xiaoyan_sweet.wav": "乖孩子叫声,自己来听听说不定.我就满足你的愿望呢.",
-      "xiaoyan_ref.wav": "乖孩子叫声,自己来听听说不定.",
-      "2-0102.wav": "乖孩子叫声,自己来听听说不定."
+      "xiaoyan_clear_402.wav": "我才没有特地打扮给你看呢，你千万别自作多情哦。",
+      "xiaoyan_clear_501.wav": "你的眼睛里只能看着我一个人，听懂了吗？",
+      "xiaoyan_sweet.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+      "xiaoyan_v2proplus.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+      "xiaoyan_ref.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+      "2-0102.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。"
     };
 
     elements.voiceClonePromptAudioSelect?.addEventListener("change", (e) => {
