@@ -174,9 +174,10 @@ pub(in crate::web) async fn upload_voice_file_http(
         return Err(ApiError::new(StatusCode::PAYLOAD_TOO_LARGE, "file exceeds 50MB limit"));
     }
     let filename_header = headers
-        .get("x-miyu-filename")
+        .get("x-natria-filename")
+        .or_else(|| headers.get("x-miyu-filename"))
         .and_then(|h| h.to_str().ok())
-        .ok_or_else(|| ApiError::new(StatusCode::BAD_REQUEST, "x-miyu-filename header is required"))?;
+        .ok_or_else(|| ApiError::new(StatusCode::BAD_REQUEST, "x-natria-filename header is required"))?;
     let decoded = urlencoding::decode(filename_header)
         .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid urlencoded filename"))?;
     let safe_name = sanitize_voice_filename(&decoded)?;

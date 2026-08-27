@@ -362,17 +362,17 @@
   };
 
   const state = {
-    voiceEnabled: localStorage.getItem("miyu.voice.enabled") === "1",
+    voiceEnabled: (localStorage.getItem("natria.voice.enabled") ?? localStorage.getItem("miyu.voice.enabled")) === "1",
     voiceList: [],
     voiceFiles: [],
     voiceConfig: {
-      engine: localStorage.getItem("miyu.voice.engine") || "edge_tts",
-      endpoint: localStorage.getItem("miyu.voice.endpoint") || "",
-      promptAudio: localStorage.getItem("miyu.voice.promptAudio") || "",
-      promptText: localStorage.getItem("miyu.voice.promptText") || "",
-      promptLang: localStorage.getItem("miyu.voice.promptLang") || "zh",
-      apiKey: localStorage.getItem("miyu.voice.apiKey") || "",
-      filterActions: localStorage.getItem("miyu.voice.filterActions") !== "0",
+      engine: localStorage.getItem("natria.voice.engine") || localStorage.getItem("miyu.voice.engine") || "edge_tts",
+      endpoint: localStorage.getItem("natria.voice.endpoint") || localStorage.getItem("miyu.voice.endpoint") || "",
+      promptAudio: localStorage.getItem("natria.voice.promptAudio") || localStorage.getItem("miyu.voice.promptAudio") || "",
+      promptText: localStorage.getItem("natria.voice.promptText") || localStorage.getItem("miyu.voice.promptText") || "",
+      promptLang: localStorage.getItem("natria.voice.promptLang") || localStorage.getItem("miyu.voice.promptLang") || "zh",
+      apiKey: localStorage.getItem("natria.voice.apiKey") || localStorage.getItem("miyu.voice.apiKey") || "",
+      filterActions: (localStorage.getItem("natria.voice.filterActions") ?? localStorage.getItem("miyu.voice.filterActions")) !== "0",
       voice: "zh-CN-XiaoxiaoNeural",
       pitch: "+0Hz",
       rate: "+0%",
@@ -380,7 +380,7 @@
     },
     currentAudio: null,
     backgroundJobs: new Map(),
-    jobsStripOpen: localStorage.getItem("miyu.web.jobsStripOpen") === "1",
+    jobsStripOpen: (localStorage.getItem("natria.web.jobsStripOpen") ?? localStorage.getItem("miyu.web.jobsStripOpen")) === "1",
     bootId: null,
     latestEventId: 0,
     lastEventId: 0,
@@ -566,9 +566,22 @@
     return slot;
   }
 
+  function normalizeStorageKey(key) {
+    if (typeof key === "string" && key.startsWith("miyu.")) {
+      return "natria." + key.slice(5);
+    }
+    return key;
+  }
+
   function safeStorageGet(key) {
     try {
-      return window.localStorage.getItem(key);
+      const primaryKey = normalizeStorageKey(key);
+      const val = window.localStorage.getItem(primaryKey);
+      if (val !== null) return val;
+      if (typeof key === "string" && key.startsWith("miyu.")) {
+        return window.localStorage.getItem(key);
+      }
+      return null;
     } catch (_) {
       return null;
     }
@@ -576,7 +589,11 @@
 
   function safeStorageSet(key, value) {
     try {
-      window.localStorage.setItem(key, value);
+      const primaryKey = normalizeStorageKey(key);
+      window.localStorage.setItem(primaryKey, value);
+      if (typeof key === "string" && key.startsWith("miyu.")) {
+        window.localStorage.setItem(key, value);
+      }
     } catch (_) {
       // Storage can be unavailable in hardened browser profiles.
     }
@@ -4401,6 +4418,7 @@
     request.open("POST", `/api/attachments?session_id=${encodeURIComponent(item.sessionId)}`);
     request.setRequestHeader("Accept", "application/json");
     request.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
+    request.setRequestHeader("X-Natria-Filename", encodeURIComponent(item.file.name));
     request.setRequestHeader("X-Miyu-Filename", encodeURIComponent(item.file.name));
     request.upload.addEventListener("progress", (event) => {
       if (!event.lengthComputable || item.request !== request) return;
@@ -6258,7 +6276,7 @@
     const imageMime = !mime || mime.startsWith("image/");
     const width = validAssetDimension(source.width);
     const height = validAssetDimension(source.height);
-    const alt = String(source.alt || "").trim() || "Miyu 生成的图片";
+    const alt = String(source.alt || "").trim() || "Natria 生成的图片";
 
     const figure = document.createElement("figure");
     figure.className = "conversation-media";
@@ -9428,7 +9446,7 @@
       if (snapshot.display.voice.pitch) state.voiceConfig.pitch = snapshot.display.voice.pitch;
       if (snapshot.display.voice.rate) state.voiceConfig.rate = snapshot.display.voice.rate;
       if (snapshot.display.voice.volume) state.voiceConfig.volume = snapshot.display.voice.volume;
-      if (localStorage.getItem("miyu.voice.enabled") === null) {
+      if (safeStorageGet("natria.voice.enabled") === null) {
         state.voiceEnabled = Boolean(snapshot.display.voice.enabled);
       }
       updateVoiceControls();
@@ -12318,6 +12336,7 @@
       const res = await fetch("/api/voice/files", {
         method: "POST",
         headers: {
+          "x-natria-filename": encodeURIComponent(file.name),
           "x-miyu-filename": encodeURIComponent(file.name),
           "Content-Type": "application/octet-stream"
         },

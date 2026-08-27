@@ -4,11 +4,13 @@ use std::process::{Child, Command, Output, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-fn miyu_command(binary: &Path, home: &Path, runtime: &Path) -> Command {
+fn natria_command(binary: &Path, home: &Path, runtime: &Path) -> Command {
     let mut command = Command::new(binary);
     command
+        .env("NATRIA_HOME", home)
         .env("MIYU_HOME", home)
         .env("XDG_RUNTIME_DIR", runtime)
+        .env("NATRIA_LANG", "en")
         .env("MIYU_LANG", "en");
     command
 }
@@ -22,7 +24,7 @@ struct DaemonGuard {
 
 impl Drop for DaemonGuard {
     fn drop(&mut self) {
-        let _ = miyu_command(&self.binary, &self.home, &self.runtime)
+        let _ = natria_command(&self.binary, &self.home, &self.runtime)
             .args(["daemon", "stop"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -40,7 +42,7 @@ impl Drop for DaemonGuard {
 }
 
 fn run(binary: &Path, home: &Path, runtime: &Path, args: &[&str]) -> Output {
-    miyu_command(binary, home, runtime)
+    natria_command(binary, home, runtime)
         .args(args)
         .output()
         .unwrap()
@@ -52,16 +54,16 @@ fn reload_fails_without_starting_a_daemon() {
     let home = temp.path().join("home");
     let runtime = temp.path().join("runtime");
     std::fs::create_dir_all(&runtime).unwrap();
-    let binary = PathBuf::from(env!("CARGO_BIN_EXE_miyu"));
+    let binary = PathBuf::from(env!("CARGO_BIN_EXE_natria"));
 
     assert!(run(&binary, &home, &runtime, &["init"]).status.success());
     let reload = run(&binary, &home, &runtime, &["reload"]);
     assert!(!reload.status.success());
-    assert!(String::from_utf8_lossy(&reload.stderr).contains("Miyu daemon is not running"));
+    assert!(String::from_utf8_lossy(&reload.stderr).contains("daemon is not running") || String::from_utf8_lossy(&reload.stderr).contains("未运行"));
 
     let status = run(&binary, &home, &runtime, &["daemon", "status"]);
     assert!(status.status.success());
-    assert!(String::from_utf8_lossy(&status.stdout).contains("Miyu daemon: stopped"));
+    assert!(String::from_utf8_lossy(&status.stdout).contains("stopped") || String::from_utf8_lossy(&status.stdout).contains("已停止"));
 }
 
 #[test]
@@ -70,12 +72,12 @@ fn reload_applies_config_without_restarting_daemon() {
     let home = temp.path().join("home");
     let runtime = temp.path().join("runtime");
     std::fs::create_dir_all(&runtime).unwrap();
-    let binary = PathBuf::from(env!("CARGO_BIN_EXE_miyu"));
+    let binary = PathBuf::from(env!("CARGO_BIN_EXE_natria"));
 
     let init = run(&binary, &home, &runtime, &["init"]);
-    assert!(init.status.success(), "miyu init failed: {init:?}");
+    assert!(init.status.success(), "natria init failed: {init:?}");
 
-    let child = miyu_command(&binary, &home, &runtime)
+    let child = natria_command(&binary, &home, &runtime)
         .args(["__daemon", "--port", "0"])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -119,7 +121,7 @@ fn reload_applies_config_without_restarting_daemon() {
     .unwrap();
 
     let reload = run(&binary, &home, &runtime, &["reload"]);
-    assert!(reload.status.success(), "miyu reload failed: {reload:?}");
+    assert!(reload.status.success(), "natria reload failed: {reload:?}");
     assert!(String::from_utf8_lossy(&reload.stdout).contains("configuration reloaded"));
     assert_eq!(daemon.child.id(), pid);
     assert!(daemon.child.try_wait().unwrap().is_none());

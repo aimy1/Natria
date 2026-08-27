@@ -81,13 +81,14 @@ pub fn hook() -> String {
     let mut output = String::new();
     for (command, description) in completion_entries() {
         output.push_str(&format!(
-            "complete -c miyu -n __fish_use_subcommand -f -a {command} -d '{description}'\n"
+            "complete -c natria -n __fish_use_subcommand -f -a {command} -d '{description}'\n\
+             complete -c miyu -n __fish_use_subcommand -f -a {command} -d '{description}'\n"
         ));
     }
     output.push('\n');
     output.push_str(
         r#"function __miyu_paste
-    set -l output (miyu --clipboard-paste 2>/dev/null)
+    set -l output (natria --clipboard-paste 2>/dev/null; or miyu --clipboard-paste 2>/dev/null)
     if test $status -eq 0; and test -n "$output"
         if not set -q __miyu_image_counter
             set -g __miyu_image_counter 0
@@ -162,7 +163,7 @@ function __miyu_on_prompt --on-event fish_prompt
     trap __miyu_restore_cursor INT TERM EXIT
     __miyu_replay_buffer "$buffer"
     printf '\n'
-    printf '%s' "$buffer" | miyu --shell-intercept --shell fish --stdin
+    printf '%s' "$buffer" | natria --shell-intercept --shell fish --stdin 2>/dev/null; or printf '%s' "$buffer" | miyu --shell-intercept --shell fish --stdin
     set -l miyu_status $status
     trap - INT TERM EXIT
     __miyu_restore_cursor

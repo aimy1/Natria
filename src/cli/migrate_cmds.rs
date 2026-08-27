@@ -176,23 +176,23 @@ pub(in crate::cli) async fn run_import(paths: &MiyuPaths, args: ImportArgs) -> R
     println!(
         "  {}",
         t(
-            "reinstall the shell integration: `miyu fish-init` / `bash-init` / `zsh-init`",
-            "重装 shell 集成：miyu fish-init / bash-init / zsh-init",
+            "reinstall the shell integration: `natria fish-init` / `bash-init` / `zsh-init`",
+            "重装 shell 集成：natria fish-init / bash-init / zsh-init",
         )
     );
     println!(
         "  {}",
         t(
-            "`miyu kb reindex` — the knowledge base records absolute paths from the old machine",
-            "miyu kb reindex —— 知识库记录的是旧机器上的绝对路径",
+            "`natria kb reindex` — the knowledge base records absolute paths from the old machine",
+            "natria kb reindex —— 知识库记录的是旧机器上的绝对路径",
         )
     );
     if !report.index_included {
         println!(
             "  {}",
             t(
-                "`miyu kb embed` — the vector index was not in the archive",
-                "miyu kb embed —— 归档中不含向量索引",
+                "`natria kb embed` — the vector index was not in the archive",
+                "natria kb embed —— 归档中不含向量索引",
             )
         );
     }
@@ -200,8 +200,8 @@ pub(in crate::cli) async fn run_import(paths: &MiyuPaths, args: ImportArgs) -> R
         println!(
             "  {}",
             t(
-                "refill API keys and access tokens: `miyu config`",
-                "补填 API key 与访问令牌：miyu config",
+                "refill API keys and access tokens: `natria config`",
+                "补填 API key 与访问令牌：natria config",
             )
         );
     }

@@ -323,12 +323,12 @@ sys.stdin.readline()  # 等 Rust 侧完成死后判定
         let writer = std::thread::spawn(move || origin_tty_writer(tty, shell_pid, ops_rx));
         ops_tx
             .send(TtyWriteOp::Write(
-                "\x1b[1m✦ Miyu 后台任务跟进\x1b[0m\r\n".to_string(),
+                "\x1b[1m✦ Natria 后台任务跟进\x1b[0m\r\n".to_string(),
             ))
             .unwrap();
         let mut body = String::new();
         push_rendered_line(
-            "**粗体** 与 `代码` MIYU-E2E-END",
+            "**粗体** 与 `代码` NATRIA-E2E-END",
             WriteLineStyle::Content,
             &mut body,
         );
@@ -350,10 +350,10 @@ sys.stdin.readline()  # 等 Rust 侧完成死后判定
         .collect::<Vec<u8>>();
     let text = String::from_utf8_lossy(&bytes);
     assert!(
-        text.contains("Miyu 后台任务跟进"),
+        text.contains("Natria 后台任务跟进"),
         "master 端应读到标题,实际: {text:?}"
     );
-    assert!(text.contains("MIYU-E2E-END"), "正文应完整到达");
+    assert!(text.contains("NATRIA-E2E-END"), "正文应完整到达");
     assert!(text.contains("\u{1b}["), "应带 SGR 样式");
 
     let gone = lines.next().unwrap().unwrap();

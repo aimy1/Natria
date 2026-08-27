@@ -14,7 +14,7 @@ pub fn hook() -> &'static str {
     [[ -n "$text" ]] || return 127
     [[ "$text" != *$'\n'* && "$text" != *$'\r'* ]] || return 127
 
-    miyu --shell-intercept --shell zsh -- "$@" 2>/dev/null
+    natria --shell-intercept --shell zsh -- "$@" 2>/dev/null || miyu --shell-intercept --shell zsh -- "$@" 2>/dev/null
     return 127
 }
 "#

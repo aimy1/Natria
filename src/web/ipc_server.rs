@@ -15,10 +15,10 @@ pub(in crate::web) fn start_ipc_server(
     state: &DaemonState,
 ) -> Result<(crate::ipc::WebCoreLease, TokioJoinHandle<()>)> {
     let lease = ipc::acquire_web_core(&state.paths)
-        .context("another Miyu core is already running or starting")?;
+        .context("another Natria core is already running or starting")?;
     let socket_path = state.paths.ipc_socket();
     let listener = tokio::net::UnixListener::bind(&socket_path)
-        .with_context(|| format!("binding Miyu IPC socket at {}", socket_path.display()))?;
+        .with_context(|| format!("binding Natria IPC socket at {}", socket_path.display()))?;
     crate::platform_fs::set_file_mode(&socket_path, 0o600)?;
 
     let server_state = state.clone();
@@ -31,7 +31,7 @@ pub(in crate::web) fn start_ipc_server(
                     tracing::warn!(
                         error = %error,
                         "{}",
-                        t("Miyu IPC listener stopped", "Miyu IPC 监听器已停止")
+                        t("Natria IPC listener stopped", "Natria IPC 监听器已停止")
                     );
                     break;
                 }
@@ -48,8 +48,8 @@ pub(in crate::web) fn start_ipc_server(
                         error = %error,
                         "{}",
                         t(
-                            "Miyu IPC connection closed with an error",
-                            "Miyu IPC 连接因错误关闭"
+                            "Natria IPC connection closed with an error",
+                            "Natria IPC 连接因错误关闭"
                         )
                     );
                 }
@@ -64,7 +64,7 @@ pub(in crate::web) fn start_ipc_server(
     state: &DaemonState,
 ) -> Result<(crate::ipc::WebCoreLease, TokioJoinHandle<()>)> {
     let lease = ipc::acquire_web_core(&state.paths)
-        .context("another Miyu core is already running or starting")?;
+        .context("another Natria core is already running or starting")?;
     let task = tokio::spawn(async move {});
     Ok((lease, task))
 }
@@ -78,7 +78,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
         ipc::receive::<IpcRequest>(&mut stream),
     )
     .await
-    .context("timed out waiting for a Miyu IPC request")??
+    .context("timed out waiting for a Natria IPC request")??
     else {
         return Ok(());
     };
