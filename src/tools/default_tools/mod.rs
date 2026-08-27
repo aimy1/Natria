@@ -29,13 +29,19 @@ pub fn register(
     windows_config: Option<crate::config::WindowsCommandPluginConfig>,
 ) {
     register_readonly(registry);
-    register_run_command(registry, allow_command_execution, windows_config);
-    registry.register(ToolSpec::new_with_progress(
-        "trash_path",
-        "Move files, directories, or symlinks to the system Trash instead of permanently deleting them. Pass every path in one call — one call per path floods the transcript. Use this when the user asks to delete/remove/clean up local paths; do not use rm unless explicitly requested.",
-        json!({"type":"object","properties":{"paths":{"type":"array","items":{"type":"string"},"minItems":1,"description": "Paths to move to Trash. Absolute, workspace-relative, and ~/ paths are all accepted."}},"required":["paths"],"additionalProperties":false}),
-        |args, progress| async move { trash_paths(args, progress) },
-    ).writes());
+    register_run_command(registry, allow_command_execution, windows_config.clone());
+    #[cfg(windows)]
+    let allow_trash = windows_config.as_ref().map_or(true, |c| c.enabled && c.allow_file_modification);
+    #[cfg(not(windows))]
+    let allow_trash = true;
+    if allow_trash {
+        registry.register(ToolSpec::new_with_progress(
+            "trash_path",
+            "Move files, directories, or symlinks to the system Trash instead of permanently deleting them. Pass every path in one call — one call per path floods the transcript. Use this when the user asks to delete/remove/clean up local paths; do not use rm unless explicitly requested.",
+            json!({"type":"object","properties":{"paths":{"type":"array","items":{"type":"string"},"minItems":1,"description": "Paths to move to Trash. Absolute, workspace-relative, and ~/ paths are all accepted."}},"required":["paths"],"additionalProperties":false}),
+            |args, progress| async move { trash_paths(args, progress) },
+        ).writes());
+    }
 }
 
 /// `run_command` 单独可注册:dev 模式只挂它(+后台任务管理),不连带

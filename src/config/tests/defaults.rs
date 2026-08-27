@@ -22,6 +22,8 @@ fn vision_timeouts_have_stable_defaults() {
 fn windows_command_plugin_defaults() {
     let config: WindowsCommandPluginConfig = serde_json::from_value(serde_json::json!({})).unwrap();
     assert!(config.enabled);
+    assert!(config.allow_file_modification);
+    assert!(config.allow_command_execution);
     assert_eq!(config.shell, "powershell");
     assert_eq!(config.timeout_seconds, 30);
     assert!(config.allow_background);

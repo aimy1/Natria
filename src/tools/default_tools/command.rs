@@ -22,7 +22,10 @@ pub(in crate::tools) async fn run_command(
     #[cfg(windows)]
     if let Some(win_cfg) = &windows_config {
         if !win_cfg.enabled {
-            bail!("{}", "Windows 命令执行已在插件设置中禁用；请在设置的「插件 -> Windows 命令」中启用 (plugins.windows_command.enabled = true)。");
+            bail!("{}", "Windows 系统控制已在插件设置中禁用；AI 无法在你的电脑上执行系统命令 (plugins.windows_command.enabled = false)。");
+        }
+        if !win_cfg.allow_command_execution {
+            bail!("{}", "Windows 命令执行已在插件设置中禁用 (plugins.windows_command.allow_command_execution = false)。");
         }
     }
     let command = required(&args, "command")?;
@@ -306,6 +309,30 @@ mod tests {
             true,
             crate::tools::ToolProgress::default(),
             Some(windows_config),
+        )
+        .await;
+
+        #[cfg(windows)]
+        {
+            assert!(result.is_err());
+            let err = result.unwrap_err().to_string();
+            assert!(err.contains("Windows 系统控制已在插件设置中禁用"));
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = result;
+        }
+
+        let windows_config_no_exec = crate::config::WindowsCommandPluginConfig {
+            enabled: true,
+            allow_command_execution: false,
+            ..Default::default()
+        };
+        let result = run_command(
+            serde_json::json!({ "command": "echo test" }),
+            true,
+            crate::tools::ToolProgress::default(),
+            Some(windows_config_no_exec),
         )
         .await;
 

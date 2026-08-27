@@ -372,9 +372,46 @@ pub(crate) fn command_deny_guard(patterns: Vec<String>) -> ToolGuard {
     })
 }
 
+/// Windows 系统与文件控制守卫：
+/// 当在 Windows 环境下未开启相应权限时，拦截命令执行与文件删改操作。
+pub(crate) fn windows_security_guard(config: crate::config::WindowsCommandPluginConfig) -> ToolGuard {
+    std::sync::Arc::new(move |tool, _args, _ctx| {
+        #[cfg(windows)]
+        {
+            let is_command = tool.name == "run_command";
+            let is_file_mod = matches!(
+                tool.name.as_str(),
+                "apply_patch" | "trash_path" | "write_file" | "edit_file" | "edit_replace"
+            );
+
+            if !config.enabled {
+                if is_command {
+                    return Some("Windows 系统控制已在插件设置中禁用；AI 无法在你的电脑上执行系统命令 (plugins.windows_command.enabled = false)。".to_string());
+                }
+                if is_file_mod {
+                    return Some("Windows 本地文件修改与删除已在插件设置中禁用；AI 无法对你的电脑文件进行删改 (plugins.windows_command.enabled = false)。".to_string());
+                }
+            } else {
+                if is_command && !config.allow_command_execution {
+                    return Some("Windows 命令执行已在插件设置中禁用 (plugins.windows_command.allow_command_execution = false)。".to_string());
+                }
+                if is_file_mod && !config.allow_file_modification {
+                    return Some("Windows 本地文件修改与删除已在插件设置中禁用 (plugins.windows_command.allow_file_modification = false)。".to_string());
+                }
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = config;
+        }
+        None
+    })
+}
+
 fn install_builtin_guards(registry: &mut ToolRegistry, config: &AppConfig) {
     registry.add_guard(aur_review_install_guard());
     registry.add_guard(command_deny_guard(config.tools.command_deny.clone()));
+    registry.add_guard(windows_security_guard(config.plugins.windows_command.clone()));
 }
 
 pub fn builtin_registry(config: &AppConfig, paths: &MiyuPaths) -> ToolRegistry {
@@ -394,7 +431,13 @@ pub fn builtin_registry(config: &AppConfig, paths: &MiyuPaths) -> ToolRegistry {
     );
     // 编辑器只留 apply_patch(聚合增/改/删,diff 渲染载体);write_file/
     // edit_file/edit_string 与 dev 同步退场(验收四轮:normal 也去冗余)。
-    apply_patch::register(&mut registry);
+    #[cfg(windows)]
+    let allow_patch = config.plugins.windows_command.enabled && config.plugins.windows_command.allow_file_modification;
+    #[cfg(not(windows))]
+    let allow_patch = true;
+    if allow_patch {
+        apply_patch::register(&mut registry);
+    }
     todowrite::register(&mut registry, paths.clone());
     goal::register(&mut registry, paths.clone());
     alarm::register(&mut registry, paths.clone());
@@ -572,7 +615,13 @@ pub fn dev_registry(config: &AppConfig, paths: &MiyuPaths) -> ToolRegistry {
         Some(config.plugins.windows_command.clone()),
     );
     jobs::register_management(&mut registry);
-    apply_patch::register(&mut registry);
+    #[cfg(windows)]
+    let allow_patch = config.plugins.windows_command.enabled && config.plugins.windows_command.allow_file_modification;
+    #[cfg(not(windows))]
+    let allow_patch = true;
+    if allow_patch {
+        apply_patch::register(&mut registry);
+    }
     todowrite::register(&mut registry, paths.clone());
     goal::register(&mut registry, paths.clone());
     web::register_fetch(&mut registry);
@@ -1083,5 +1132,68 @@ mod tier_schema_probe {
             .description
             .contains("balanced=[mini-a, mini-b]"));
         assert!(task.function.description.contains("strong=["));
+    }
+}
+
+#[cfg(test)]
+mod windows_guard_tests {
+    use super::*;
+
+    #[test]
+    fn windows_security_guard_blocks_file_modification_and_commands() {
+        let disabled_config = crate::config::WindowsCommandPluginConfig {
+            enabled: false,
+            ..Default::default()
+        };
+        let guard = windows_security_guard(disabled_config);
+
+        let patch_spec = ToolSpec::new("apply_patch", "apply patch", serde_json::json!({}), |_| async { Ok("".into()) });
+        let trash_spec = ToolSpec::new("trash_path", "trash path", serde_json::json!({}), |_| async { Ok("".into()) });
+        let cmd_spec = ToolSpec::new("run_command", "run command", serde_json::json!({}), |_| async { Ok("".into()) });
+        let read_spec = ToolSpec::new("read_file", "read file", serde_json::json!({}), |_| async { Ok("".into()) });
+
+        #[cfg(windows)]
+        {
+            assert!(guard(&patch_spec, &serde_json::json!({}), &GuardCtx::default()).is_some());
+            assert!(guard(&trash_spec, &serde_json::json!({}), &GuardCtx::default()).is_some());
+            assert!(guard(&cmd_spec, &serde_json::json!({}), &GuardCtx::default()).is_some());
+            assert!(guard(&read_spec, &serde_json::json!({}), &GuardCtx::default()).is_none());
+        }
+
+        let no_file_mod_config = crate::config::WindowsCommandPluginConfig {
+            enabled: true,
+            allow_file_modification: false,
+            allow_command_execution: true,
+            ..Default::default()
+        };
+        let guard2 = windows_security_guard(no_file_mod_config);
+
+        #[cfg(windows)]
+        {
+            assert!(guard2(&patch_spec, &serde_json::json!({}), &GuardCtx::default()).is_some());
+            assert!(guard2(&trash_spec, &serde_json::json!({}), &GuardCtx::default()).is_some());
+            assert!(guard2(&cmd_spec, &serde_json::json!({}), &GuardCtx::default()).is_none());
+            assert!(guard2(&read_spec, &serde_json::json!({}), &GuardCtx::default()).is_none());
+        }
+    }
+
+    #[test]
+    fn windows_disabled_excludes_file_modification_tools_from_registry() {
+        let mut config = crate::config::AppConfig::default();
+        config.plugins.windows_command.enabled = false;
+        let paths = crate::paths::MiyuPaths::new().unwrap();
+
+        let builtin = builtin_registry(&config, &paths);
+        #[cfg(windows)]
+        {
+            assert!(!builtin.contains("apply_patch"));
+            assert!(!builtin.contains("trash_path"));
+        }
+
+        let dev = dev_registry(&config, &paths);
+        #[cfg(windows)]
+        {
+            assert!(!dev.contains("apply_patch"));
+        }
     }
 }

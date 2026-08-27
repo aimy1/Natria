@@ -127,11 +127,15 @@ impl Default for FileSharingPluginConfig {
     }
 }
 
-/// Windows 命令执行插件配置。
+/// Windows 系统与文件控制插件配置。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowsCommandPluginConfig {
     #[serde(default = "default_true")]
     pub enabled: bool,
+    #[serde(default = "default_true")]
+    pub allow_file_modification: bool,
+    #[serde(default = "default_true")]
+    pub allow_command_execution: bool,
     #[serde(default = "default_windows_command_shell")]
     pub shell: String,
     #[serde(default = "default_windows_command_timeout_seconds")]
@@ -144,6 +148,8 @@ impl Default for WindowsCommandPluginConfig {
     fn default() -> Self {
         Self {
             enabled: default_true(),
+            allow_file_modification: default_true(),
+            allow_command_execution: default_true(),
             shell: default_windows_command_shell(),
             timeout_seconds: default_windows_command_timeout_seconds(),
             allow_background: true,

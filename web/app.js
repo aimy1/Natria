@@ -2132,7 +2132,7 @@
     memes: "表情包", knowledge_base: "知识库", archlinux: "Arch Linux", man: "在线手册", moegirl: "萌娘百科",
     hash_codec: "哈希与编解码", calculator: "计算器", package_advisor: "AUR 审查",
     deep_research_linux_game_compatibility: "Linux 游戏兼容", diagnostics: "系统诊断", api_quota: "大模型额度查询", memory: "记忆",
-    windows_command: "Windows 命令"
+    windows_command: "Windows 系统与文件控制"
   };
 
   const SECRET_PLUGIN_PATHS = new Map([
@@ -2176,11 +2176,15 @@
       );
     }
     const label = (pluginKey === "windows_command" && fieldKey === "enabled")
-      ? "启用 Windows 命令执行"
+      ? "启用 Windows 控制 (主开关)"
+      : (pluginKey === "windows_command" && fieldKey === "allow_file_modification")
+      ? "允许修改与删除文件"
+      : (pluginKey === "windows_command" && fieldKey === "allow_command_execution")
+      ? "允许执行系统命令"
       : (pluginKey === "windows_command" && fieldKey === "timeout_seconds")
       ? "执行超时（秒）"
       : (pluginKey === "windows_command" && fieldKey === "allow_background")
-      ? "允许后台任务"
+      ? "允许后台长跑任务"
       : humanizeConfigKey(fieldKey);
 
     if (typeof value === "boolean") return booleanConfigField(label, path);
