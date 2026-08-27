@@ -332,10 +332,24 @@ pub async fn spawn_background(
     let log = std::fs::File::create(&log_path)
         .with_context(|| format!("failed to create job log {}", log_path.display()))?;
     let workspace = super::workspace::effective_workdir();
-    let mut process = Command::new("sh");
+    #[cfg(windows)]
+    let mut process = {
+        let mut cmd = Command::new("powershell.exe");
+        cmd.arg("-NoProfile")
+            .arg("-NonInteractive")
+            .arg("-ExecutionPolicy")
+            .arg("Bypass")
+            .arg("-Command")
+            .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+        cmd
+    };
+    #[cfg(not(windows))]
+    let mut process = {
+        let mut cmd = Command::new("sh");
+        cmd.arg("-lc").arg(command);
+        cmd
+    };
     process
-        .arg("-lc")
-        .arg(command)
         .current_dir(&workspace)
         // 工具桥环境:后台脚本里的 `miyu tool-call` 也能以本会话身份执行。
         .envs(

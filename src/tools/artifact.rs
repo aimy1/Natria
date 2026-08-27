@@ -167,12 +167,12 @@ fn create_artifact(
     root: &Path,
     session_id: &str,
 ) -> Result<String> {
-    let filename = args
+    let raw_filename = args
         .get("filename")
         .and_then(Value::as_str)
         .unwrap_or_default()
         .trim();
-    validate_file_name(filename)?;
+    let filename = validate_file_name(raw_filename)?;
     validate_session_id(session_id)?;
     let content = args
         .get("content")
@@ -190,7 +190,7 @@ fn create_artifact(
     ensure_private_dir(root)?;
     let session_dir = root.join(session_id);
     ensure_private_dir(&session_dir)?;
-    let path = session_dir.join(filename);
+    let path = session_dir.join(&filename);
     if let Ok(metadata) = std::fs::symlink_metadata(&path) {
         if metadata.file_type().is_symlink() || !metadata.is_file() {
             bail!(
@@ -221,32 +221,29 @@ fn create_artifact(
 
 fn read_artifact(args: Value, root: &Path, session_id: &str) -> Result<String> {
     let filename = required_filename(&args)?;
-    let path = managed_file_path(root, session_id, filename)?;
+    let path = managed_file_path(root, session_id, &filename)?;
     let mut scoped = args;
     scoped["path"] = Value::String(path.to_string_lossy().to_string());
     super::default_tools::read_file(scoped)
 }
 
-fn required_filename(args: &Value) -> Result<&str> {
-    let filename = args
+fn required_filename(args: &Value) -> Result<String> {
+    let raw_filename = args
         .get("filename")
         .and_then(Value::as_str)
         .unwrap_or_default()
         .trim();
-    validate_file_name(filename)?;
-    Ok(filename)
+    validate_file_name(raw_filename)
 }
 
 fn managed_file_path(root: &Path, session_id: &str, filename: &str) -> Result<PathBuf> {
     validate_session_id(session_id)?;
+    let clean_filename = validate_file_name(filename)?;
     let session_dir = root.join(session_id);
-    let session_canonical = session_dir.canonicalize().with_context(|| {
-        format!(
-            "Artifact workspace does not exist: {}",
-            session_dir.display()
-        )
-    })?;
-    let path = session_dir.join(filename);
+    let session_canonical = session_dir
+        .canonicalize()
+        .with_context(|| format!("Artifact workspace does not exist for session {session_id}"))?;
+    let path = session_canonical.join(clean_filename);
     let metadata = std::fs::symlink_metadata(&path)
         .with_context(|| format!("Artifact does not exist: {filename}"))?;
     if metadata.file_type().is_symlink() || !metadata.is_file() {
@@ -259,16 +256,23 @@ fn managed_file_path(root: &Path, session_id: &str, filename: &str) -> Result<Pa
     Ok(canonical)
 }
 
-fn validate_file_name(filename: &str) -> Result<()> {
-    let path = Path::new(filename);
-    let mut components = path.components();
-    let valid_component =
-        matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none();
-    if !valid_component || filename.chars().count() > 180 || filename.chars().any(char::is_control)
+fn validate_file_name(filename: &str) -> Result<String> {
+    let trimmed = filename.trim().trim_matches('"').trim_matches('\'');
+    let path = Path::new(trimmed);
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(trimmed)
+        .trim();
+    if name.is_empty()
+        || name == "."
+        || name == ".."
+        || name.chars().count() > 180
+        || name.chars().any(char::is_control)
     {
         bail!("filename must be a single safe file name");
     }
-    Ok(())
+    Ok(name.to_string())
 }
 
 fn validate_session_id(session_id: &str) -> Result<()> {

@@ -41,10 +41,24 @@ pub(in crate::tools) async fn execute_command(
     timeout: u64,
     progress: ToolProgress,
 ) -> Result<String> {
-    let mut command_process = Command::new("sh");
+    #[cfg(windows)]
+    let mut command_process = {
+        let mut cmd = Command::new("powershell.exe");
+        cmd.arg("-NoProfile")
+            .arg("-NonInteractive")
+            .arg("-ExecutionPolicy")
+            .arg("Bypass")
+            .arg("-Command")
+            .arg(format!("$OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; {command}"));
+        cmd
+    };
+    #[cfg(not(windows))]
+    let mut command_process = {
+        let mut cmd = Command::new("sh");
+        cmd.arg("-lc").arg(command);
+        cmd
+    };
     command_process
-        .arg("-lc")
-        .arg(command)
         // Explicit cwd: shell commands must run in the turn workspace, not
         // whatever the daemon process cwd happens to be.
         .current_dir(crate::tools::workspace::effective_workdir());

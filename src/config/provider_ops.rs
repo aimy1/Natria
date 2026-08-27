@@ -377,6 +377,14 @@ impl AppConfig {
                 bail!("the configured multimodal model pool has no image-capable model");
             }
         }
+        if let Some(choice) = self.active_provider_model_choices().into_iter().find(|choice| {
+            self.model_supports_any_input(&choice.provider_id, &choice.model, &["image"])
+        }) {
+            return Ok((choice.provider_id, choice.model));
+        }
+        if let Some(choice) = self.active_provider_model_choices().into_iter().next() {
+            return Ok((choice.provider_id, choice.model));
+        }
         Ok((
             OPENCODE_PROVIDER_ID.to_string(),
             OPENCODE_DEFAULT_VISION_MODEL.to_string(),

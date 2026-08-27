@@ -35,12 +35,18 @@ pub(crate) fn next_job_id() -> String {
     }
 }
 
-pub(crate) fn signal_process_group(pid: u32, signal: i32) {
+pub(crate) fn signal_process_group(pid: u32, _signal: i32) {
     #[cfg(unix)]
     unsafe {
-        libc::killpg(pid as i32, signal);
+        libc::killpg(pid as i32, _signal);
     }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/T", "/PID", &pid.to_string()])
+            .output();
+    }
+    #[cfg(not(any(unix, windows)))]
     {
         let _ = (pid, signal);
     }
@@ -49,7 +55,20 @@ pub(crate) fn signal_process_group(pid: u32, signal: i32) {
 pub(crate) fn process_alive(pid: u32) -> bool {
     #[cfg(unix)]
     unsafe { libc::kill(pid as i32, 0) == 0 }
-    #[cfg(not(unix))]
+    #[cfg(windows)]
+    {
+        let output = std::process::Command::new("tasklist")
+            .args(["/FI", &format!("PID eq {pid}"), "/NH"])
+            .output();
+        match output {
+            Ok(out) => {
+                let text = String::from_utf8_lossy(&out.stdout);
+                text.contains(&pid.to_string())
+            }
+            Err(_) => false,
+        }
+    }
+    #[cfg(not(any(unix, windows)))]
     {
         let _ = pid;
         false

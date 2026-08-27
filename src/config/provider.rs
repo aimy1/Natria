@@ -401,15 +401,54 @@ impl ProviderConfig {
     }
 
     pub fn supports_vision(&self, model: &str) -> Option<bool> {
-        self.input_modalities(model)
-            .map(|modalities| modalities.iter().any(|m| m == "image"))
+        if let Some(modalities) = self.input_modalities(model) {
+            return Some(modalities.iter().any(|m| m == "image"));
+        }
+        if Self::is_likely_vision_model(model) {
+            return Some(true);
+        }
+        None
     }
 
     pub fn input_modalities(&self, model: &str) -> Option<Vec<String>> {
         if let Some(modalities) = self.model_modalities.get(model) {
             return Some(modalities.clone());
         }
-        crate::models_cache::input_modalities(&self.id, model)
+        if let Some(modalities) = crate::models_cache::input_modalities(&self.id, model) {
+            return Some(modalities);
+        }
+        if Self::is_likely_vision_model(model) {
+            return Some(vec!["text".to_string(), "image".to_string()]);
+        }
+        None
+    }
+
+    pub fn is_likely_vision_model(model: &str) -> bool {
+        let m = model.to_ascii_lowercase();
+        m.contains("vision")
+            || m.contains("-vl")
+            || m.contains("_vl")
+            || m.contains("vl-")
+            || m.ends_with("vl")
+            || m.contains("4o")
+            || m.contains("4.5")
+            || m.contains("4-turbo")
+            || m.contains("gemini")
+            || m.contains("claude-3")
+            || m.contains("omni")
+            || m.contains("llava")
+            || m.contains("glm-4v")
+            || m.contains("internvl")
+            || m.contains("minicpm-v")
+            || m.contains("deepseek-vl")
+            || m.contains("pixtral")
+            || m.contains("cogvlm")
+            || m.contains("yi-vision")
+            || m.contains("qvq")
+            || m.contains("paligemma")
+            || m.contains("got-ocr")
+            || m.contains("qwen2.5-vl")
+            || m.contains("qwen-vl")
     }
 
     pub fn resolved_api_keys(&self, _paths: &MiyuPaths) -> Result<Vec<ResolvedProviderKey>> {
