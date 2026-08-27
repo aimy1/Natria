@@ -10999,15 +10999,19 @@
 
     // 4. 过滤动作描写与旁白 (根据设置：全角/半角圆括号、方括号、星号动作)
     if (state.voiceConfig?.filterActions !== false) {
-      // 剥离星号动作描写，如 *脸红*、*轻叹一口气*
-      text = text.replace(/\*[^*]+?\*/g, "");
-      // 循环递归剥离嵌套各类括号里的动作描写
-      const bracketPattern = /[（(【［][^（）()【】［］]*[）)】］]/g;
+      // 剥离星号包裹的动作描写与心里描写（支持多行及嵌套括号，如 *（微笑着揉你的头发）*、*脸红*）
+      text = text.replace(/\*+[\s\S]*?\*+/g, "");
+      // 循环递归剥离各类嵌套括号里的动作描写与旁白
+      const bracketPattern = /[（(【［〔〈\[][^（）()【】［］〔〕〈〉\[\]]*[）)】］〕〉\]]/g;
       let prev;
       do {
         prev = text;
         text = text.replace(bracketPattern, "");
       } while (text !== prev);
+
+      // 清理未闭合的悬挂开括号片段（若整行/整句都处于开括号中）
+      text = text.replace(/^[（(【［〔〈\[][^）)】］〕〉\]]*$/, "");
+      text = text.replace(/[（(【［〔〈\[][^）)】］〕〉\]]*$/, "");
     }
 
     // 5. 规整省略号、破折号与多重标点为自然呼吸停顿
@@ -11046,8 +11050,8 @@
     text = text.replace(/~~(.*?)~~/g, "$1");
     text = text.replace(/\|/g, " ");
 
-    // 9. 彻底清除所有残留或单独出现的特殊字符与转义符
-    text = text.replace(/[\\`*~^{}[\]()<>@#%+=/|]/g, " ");
+    // 9. 彻底清除所有残留或单独出现的特殊字符与转义符（包含全角括号与特殊符号）
+    text = text.replace(/[\\`*~^{}[\]()（）()【】［］<>《》〔〕〈〉@#%+=/|]/g, " ");
 
     // 10. 换行与空白规整
     text = text.replace(/\r?\n\s*\r?\n/g, "。").replace(/\r?\n/g, "，");
@@ -11349,8 +11353,26 @@
       const strongPunct = /[。！？!?\n;；…]/;
       const weakPunct = /[，,、：:]/;
 
+      let bracketDepth = 0;
+      let inAsterisk = false;
+
       for (let i = 0; i < this.buffer.length; i++) {
         const char = this.buffer[i];
+
+        // 维护动作与括号嵌套深度，避免在动作描写中途切句导致标记破坏与误朗读
+        if (char === "*" || char === "~") {
+          inAsterisk = !inAsterisk;
+        } else if (char === "（" || char === "(" || char === "【" || char === "［" || char === "[" || char === "〔" || char === "〈") {
+          bracketDepth++;
+        } else if (char === "）" || char === ")" || char === "】" || char === "］" || char === "]" || char === "〕" || char === "〉") {
+          if (bracketDepth > 0) bracketDepth--;
+        }
+
+        // 处于未闭合的动作描写/括号内时，坚决不进行断句，等待完整动作块闭合
+        if (bracketDepth > 0 || inAsterisk) {
+          continue;
+        }
+
         if (strongPunct.test(char)) {
           return i + 1;
         }

@@ -93,7 +93,25 @@ fn find_next_sentence_cut(text: &str, is_final: bool) -> Option<(usize, usize)> 
     // 弱断句标点：逗号、冒号、顿号
     const WEAK_PUNCT: &[char] = &['，', ',', '：', ':', '、'];
 
+    let mut bracket_depth = 0;
+    let mut in_asterisk = false;
+
     for (i, &(_byte_offset, ch)) in chars.iter().enumerate() {
+        if ch == '*' || ch == '~' {
+            in_asterisk = !in_asterisk;
+        } else if matches!(ch, '（' | '(' | '【' | '［' | '[' | '〔' | '〈' | '《') {
+            bracket_depth += 1;
+        } else if matches!(ch, '）' | ')' | '】' | '］' | ']' | '〕' | '〉' | '》') {
+            if bracket_depth > 0 {
+                bracket_depth -= 1;
+            }
+        }
+
+        // 处于动作描写或未闭合括号内，坚决不进行断句
+        if bracket_depth > 0 || in_asterisk {
+            continue;
+        }
+
         let is_strong = STRONG_PUNCT.contains(&ch);
         let is_weak = WEAK_PUNCT.contains(&ch);
 
@@ -124,12 +142,12 @@ fn find_next_sentence_cut(text: &str, is_final: bool) -> Option<(usize, usize)> 
     }
 }
 
-/// 移除文本中的各种动作描写（（...）、(...)、【...】、［...］）以及星号动作（*...*）
+/// 移除文本中的各种动作描写（（...）、(...)、【...】、［...］、[...]）以及星号动作（*...*）
 pub fn strip_action_descriptions(text: &str) -> String {
     let mut s = text.to_string();
 
     // 1. 递归剥离各类括号（支持多层嵌套）
-    let open_chars = ['（', '(', '【', '［'];
+    let open_chars = ['（', '(', '【', '［', '[', '〔', '〈', '《'];
     loop {
         let mut changed = false;
         let mut best_start = None;
@@ -142,6 +160,10 @@ pub fn strip_action_descriptions(text: &str) -> String {
                     '(' => ch == ')',
                     '【' => ch == '】',
                     '［' => ch == '］',
+                    '[' => ch == ']',
+                    '〔' => ch == '〕',
+                    '〈' => ch == '〉',
+                    '《' => ch == '》',
                     _ => false,
                 };
                 if matches_close {
@@ -168,8 +190,8 @@ pub fn strip_action_descriptions(text: &str) -> String {
     // 3. 去除首尾残留的脱落标点符号与空格
     let trimmed = s.trim();
     let cleaned = trimmed
-        .trim_start_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | '：' | ':' | ' ' | '\t'))
-        .trim_end_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | '：' | ':' | ' ' | '\t'));
+        .trim_start_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | '：' | ':' | ' ' | '\t' | '*' | '（' | '(' | '【' | '［' | '[' | '）' | ')' | '】' | '］' | ']'))
+        .trim_end_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | '：' | ':' | ' ' | '\t' | '*' | '（' | '(' | '【' | '［' | '[' | '）' | ')' | '】' | '］' | ']'));
     cleaned.to_string()
 }
 
