@@ -12736,9 +12736,17 @@
       }
     });
 
+    let userEditDebounce = null;
     elements.composerInput?.addEventListener("input", () => {
-      if (!isSpeechListening) {
-        speechBaseText = elements.composerInput.value;
+      speechBaseText = elements.composerInput.value;
+      if (isSpeechListening) {
+        clearTimeout(userEditDebounce);
+        userEditDebounce = setTimeout(() => {
+          if (isSpeechListening) {
+            speechBaseText = elements.composerInput.value;
+            createAndStartRecognizer();
+          }
+        }, 120);
       }
     });
   }
