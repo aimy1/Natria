@@ -294,5 +294,8 @@ mod tests {
 
         let raw_pure = "（默默低头不说话）";
         assert_eq!(clean_markdown_for_speech(raw_pure), "");
+
+        let raw_bold_code = "**`获取`** 或 **`安装`**";
+        assert_eq!(clean_markdown_for_speech(raw_bold_code), "获取 或 安装");
     }
 }

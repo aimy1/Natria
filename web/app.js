@@ -10983,7 +10983,7 @@
     if (!raw) return "";
     let text = String(raw);
 
-    // 1. 去除代码块及内容、HTML 标签、图片、超链接等无声内容
+    // 1. 去除代码块及内容、HTML 标签、图片、超链接等无声内容，将行内代码 `code` 还原为纯文字 code
     text = text.replace(/```[\s\S]*?```/g, "");
     text = text.replace(/`([^`]+)`/g, "$1");
     text = text.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
@@ -10998,10 +10998,11 @@
     text = text.replace(/\$\$[\s\S]*?\$\$/g, "");
     text = text.replace(/\$([^$]+)\$/g, "$1");
 
-    // 4. 过滤动作描写与旁白 (根据设置：全角/半角圆括号、方括号、星号动作)
+    // 4. 过滤动作描写与旁白 (保留加粗 **text** 与行内代码文字，只剥离括号/星号动作如 *（低笑）*、*（挑了挑眉）*、*揉头发*)
     if (state.voiceConfig?.filterActions !== false) {
-      // 剥离星号包裹的动作描写与心里描写（支持多行及嵌套括号，如 *（微笑着揉你的头发）*、*脸红*）
-      text = text.replace(/\*+[\s\S]*?\*+/g, "");
+      // 剥离带括号的星号动作描写，如 *（微笑着揉你的头发）*、* (低笑) *
+      text = text.replace(/\*\s*[（(【［〔〈\[][^）)】］〕〉\]]*[）)】］〕〉\]]\s*\*/g, "");
+
       // 循环递归剥离各类嵌套括号里的动作描写与旁白
       const bracketPattern = /[（(【［〔〈\[][^（）()【】［］〔〕〈〉\[\]]*[）)】］〕〉\]]/g;
       let prev;
@@ -11015,11 +11016,21 @@
       text = text.replace(/[（(【［〔〈\[][^）)】］〕〉\]]*$/, "");
     }
 
-    // 5. 规整省略号、破折号与多重标点为自然呼吸停顿
+    // 5. 提取 Markdown 加粗、斜体格式中的文字（保留 **`获取`** / **安装** 里的文字内容）
+    text = text.replace(/^#+\s+/gm, "");
+    text = text.replace(/^>\s+/gm, "");
+    text = text.replace(/^[-*_]{3,}$/gm, "");
+    text = text.replace(/^\s*[-*+]\s+/gm, "");
+    text = text.replace(/\*{2,3}(.*?)\*{2,3}/g, "$1");
+    text = text.replace(/_{2,3}(.*?)_{2,3}/g, "$1");
+    text = text.replace(/~~(.*?)~~/g, "$1");
+    text = text.replace(/\|/g, " ");
+
+    // 6. 规整省略号、破折号与多重标点为自然呼吸停顿
     text = text.replace(/[…\.]{2,}/g, "，");
     text = text.replace(/[—\-]{2,}/g, "，");
 
-    // 6. 转化易导致声学模型注意力崩溃与无限发声的单字鼻音叹词（如 "唔……", "呃……", "额……" -> "好啦，"）
+    // 7. 转化易导致声学模型注意力崩溃与无限发声的单字鼻音叹词（如 "唔……", "呃……", "额……" -> "好啦，"）
     text = text.replace(/^[嗯唔呃额][，,、\s]*/g, "好啦，");
     text = text.replace(/([。！？\n])[嗯唔呃额][，,、\s]*/g, "$1好啦，");
     text = text.replace(/唔/g, "嗯");
@@ -11027,7 +11038,7 @@
     text = text.replace(/吖/g, "呀");
     text = text.replace(/咩/g, "吗");
 
-    // 7. 技术专有名词与大写字母归一化（防止模型遇到英文词表音素丢包）
+    // 8. 技术专有名词与大写字母归一化（防止模型遇到英文词表音素丢包）
     text = text.replace(/\bgpt[-_]?sovits\b/gi, "GPT 声音模型");
     text = text.replace(/\bgpt\b/gi, "G P T");
     text = text.replace(/\bapi\b/gi, "A P I");
@@ -11041,18 +11052,8 @@
     text = text.replace(/([A-Z])([A-Z])/g, "$1 $2");
     text = text.replace(/([A-Z])([A-Z])/g, "$1 $2");
 
-    // 8. 处理标题、引用、列表、加粗斜体等 Markdown 格式标记
-    text = text.replace(/^#+\s+/gm, "");
-    text = text.replace(/^>\s+/gm, "");
-    text = text.replace(/^[-*_]{3,}$/gm, "");
-    text = text.replace(/^\s*[-*+]\s+/gm, "");
-    text = text.replace(/\*{1,3}(.*?)\*{1,3}/g, "$1");
-    text = text.replace(/_{1,3}(.*?)_{1,3}/g, "$1");
-    text = text.replace(/~~(.*?)~~/g, "$1");
-    text = text.replace(/\|/g, " ");
-
-    // 9. 彻底清除所有残留或单独出现的特殊字符与转义符（包含全角括号与特殊符号）
-    text = text.replace(/[\\`*~^{}[\]()（）()【】［］<>《》〔〕〈〉@#%+=/|]/g, " ");
+    // 9. 彻底清除所有残留或单独出现的特殊符号与转义符（不再破坏中英文字词）
+    text = text.replace(/[\\`*~^{}[\]()（）()【】［］<>《》〔〕〈〉@#%+=/|_]/g, " ");
 
     // 10. 换行与空白规整
     text = text.replace(/\r?\n\s*\r?\n/g, "。").replace(/\r?\n/g, "，");
