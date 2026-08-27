@@ -11282,6 +11282,8 @@
     return arrayBuffer;
   }
 
+  let activeSentencePromise = null;
+
   class StreamingVoiceSession {
     constructor(runId, options = {}) {
       this.runId = runId;
@@ -11323,10 +11325,20 @@
       }
     }
 
+    discardPendingQueue() {
+      this.ended = true;
+      this.queue = [];
+      try { this.abortController.abort(); } catch (_) {}
+      if (activeStreamingVoiceSession === this) {
+        activeStreamingVoiceSession = null;
+      }
+    }
+
     interrupt() {
       this.ended = true;
       try { this.abortController.abort(); } catch (_) {}
       this.queue = [];
+      activeSentencePromise = null;
       stopActiveAudioSmoothly(0.06);
       if (activeStreamingVoiceSession === this) {
         activeStreamingVoiceSession = null;
@@ -11448,20 +11460,35 @@
         if (!audioBuffer) continue;
 
         if (!this.hasStartedPlaying) {
-          this.hasStartedPlaying = true;
-          // 新语音第一包已合成完毕即将发声：平滑淡出并停止上一轮旧语音
+          // 1. 阻止上一轮旧会话继续拉取或播放未出声的后续排队句子
           if (activeStreamingVoiceSession && activeStreamingVoiceSession !== this) {
-            activeStreamingVoiceSession.interrupt();
+            activeStreamingVoiceSession.discardPendingQueue();
           }
-          stopActiveAudioSmoothly(0.06);
+
+          // 2. 优雅等待上一轮旧会话“当前正在朗读的那一整句话”自然读完（带 6s 超时防死锁）
+          if (activeSentencePromise) {
+            await Promise.race([
+              activeSentencePromise,
+              new Promise((r) => setTimeout(r, 6000))
+            ]);
+          }
+
+          if (this.token !== voicePlaybackToken || this.abortController.signal.aborted) {
+            break;
+          }
+
+          this.hasStartedPlaying = true;
           voiceQueueAbortController = this.abortController;
           activeStreamingVoiceSession = this;
           elements.voiceToggleButton?.classList.add("is-speaking");
+
+          // 两轮对话交替间的自然微间歇 (120ms)
+          await new Promise((r) => setTimeout(r, 120));
         }
 
         const ctx = getAudioContext();
         if (ctx && audioBuffer instanceof AudioBuffer) {
-          await new Promise((resolve) => {
+          const playPromise = new Promise((resolve) => {
             if (this.token !== voicePlaybackToken || this.abortController.signal.aborted) {
               resolve();
               return;
@@ -11488,12 +11515,18 @@
             };
             sourceNode.start(0);
           });
+
+          activeSentencePromise = playPromise;
+          await playPromise;
+          if (activeSentencePromise === playPromise) {
+            activeSentencePromise = null;
+          }
         } else if (audioBuffer instanceof ArrayBuffer) {
           const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
           const audioUrl = URL.createObjectURL(blob);
           const audio = new Audio(audioUrl);
           state.currentAudio = audio;
-          await new Promise((resolve) => {
+          const playPromise = new Promise((resolve) => {
             audio.onended = () => {
               state.currentAudio = null;
               URL.revokeObjectURL(audioUrl);
@@ -11506,6 +11539,12 @@
             };
             audio.play().catch(resolve);
           });
+
+          activeSentencePromise = playPromise;
+          await playPromise;
+          if (activeSentencePromise === playPromise) {
+            activeSentencePromise = null;
+          }
         }
 
         // 句与句之间的拟真自然呼吸微停顿 (100ms)
