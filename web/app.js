@@ -4000,8 +4000,8 @@
   function disposeAllLiveRuns() {
     for (const live of state.liveRuns.values()) disposeLiveState(live);
     state.liveRuns.clear();
-    elements.liveStopRail.replaceChildren();
-    elements.liveStopRail.hidden = true;
+    elements.liveStopRail?.replaceChildren();
+    if (elements.liveStopRail) elements.liveStopRail.hidden = true;
   }
 
   // 切换会话不再销毁还在跑的直播状态:事件环只留 4096 条,长回复从 0 重放
@@ -4015,8 +4015,8 @@
       }
     }
     // 停止栏与问题坞都是全局元素,先清空;切回时按会话重挂。
-    elements.liveStopRail.replaceChildren();
-    elements.liveStopRail.hidden = true;
+    elements.liveStopRail?.replaceChildren();
+    if (elements.liveStopRail) elements.liveStopRail.hidden = true;
   }
 
   function applySessionView(payload) {
@@ -6928,10 +6928,6 @@
       // 落库的 running 占位与直播气泡是同一轮:重挂前撤掉占位。
       removeRunningStatus(live.turnId);
       if (!live.article.isConnected) elements.timeline.appendChild(live.article);
-      if (live.stopButton && !live.stopButton.isConnected) {
-        elements.liveStopRail.appendChild(live.stopButton);
-        elements.liveStopRail.hidden = false;
-      }
       // 切走时被 clearQuestionDock 摘下的待答问题,切回原样归位。
       for (const question of live.questions?.values?.() || []) {
         if (question.pending && question.card && !question.card.isConnected) {
@@ -7219,7 +7215,9 @@
     if (!live.stopButton) return;
     live.stopButton.remove();
     live.stopButton = null;
-    elements.liveStopRail.hidden = elements.liveStopRail.childElementCount === 0;
+    if (elements.liveStopRail) {
+      elements.liveStopRail.hidden = elements.liveStopRail.childElementCount === 0;
+    }
   }
 
   async function cancelLiveRun(live) {
@@ -7341,14 +7339,8 @@
     stop.dataset.runId = live.runId;
     stop.appendChild(makeIconSlot("stop-square"));
     stop.addEventListener("click", () => cancelLiveRun(live));
-    header.append(avatar, identity);
-    if (viewed) {
-      for (const existing of elements.liveStopRail.querySelectorAll(".live-stop-button")) {
-        if (existing.dataset.runId === live.runId) existing.remove();
-      }
-      elements.liveStopRail.appendChild(stop);
-      elements.liveStopRail.hidden = false;
-    }
+    live.stopButton = stop;
+    header.append(avatar, identity, stop);
     const assistantContent = document.createElement("div");
     assistantContent.className = "assistant-content is-slim";
     const blocks = document.createElement("div");
