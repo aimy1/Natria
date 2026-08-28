@@ -348,28 +348,28 @@
             <div class="logs-head-left">
               <div class="logs-title-row">
                 <h2>运行日志</h2>
-                <span class="logs-live-badge" id="logsLiveBadge"><i class="logs-pulse"></i>实时监听中</span>
+                <span class="logs-live-badge" id="logsLiveBadge"><i class="logs-pulse"></i>实时监听</span>
                 <span class="logs-count-badge" id="logsCountBadge">0 条记录</span>
               </div>
               <div class="logs-stats-bar" id="logsStatsBar">
-                <span class="logs-stat-pill is-total" id="statTotalLogs">📊 总计: 0</span>
-                <span class="logs-stat-pill is-error" id="statErrorLogs">🔴 错误: 0</span>
-                <span class="logs-stat-pill is-warn" id="statWarnLogs">🟡 警告: 0</span>
-                <span class="logs-stat-pill is-info" id="statInfoLogs">🟢 正常: 0</span>
+                <span class="logs-stat-pill is-total" id="statTotalLogs"><span class="stat-dot dot-total"></span>总计 0</span>
+                <span class="logs-stat-pill is-error" id="statErrorLogs"><span class="stat-dot dot-error"></span>错误 0</span>
+                <span class="logs-stat-pill is-warn" id="statWarnLogs"><span class="stat-dot dot-warn"></span>警告 0</span>
+                <span class="logs-stat-pill is-info" id="statInfoLogs"><span class="stat-dot dot-info"></span>正常 0</span>
               </div>
             </div>
             <div class="logs-controls">
               <div class="logs-filter-group">
                 <select id="logsLevelFilter" class="logs-select" aria-label="日志级别筛选">
-                  <option value="ALL">全部级别 (ALL)</option>
-                  <option value="ERROR">🔴 错误 (ERROR)</option>
-                  <option value="WARN">🟡 警告 (WARN)</option>
-                  <option value="INFO">🟢 信息 (INFO)</option>
-                  <option value="DEBUG">🔵 调试 (DEBUG)</option>
-                  <option value="TRACE">⚪ 跟踪 (TRACE)</option>
+                  <option value="ALL">全部级别</option>
+                  <option value="ERROR">ERROR</option>
+                  <option value="WARN">WARN</option>
+                  <option value="INFO">INFO</option>
+                  <option value="DEBUG">DEBUG</option>
+                  <option value="TRACE">TRACE</option>
                 </select>
                 <div class="logs-search-wrap">
-                  <input type="text" id="logsSearchInput" class="logs-search-input" placeholder="搜索关键词 (模块、错误、模型、会话 ID...)" aria-label="搜索日志">
+                  <input type="text" id="logsSearchInput" class="logs-search-input" placeholder="搜索日志关键词..." aria-label="搜索日志">
                   <button type="button" id="logsSearchClear" class="logs-search-clear" title="清空搜索" hidden>×</button>
                 </div>
               </div>
@@ -378,19 +378,19 @@
                   <input type="checkbox" id="logsAutoScrollCheck" checked>
                   <span>自动滚屏</span>
                 </label>
-                <button class="secondary-button compact-button" id="logsRefreshButton" type="button" title="立即拉取最新日志">
+                <button class="secondary-button compact-button" id="logsRefreshButton" type="button" title="刷新日志">
                   <span class="icon-slot" data-icon="refresh-cw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
                   刷新
                 </button>
-                <button class="secondary-button compact-button" id="logsCopyButton" type="button" title="复制所有已显示的日志内容">
+                <button class="secondary-button compact-button" id="logsCopyButton" type="button" title="复制所有日志">
                   <span class="icon-slot" data-icon="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
                   复制
                 </button>
-                <button class="secondary-button compact-button" id="logsExportButton" type="button" title="导出日志为 .log 文本文件">
+                <button class="secondary-button compact-button" id="logsExportButton" type="button" title="导出为 .log 文件">
                   <span class="icon-slot" data-icon="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
                   导出
                 </button>
-                <button class="secondary-button compact-button" id="logsClearButton" type="button" title="清空当前日志界面显示">
+                <button class="secondary-button compact-button" id="logsClearButton" type="button" title="清空视图显示">
                   <span class="icon-slot" data-icon="trash-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></span>
                   清屏
                 </button>
@@ -398,13 +398,13 @@
             </div>
           </div>
           <div class="logs-toolbar-subrow">
-            <div class="logs-category-tabs" id="logsCategoryTabs" role="tablist" aria-label="日志类型分类">
-              <button class="logs-cat-tab active" data-cat="all" type="button" role="tab" aria-selected="true">全部 (All)</button>
-              <button class="logs-cat-tab" data-cat="llm" type="button" role="tab" aria-selected="false">🤖 模型与推理 (LLM)</button>
-              <button class="logs-cat-tab" data-cat="voice" type="button" role="tab" aria-selected="false">🎙️ 语音合成 (Voice)</button>
-              <button class="logs-cat-tab" data-cat="tools" type="button" role="tab" aria-selected="false">🛠️ 工具调用 (Tools)</button>
-              <button class="logs-cat-tab" data-cat="web" type="button" role="tab" aria-selected="false">🌐 网络服务 (Web)</button>
-              <button class="logs-cat-tab" data-cat="errors" type="button" role="tab" aria-selected="false">⚠️ 异常与报错 (Errors)</button>
+            <div class="logs-category-tabs" id="logsCategoryTabs" role="tablist" aria-label="日志分类">
+              <button class="logs-cat-tab active" data-cat="all" type="button" role="tab" aria-selected="true">全部</button>
+              <button class="logs-cat-tab" data-cat="llm" type="button" role="tab" aria-selected="false">模型推理</button>
+              <button class="logs-cat-tab" data-cat="voice" type="button" role="tab" aria-selected="false">语音合成</button>
+              <button class="logs-cat-tab" data-cat="tools" type="button" role="tab" aria-selected="false">工具调用</button>
+              <button class="logs-cat-tab" data-cat="web" type="button" role="tab" aria-selected="false">网络服务</button>
+              <button class="logs-cat-tab" data-cat="errors" type="button" role="tab" aria-selected="false">异常报错</button>
             </div>
           </div>
           <div class="logs-terminal-card">

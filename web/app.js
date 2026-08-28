@@ -10514,10 +10514,10 @@
       const data = await res.json();
       state.runtimeLogs = Array.isArray(data.logs) ? data.logs : [];
       if (data.stats) {
-        if (elements.statTotalLogs) elements.statTotalLogs.textContent = `📊 总计: ${data.stats.total || 0}`;
-        if (elements.statErrorLogs) elements.statErrorLogs.textContent = `🔴 错误: ${data.stats.errors || 0}`;
-        if (elements.statWarnLogs) elements.statWarnLogs.textContent = `🟡 警告: ${data.stats.warnings || 0}`;
-        if (elements.statInfoLogs) elements.statInfoLogs.textContent = `🟢 正常: ${data.stats.info || 0}`;
+        if (elements.statTotalLogs) elements.statTotalLogs.innerHTML = `<span class="stat-dot dot-total"></span>总计 ${data.stats.total || 0}`;
+        if (elements.statErrorLogs) elements.statErrorLogs.innerHTML = `<span class="stat-dot dot-error"></span>错误 ${data.stats.errors || 0}`;
+        if (elements.statWarnLogs) elements.statWarnLogs.innerHTML = `<span class="stat-dot dot-warn"></span>警告 ${data.stats.warnings || 0}`;
+        if (elements.statInfoLogs) elements.statInfoLogs.innerHTML = `<span class="stat-dot dot-info"></span>正常 ${data.stats.info || 0}`;
       }
       renderRuntimeLogs(state.runtimeLogs);
     } catch (err) {
@@ -10531,11 +10531,11 @@
 
   function getCategoryLabel(cat) {
     switch (cat) {
-      case "llm": return { icon: "🤖", text: "模型推理" };
-      case "voice": return { icon: "🎙️", text: "语音合成" };
-      case "tools": return { icon: "🛠️", text: "工具调用" };
-      case "web": return { icon: "🌐", text: "网络服务" };
-      default: return { icon: "⚙️", text: "系统" };
+      case "llm": return "模型";
+      case "voice": return "语音";
+      case "tools": return "工具";
+      case "web": return "服务";
+      default: return "系统";
     }
   }
 
@@ -10586,10 +10586,10 @@
       badgeSpan.textContent = lvl;
 
       // Category tag
-      const catInfo = getCategoryLabel(entry.category);
+      const catText = getCategoryLabel(entry.category);
       const catSpan = document.createElement("span");
       catSpan.className = "log-category-tag";
-      catSpan.textContent = `${catInfo.icon} ${catInfo.text}`;
+      catSpan.textContent = catText;
 
       // Module
       const modSpan = document.createElement("span");
@@ -10608,13 +10608,13 @@
         if (entry.fields.provider) {
           const pill = document.createElement("span");
           pill.className = "log-pill pill-provider";
-          pill.textContent = `☁️ ${entry.fields.provider}`;
+          pill.textContent = entry.fields.provider;
           pillsWrap.appendChild(pill);
         }
         if (entry.fields.model) {
           const pill = document.createElement("span");
           pill.className = "log-pill pill-model";
-          pill.textContent = `🧠 ${entry.fields.model}`;
+          pill.textContent = entry.fields.model;
           pillsWrap.appendChild(pill);
         }
         if (entry.fields.status) {
@@ -10627,13 +10627,13 @@
         if (entry.fields.elapsed_ms) {
           const pill = document.createElement("span");
           pill.className = "log-pill pill-elapsed";
-          pill.textContent = `⏱️ ${formatElapsedMs(entry.fields.elapsed_ms)}`;
+          pill.textContent = formatElapsedMs(entry.fields.elapsed_ms);
           pillsWrap.appendChild(pill);
         }
         if (entry.fields.attempt) {
           const pill = document.createElement("span");
           pill.className = "log-pill pill-attempt";
-          pill.textContent = `🔁 重试 #${entry.fields.attempt}`;
+          pill.textContent = `重试 #${entry.fields.attempt}`;
           pillsWrap.appendChild(pill);
         }
         if (pillsWrap.childNodes.length > 0) {
