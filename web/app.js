@@ -11478,12 +11478,9 @@
 
     dispatchText(rawText) {
       if (!rawText) return;
-      const sentences = splitTextIntoSentences(rawText);
-      for (const sent of sentences) {
-        const cleaned = cleanTextForVoice(sent);
-        if (cleaned && /[\u4e00-\u9fa5a-zA-Z0-9]/.test(cleaned)) {
-          this.enqueueSentence(cleaned);
-        }
+      const cleaned = cleanTextForVoice(rawText);
+      if (cleaned && /[\u4e00-\u9fa5a-zA-Z0-9]/.test(cleaned)) {
+        this.enqueueSentence(cleaned);
       }
     }
 
