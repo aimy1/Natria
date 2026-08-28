@@ -346,9 +346,17 @@
         <div class="con-inner logs-inner">
           <div class="con-head logs-head">
             <div class="logs-head-left">
-              <h2>运行日志</h2>
-              <span class="logs-live-badge" id="logsLiveBadge"><i class="logs-pulse"></i>实时监听中</span>
-              <span class="logs-count-badge" id="logsCountBadge">0 条记录</span>
+              <div class="logs-title-row">
+                <h2>运行日志</h2>
+                <span class="logs-live-badge" id="logsLiveBadge"><i class="logs-pulse"></i>实时监听中</span>
+                <span class="logs-count-badge" id="logsCountBadge">0 条记录</span>
+              </div>
+              <div class="logs-stats-bar" id="logsStatsBar">
+                <span class="logs-stat-pill is-total" id="statTotalLogs">📊 总计: 0</span>
+                <span class="logs-stat-pill is-error" id="statErrorLogs">🔴 错误: 0</span>
+                <span class="logs-stat-pill is-warn" id="statWarnLogs">🟡 警告: 0</span>
+                <span class="logs-stat-pill is-info" id="statInfoLogs">🟢 正常: 0</span>
+              </div>
             </div>
             <div class="logs-controls">
               <div class="logs-filter-group">
@@ -361,7 +369,7 @@
                   <option value="TRACE">⚪ 跟踪 (TRACE)</option>
                 </select>
                 <div class="logs-search-wrap">
-                  <input type="text" id="logsSearchInput" class="logs-search-input" placeholder="搜索关键词 (模块、错误、会话 ID...)" aria-label="搜索日志">
+                  <input type="text" id="logsSearchInput" class="logs-search-input" placeholder="搜索关键词 (模块、错误、模型、会话 ID...)" aria-label="搜索日志">
                   <button type="button" id="logsSearchClear" class="logs-search-clear" title="清空搜索" hidden>×</button>
                 </div>
               </div>
@@ -387,6 +395,16 @@
                   清屏
                 </button>
               </div>
+            </div>
+          </div>
+          <div class="logs-toolbar-subrow">
+            <div class="logs-category-tabs" id="logsCategoryTabs" role="tablist" aria-label="日志类型分类">
+              <button class="logs-cat-tab active" data-cat="all" type="button" role="tab" aria-selected="true">全部 (All)</button>
+              <button class="logs-cat-tab" data-cat="llm" type="button" role="tab" aria-selected="false">🤖 模型与推理 (LLM)</button>
+              <button class="logs-cat-tab" data-cat="voice" type="button" role="tab" aria-selected="false">🎙️ 语音合成 (Voice)</button>
+              <button class="logs-cat-tab" data-cat="tools" type="button" role="tab" aria-selected="false">🛠️ 工具调用 (Tools)</button>
+              <button class="logs-cat-tab" data-cat="web" type="button" role="tab" aria-selected="false">🌐 网络服务 (Web)</button>
+              <button class="logs-cat-tab" data-cat="errors" type="button" role="tab" aria-selected="false">⚠️ 异常与报错 (Errors)</button>
             </div>
           </div>
           <div class="logs-terminal-card">

@@ -375,6 +375,11 @@
     logsContainer: document.getElementById("logsContainer"),
     logsCountBadge: document.getElementById("logsCountBadge"),
     logsLiveBadge: document.getElementById("logsLiveBadge"),
+    logsCategoryTabs: document.getElementById("logsCategoryTabs"),
+    statTotalLogs: document.getElementById("statTotalLogs"),
+    statErrorLogs: document.getElementById("statErrorLogs"),
+    statWarnLogs: document.getElementById("statWarnLogs"),
+    statInfoLogs: document.getElementById("statInfoLogs"),
     jumpToLogsPanelButton: document.getElementById("jumpToLogsPanelButton")
   };
 
@@ -382,6 +387,10 @@
     voiceEnabled: (localStorage.getItem("natria.voice.enabled") ?? localStorage.getItem("natria.voice.enabled")) === "1",
     voiceList: [],
     voiceFiles: [],
+    logsCategory: "all",
+    runtimeLogs: [],
+    logsAutoRefreshTimer: null,
+    logsLoading: false,
     voiceConfig: {
       engine: localStorage.getItem("natria.voice.engine") || localStorage.getItem("natria.voice.engine") || "edge_tts",
       endpoint: localStorage.getItem("natria.voice.endpoint") || localStorage.getItem("natria.voice.endpoint") || "",
@@ -10491,17 +10500,25 @@
       }
     }
     const level = elements.logsLevelFilter?.value || "ALL";
+    const category = state.logsCategory || "all";
     const search = elements.logsSearchInput?.value?.trim() || "";
 
     try {
-      const params = new URLSearchParams({ limit: "400" });
+      const params = new URLSearchParams({ limit: "500" });
       if (level && level !== "ALL") params.set("level", level);
+      if (category && category !== "all") params.set("category", category);
       if (search) params.set("search", search);
 
       const res = await apiRequest(`/api/logs?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       state.runtimeLogs = Array.isArray(data.logs) ? data.logs : [];
+      if (data.stats) {
+        if (elements.statTotalLogs) elements.statTotalLogs.textContent = `📊 总计: ${data.stats.total || 0}`;
+        if (elements.statErrorLogs) elements.statErrorLogs.textContent = `🔴 错误: ${data.stats.errors || 0}`;
+        if (elements.statWarnLogs) elements.statWarnLogs.textContent = `🟡 警告: ${data.stats.warnings || 0}`;
+        if (elements.statInfoLogs) elements.statInfoLogs.textContent = `🟢 正常: ${data.stats.info || 0}`;
+      }
       renderRuntimeLogs(state.runtimeLogs);
     } catch (err) {
       if (elements.logsContainer && (!state.runtimeLogs || state.runtimeLogs.length === 0)) {
@@ -10510,6 +10527,23 @@
     } finally {
       state.logsLoading = false;
     }
+  }
+
+  function getCategoryLabel(cat) {
+    switch (cat) {
+      case "llm": return { icon: "🤖", text: "模型推理" };
+      case "voice": return { icon: "🎙️", text: "语音合成" };
+      case "tools": return { icon: "🛠️", text: "工具调用" };
+      case "web": return { icon: "🌐", text: "网络服务" };
+      default: return { icon: "⚙️", text: "系统" };
+    }
+  }
+
+  function formatElapsedMs(msStr) {
+    const ms = Number(msStr);
+    if (!Number.isFinite(ms)) return msStr;
+    if (ms >= 1000) return `${(ms / 1000).toFixed(2)}s`;
+    return `${ms}ms`;
   }
 
   function renderRuntimeLogs(logs) {
@@ -10527,8 +10561,13 @@
       const row = document.createElement("div");
       const lvl = (entry.level || "INFO").toUpperCase();
       row.className = `log-row ${lvl === "ERROR" ? "is-error" : lvl === "WARN" ? "is-warn" : ""}`;
-      row.title = "点击复制该行日志";
+      row.title = "点击复制该条日志详细内容";
 
+      // 1. Top row header
+      const topRow = document.createElement("div");
+      topRow.className = "log-row-top";
+
+      // Time
       const timeSpan = document.createElement("span");
       timeSpan.className = "log-time";
       let timeText = entry.timestamp || "";
@@ -10541,23 +10580,78 @@
       }
       timeSpan.textContent = timeText ? `[${timeText}]` : "";
 
+      // Level badge
       const badgeSpan = document.createElement("span");
       badgeSpan.className = `log-badge level-${lvl.toLowerCase()}`;
       badgeSpan.textContent = lvl;
 
+      // Category tag
+      const catInfo = getCategoryLabel(entry.category);
+      const catSpan = document.createElement("span");
+      catSpan.className = "log-category-tag";
+      catSpan.textContent = `${catInfo.icon} ${catInfo.text}`;
+
+      // Module
       const modSpan = document.createElement("span");
       modSpan.className = "log-module";
-      modSpan.textContent = entry.module ? `[${entry.module}]` : "";
+      let modName = entry.module || "";
+      if (modName.startsWith("miyu::")) modName = modName.substring(6);
+      modSpan.textContent = modName ? `[${modName}]` : "";
 
-      const msgSpan = document.createElement("span");
-      msgSpan.className = "log-message";
-      msgSpan.textContent = entry.message || entry.raw || "";
+      topRow.append(timeSpan, badgeSpan, catSpan, modSpan);
 
-      row.append(timeSpan, badgeSpan, modSpan, msgSpan);
+      // Metadata Pills
+      if (entry.fields) {
+        const pillsWrap = document.createElement("div");
+        pillsWrap.className = "log-pills-wrap";
+
+        if (entry.fields.provider) {
+          const pill = document.createElement("span");
+          pill.className = "log-pill pill-provider";
+          pill.textContent = `☁️ ${entry.fields.provider}`;
+          pillsWrap.appendChild(pill);
+        }
+        if (entry.fields.model) {
+          const pill = document.createElement("span");
+          pill.className = "log-pill pill-model";
+          pill.textContent = `🧠 ${entry.fields.model}`;
+          pillsWrap.appendChild(pill);
+        }
+        if (entry.fields.status) {
+          const pill = document.createElement("span");
+          const isOk = String(entry.fields.status).startsWith("2");
+          pill.className = `log-pill ${isOk ? "pill-status-ok" : "pill-status-err"}`;
+          pill.textContent = `HTTP ${entry.fields.status}`;
+          pillsWrap.appendChild(pill);
+        }
+        if (entry.fields.elapsed_ms) {
+          const pill = document.createElement("span");
+          pill.className = "log-pill pill-elapsed";
+          pill.textContent = `⏱️ ${formatElapsedMs(entry.fields.elapsed_ms)}`;
+          pillsWrap.appendChild(pill);
+        }
+        if (entry.fields.attempt) {
+          const pill = document.createElement("span");
+          pill.className = "log-pill pill-attempt";
+          pill.textContent = `🔁 重试 #${entry.fields.attempt}`;
+          pillsWrap.appendChild(pill);
+        }
+        if (pillsWrap.childNodes.length > 0) {
+          topRow.appendChild(pillsWrap);
+        }
+      }
+
+      // 2. Message Body
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "log-row-body";
+      msgDiv.textContent = entry.message || entry.raw || "";
+
+      row.append(topRow, msgDiv);
+
       row.addEventListener("click", () => {
         const lineText = entry.raw || `[${entry.timestamp}] [${entry.level}] [${entry.module}] ${entry.message}`;
         navigator.clipboard?.writeText(lineText).then(() => {
-          showToast("已复制该行日志到剪贴板");
+          showToast("已复制该条完整日志");
         }).catch(() => {});
       });
 
@@ -11126,6 +11220,17 @@
     elements.usageModelFilter.addEventListener("change", () => loadUsageRecords());
 
     // 运行日志 (Runtime Logs) 事件绑定
+    elements.logsCategoryTabs?.addEventListener("click", (e) => {
+      const btn = e.target.closest(".logs-cat-tab");
+      if (!btn) return;
+      elements.logsCategoryTabs.querySelectorAll(".logs-cat-tab").forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      state.logsCategory = btn.dataset.cat || "all";
+      loadRuntimeLogs(true);
+    });
     elements.logsLevelFilter?.addEventListener("change", () => loadRuntimeLogs(true));
     elements.logsSearchInput?.addEventListener("input", (e) => {
       const val = e.target.value;

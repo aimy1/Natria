@@ -677,7 +677,49 @@ pub(in crate::web) async fn usage_details_web(
 pub(in crate::web) struct RuntimeLogsQuery {
     pub limit: Option<usize>,
     pub level: Option<String>,
+    pub category: Option<String>,
     pub search: Option<String>,
+}
+
+fn classify_log_category(module: &str, message: &str) -> &'static str {
+    if module.contains("llm") || message.contains("provider=") || message.contains("model=") {
+        "llm"
+    } else if module.contains("voice")
+        || module.contains("tts")
+        || message.contains("Edge TTS")
+        || message.contains("GPT-SoVITS")
+        || message.contains("sovits")
+    {
+        "voice"
+    } else if module.contains("tools")
+        || module.contains("subagent")
+        || module.contains("job")
+        || module.contains("claude_code")
+    {
+        "tools"
+    } else if module.contains("web")
+        || module.contains("ipc")
+        || module.contains("server")
+        || module.contains("onebot")
+        || module.contains("qq")
+    {
+        "web"
+    } else {
+        "system"
+    }
+}
+
+fn extract_field<'a>(msg: &'a str, key: &str) -> Option<&'a str> {
+    let pattern = format!("{key}=");
+    let start = msg.find(&pattern)? + pattern.len();
+    let rest = &msg[start..];
+    if rest.starts_with('"') {
+        let quote_end = rest[1..].find('"')?;
+        Some(&rest[1..=quote_end])
+    } else {
+        let word_end = rest.find(char::is_whitespace).unwrap_or(rest.len());
+        Some(&rest[..word_end])
+    }
 }
 
 pub(in crate::web) async fn runtime_logs_web(
@@ -686,41 +728,92 @@ pub(in crate::web) async fn runtime_logs_web(
     Query(query): Query<RuntimeLogsQuery>,
 ) -> std::result::Result<Response, ApiError> {
     require_auth(&headers, &state)?;
-    let limit = query.limit.unwrap_or(300).clamp(1, 2000);
+    let limit = query.limit.unwrap_or(400).clamp(1, 3000);
     let paths = state.paths.clone();
     let level_filter = query.level.clone();
+    let category_filter = query.category.clone();
     let search_filter = query.search.clone();
 
     let logs = tokio::task::spawn_blocking(move || {
-        crate::cli::daemon_log::recent_daemon_log_lines(&paths, limit * 2)
+        crate::cli::daemon_log::recent_daemon_log_lines(&paths, limit * 3)
     })
     .await
     .map_err(ApiError::internal)?
     .map_err(ApiError::internal)?;
 
     let mut structured = Vec::with_capacity(logs.len());
+    let (mut err_cnt, mut warn_cnt, mut info_cnt, mut debug_cnt) = (0_usize, 0_usize, 0_usize, 0_usize);
+
     for raw in logs {
         if let Some(parsed) = crate::cli::daemon_log::parse_daemon_log_line(&raw) {
+            match parsed.level {
+                "ERROR" => err_cnt += 1,
+                "WARN" => warn_cnt += 1,
+                "INFO" => info_cnt += 1,
+                "DEBUG" | "TRACE" => debug_cnt += 1,
+                _ => {}
+            }
+
             if let Some(ref lvl) = level_filter {
                 if !lvl.is_empty() && lvl != "ALL" && !parsed.level.eq_ignore_ascii_case(lvl) {
                     continue;
                 }
             }
+
+            let category = classify_log_category(parsed.module, parsed.message);
+            if let Some(ref cat) = category_filter {
+                if !cat.is_empty() && cat != "all" {
+                    if cat == "errors" {
+                        if parsed.level != "ERROR" && parsed.level != "WARN" {
+                            continue;
+                        }
+                    } else if cat != category {
+                        continue;
+                    }
+                }
+            }
+
             if let Some(ref q) = search_filter {
                 if !q.is_empty() && !raw.to_lowercase().contains(&q.to_lowercase()) {
                     continue;
                 }
             }
+
+            let provider = extract_field(parsed.message, "provider");
+            let model = extract_field(parsed.message, "model");
+            let status = extract_field(parsed.message, "status");
+            let elapsed_ms = extract_field(parsed.message, "elapsed_ms");
+            let attempt = extract_field(parsed.message, "attempt");
+            let failure_kind = extract_field(parsed.message, "failure_kind");
+            let run_id = extract_field(parsed.message, "run_id");
+
             structured.push(json!({
                 "raw": raw,
                 "timestamp": parsed.timestamp,
                 "level": parsed.level,
                 "module": parsed.module,
+                "category": category,
                 "message": parsed.message,
+                "fields": {
+                    "provider": provider,
+                    "model": model,
+                    "status": status,
+                    "elapsed_ms": elapsed_ms,
+                    "attempt": attempt,
+                    "failure_kind": failure_kind,
+                    "run_id": run_id,
+                }
             }));
         } else {
+            info_cnt += 1;
             if let Some(ref lvl) = level_filter {
-                if !lvl.is_empty() && lvl != "ALL" {
+                if !lvl.is_empty() && lvl != "ALL" && lvl != "INFO" {
+                    continue;
+                }
+            }
+            let category = classify_log_category("system", &raw);
+            if let Some(ref cat) = category_filter {
+                if !cat.is_empty() && cat != "all" && cat != category {
                     continue;
                 }
             }
@@ -734,7 +827,9 @@ pub(in crate::web) async fn runtime_logs_web(
                 "timestamp": "",
                 "level": "INFO",
                 "module": "system",
+                "category": category,
                 "message": raw,
+                "fields": null
             }));
         }
     }
@@ -748,6 +843,13 @@ pub(in crate::web) async fn runtime_logs_web(
         "ok": true,
         "logs": structured,
         "total": structured.len(),
+        "stats": {
+            "total": err_cnt + warn_cnt + info_cnt + debug_cnt,
+            "errors": err_cnt,
+            "warnings": warn_cnt,
+            "info": info_cnt,
+            "debug": debug_cnt,
+        }
     }))
     .into_response())
 }
