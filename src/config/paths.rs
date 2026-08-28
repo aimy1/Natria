@@ -82,21 +82,75 @@ pub(crate) fn persona_scope_name(name: &str) -> String {
     if name.is_empty() {
         return "default".to_string();
     }
-    let normalized = name
+    let stem = if let Some(stripped) = name.strip_suffix(".md") {
+        stripped
+    } else if let Some(stripped) = name.strip_suffix(".markdown") {
+        stripped
+    } else if let Some(stripped) = name.strip_suffix(".txt") {
+        stripped
+    } else {
+        name
+    }
+    .trim();
+
+    if stem.is_empty() {
+        return "default".to_string();
+    }
+
+    let is_pure_ascii = stem
         .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
-                ch.to_ascii_lowercase()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '_');
+
+    if is_pure_ascii {
+        let normalized = stem
+            .to_ascii_lowercase()
+            .trim_matches('-')
+            .to_string();
+        if !normalized.is_empty() && normalized != "system-prompt" {
+            return normalized;
+        }
+    }
+
+    let ascii_prefix = stem
+        .chars()
+        .filter_map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' {
+                Some(ch.to_ascii_lowercase())
             } else {
-                '-'
+                None
             }
         })
-        .collect::<String>()
-        .trim_matches('-')
-        .to_string();
-    if normalized.is_empty() {
-        format!("persona-{}", &blake3::hash(name.as_bytes()).to_hex()[..12])
+        .take(16)
+        .collect::<String>();
+
+    let hash_12 = &blake3::hash(stem.as_bytes()).to_hex()[..12];
+    if ascii_prefix.is_empty() {
+        format!("persona-{}", hash_12)
     } else {
-        normalized
+        format!("{}-{}", ascii_prefix, hash_12)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_persona_scope_name_unicode_isolation() {
+        let scope1 = persona_scope_name("“妈妈”属性.md");
+        let scope2 = persona_scope_name("小男娘.md");
+        let scope3 = persona_scope_name("小男娘");
+        let scope4 = persona_scope_name("xiaoyan.md");
+        let scope5 = persona_scope_name("dev");
+
+        assert_ne!(scope1, scope2, "different chinese personas must not collide");
+        assert_eq!(scope2, scope3, ".md suffix stripping should produce identical scope");
+        assert_eq!(scope4, "xiaoyan");
+        assert_eq!(scope5, "dev");
+
+        // Verify idempotency
+        assert_eq!(persona_scope_name(&scope1), scope1);
+        assert_eq!(persona_scope_name(&scope2), scope2);
+    }
+}
+
