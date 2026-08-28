@@ -998,9 +998,12 @@
     }
   }
 
+  const SETTINGS_VIEW_KEY = "natria.web.settingsView";
+
   function setSettingsView(view) {
     const selected = ["interface", "voice", "prompts", "general", "providers", "models", "plugins", "advanced"].includes(view) ? view : "interface";
     state.settingsView = selected;
+    safeStorageSet(SETTINGS_VIEW_KEY, selected);
     elements.settingsNav.querySelectorAll("[data-settings-view]").forEach((button) => {
       const active = button.dataset.settingsView === selected;
       button.classList.toggle("active", active);
@@ -4030,7 +4033,16 @@
     clearViewSyncTimer();
     state.viewSessionId = sessionId;
     // 记住浏览位置，刷新后回到这里而不是跳去终端车道（见 preferredBootSession）。
-    if (!isTerminalSession(sessionId)) safeStorageSet(VIEW_SESSION_KEY, sessionId);
+    if (!isTerminalSession(sessionId)) {
+      safeStorageSet(VIEW_SESSION_KEY, sessionId);
+      try {
+        const hash = window.location.hash;
+        const targetHash = `#session=${encodeURIComponent(sessionId)}`;
+        if (hash !== targetHash && !hash.includes("settings") && !hash.includes("console")) {
+          history.replaceState(null, "", targetHash);
+        }
+      } catch (_) {}
+    }
     if (state.sessionModelOverrideFor !== sessionId) {
       // 会话切换：先按"跟随全局"显示，再异步取回该会话的覆盖池。
       state.sessionModelOverride = null;
@@ -9566,13 +9578,32 @@
   ///
   /// 顺序：上次浏览的 → 当前指针（如果它在列表里可见）→ 列表第一个。
   function preferredBootSession() {
+    // 1. 优先从 URL hash 或 search 中读取指定的 session_id
+    try {
+      const hashMatch = window.location.hash.match(/(?:#|&)?session=([^&]+)/);
+      const hashSession = hashMatch ? decodeURIComponent(hashMatch[1]) : "";
+      if (hashSession && findSession(hashSession) && !isTerminalSession(hashSession)) {
+        return hashSession;
+      }
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramSession = urlParams.get("session") || urlParams.get("s");
+      if (paramSession && findSession(paramSession) && !isTerminalSession(paramSession)) {
+        return paramSession;
+      }
+    } catch (_) {}
+
+    // 2. 从本地存储读取上次浏览的会话
     const remembered = safeStorageGet(VIEW_SESSION_KEY);
     if (remembered && findSession(remembered) && !isTerminalSession(remembered)) return remembered;
+
+    // 3. 当前活跃会话（如果在列表中可见）
     if (state.currentSessionId
       && findSession(state.currentSessionId)
       && !isTerminalSession(state.currentSessionId)) {
       return state.currentSessionId;
     }
+
+    // 4. 默认打开列表第一个可见会话
     const visible = state.sessions.find((session) => !isTerminalSession(session?.session_id));
     return visible ? String(visible.session_id) : "";
   }
@@ -9622,13 +9653,27 @@
     state.replayRunIds = null;
     state.replayCutoff = 0;
     const boot = preferredBootSession();
-    if (boot && boot !== state.viewSessionId) state.viewSessionId = boot;
-    const keepView = state.viewSessionId && state.viewSessionId !== state.currentSessionId && findSession(state.viewSessionId);
-    if (keepView) {
-      // 视图停留在非默认会话：全局重载不改变浏览位置，改用会话接口回填。
-      state.lastEventId = state.latestEventId;
-      connectEventSource(state.latestEventId);
-      loadSessionView(state.viewSessionId, { quiet: true });
+    state.viewSessionId = boot || state.viewSessionId;
+    if (boot) {
+      if (boot === state.currentSessionId) {
+        applySessionView({
+          session_id: boot,
+          turns: snapshot?.turns,
+          queued_prompts: snapshot?.queued_prompts,
+          running_turn_id: snapshot?.running_turn_id,
+          runs: allRuns.filter((run) => String(run.session_id) === String(boot)),
+          redo_candidate: snapshot?.redo_candidate
+        });
+        if (state.liveRuns.size === 0) {
+          state.lastEventId = state.latestEventId;
+          connectEventSource(state.latestEventId);
+        }
+      } else {
+        // 视图停留在非默认会话：全局重载不改变浏览位置，改用会话接口回填。
+        state.lastEventId = state.latestEventId;
+        connectEventSource(state.latestEventId);
+        loadSessionView(boot, { quiet: true });
+      }
     } else if (state.currentSessionId && !isTerminalSession(state.currentSessionId)) {
       applySessionView({
         session_id: state.currentSessionId,
@@ -9658,10 +9703,8 @@
         ? snapshot.redo_candidate
         : null;
       renderConversation({ forceScroll: true });
-      renderQueueTray();
-      state.lastEventId = state.latestEventId;
-      connectEventSource(state.latestEventId);
     }
+    renderQueueTray();
     setConnectionStatus("connecting");
     updateRuntimeUsage();
     updateConversationChrome();
@@ -10383,8 +10426,11 @@
 
   /// 切控制台标签页。数据统计的图表要等真正显示了才量得到尺寸,配置也是进了
   /// 设置页才拉——都放在这里,免得开个控制台把两边的请求都打出去。
+  const CONSOLE_PANEL_KEY = "natria.web.consolePanel";
+
   function setConsolePanel(panel) {
     state.consolePanel = panel;
+    safeStorageSet(CONSOLE_PANEL_KEY, panel);
     for (const item of elements.consoleView.querySelectorAll(".con-rail-item[data-console-panel]")) {
       item.classList.toggle("active", item.dataset.consolePanel === panel);
     }
@@ -13024,7 +13070,10 @@
 
   function initialize() {
     renderIconSlots();
-    if (window.location.hash.includes("console")) consoleOpen();
+    const savedConsolePanel = safeStorageGet("natria.web.consolePanel") || "settings";
+    if (window.location.hash.includes("console") || window.location.hash.includes("settings")) {
+      consoleOpen(savedConsolePanel);
+    }
     setTheme(safeStorageGet("natria.web.theme") || "graphite", false);
     const storedScheme = safeStorageGet("natria.web.colorScheme");
     if (storedScheme) setColorScheme(storedScheme, false);
@@ -13038,8 +13087,20 @@
     }
     setSidebarCollapsed(safeStorageGet("natria.web.sidebarCollapsed") === "true");
     syncArtifactLayout();
-    setSettingsView("interface");
+    const savedSettingsView = safeStorageGet("natria.web.settingsView") || "interface";
+    setSettingsView(savedSettingsView);
     bindEvents();
+    window.addEventListener("hashchange", () => {
+      try {
+        const hashMatch = window.location.hash.match(/(?:#|&)?session=([^&]+)/);
+        if (hashMatch) {
+          const targetSessionId = decodeURIComponent(hashMatch[1]);
+          if (targetSessionId && targetSessionId !== state.viewSessionId && findSession(targetSessionId)) {
+            loadSessionView(targetSessionId, { quiet: true });
+          }
+        }
+      } catch (_) {}
+    });
     initVoiceUI();
     initSpeechRecognition();
     resizeComposer();
