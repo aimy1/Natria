@@ -8751,3 +8751,299 @@ body.miyu-paused *::after {
   border-color: var(--accent);
 }
 
+/* ==========================================================================
+   控制台 · 运行日志 (Runtime Logs)
+   ========================================================================== */
+
+.con-panel[data-console-panel="logs"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface-bg);
+}
+
+.logs-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 16px 24px 20px;
+  gap: 14px;
+}
+
+.logs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 40%, transparent);
+}
+
+.logs-head-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logs-head-left h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.logs-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.logs-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: status-pulse 1.4s ease-in-out infinite;
+}
+
+.logs-count-badge {
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.logs-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.logs-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logs-select {
+  height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.logs-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.logs-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.logs-search-input {
+  width: 240px;
+  height: 32px;
+  padding: 0 26px 0 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  border-radius: 8px;
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 12.5px;
+  outline: none;
+  transition: width 0.2s ease, border-color 0.15s, box-shadow 0.15s;
+}
+
+.logs-search-input:focus {
+  width: 300px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.logs-search-clear {
+  position: absolute;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.logs-search-clear:hover {
+  color: var(--text);
+}
+
+.logs-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logs-autoscroll-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-soft);
+  cursor: pointer;
+  user-select: none;
+}
+
+.logs-autoscroll-label input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.logs-terminal-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-bg) 95%, #000);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.logs-terminal-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px;
+  font-family: var(--font-mono, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace);
+  font-size: 12px;
+  line-height: 1.6;
+  scrollbar-color: var(--line-strong) transparent;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+.logs-stream-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.log-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.log-row:hover {
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+}
+
+.log-time {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: 11px;
+  user-select: none;
+}
+
+.log-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.log-badge.level-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.log-badge.level-warn {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.log-badge.level-info {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.log-badge.level-debug {
+  background: rgba(59, 130, 246, 0.18);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.log-badge.level-trace {
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.log-module {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.log-message {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-soft);
+}
+
+.log-row.is-error .log-message {
+  color: #fca5a5;
+}
+
+.log-row.is-warn .log-message {
+  color: #fde68a;
+}
+
+.logs-empty-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 13px;
+}

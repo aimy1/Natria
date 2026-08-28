@@ -362,7 +362,20 @@
     voiceFileDropZone: document.getElementById("voiceFileDropZone"),
     voiceFileList: document.getElementById("voiceFileList"),
     voiceFileCount: document.getElementById("voiceFileCount"),
-    voiceSamplesSection: document.getElementById("voiceSamplesSection")
+    voiceSamplesSection: document.getElementById("voiceSamplesSection"),
+    logsLevelFilter: document.getElementById("logsLevelFilter"),
+    logsSearchInput: document.getElementById("logsSearchInput"),
+    logsSearchClear: document.getElementById("logsSearchClear"),
+    logsAutoScrollCheck: document.getElementById("logsAutoScrollCheck"),
+    logsRefreshButton: document.getElementById("logsRefreshButton"),
+    logsCopyButton: document.getElementById("logsCopyButton"),
+    logsExportButton: document.getElementById("logsExportButton"),
+    logsClearButton: document.getElementById("logsClearButton"),
+    logsViewport: document.getElementById("logsViewport"),
+    logsContainer: document.getElementById("logsContainer"),
+    logsCountBadge: document.getElementById("logsCountBadge"),
+    logsLiveBadge: document.getElementById("logsLiveBadge"),
+    jumpToLogsPanelButton: document.getElementById("jumpToLogsPanelButton")
   };
 
   const state = {
@@ -1001,7 +1014,7 @@
   const SETTINGS_VIEW_KEY = "natria.web.settingsView";
 
   function setSettingsView(view) {
-    const selected = ["interface", "voice", "prompts", "general", "providers", "models", "plugins", "advanced"].includes(view) ? view : "interface";
+    const selected = ["interface", "voice", "prompts", "general", "providers", "models", "plugins", "logs", "advanced"].includes(view) ? view : "interface";
     state.settingsView = selected;
     safeStorageSet(SETTINGS_VIEW_KEY, selected);
     elements.settingsNav?.querySelectorAll("[data-settings-view]").forEach((button) => {
@@ -10428,6 +10441,7 @@
     elements.consoleView.hidden = true;
     elements.consoleView.setAttribute("aria-hidden", "true");
     safeStorageSet(CONSOLE_OPEN_KEY, "false");
+    stopLogsAutoRefresh();
     usageTipHide();
     updateLocationHash();
   }
@@ -10446,14 +10460,180 @@
       pane.hidden = pane.dataset.consolePanel !== panel;
     }
     if (panel === "usage") {
+      stopLogsAutoRefresh();
       updateChartColors();
       loadUsageStats();
       loadUsageRecords();
+    } else if (panel === "logs") {
+      usageTipHide();
+      loadRuntimeLogs(true);
+      startLogsAutoRefresh();
     } else {
+      stopLogsAutoRefresh();
       usageTipHide();
     }
     if (panel === "settings" && !state.configLoaded && !state.configLoading) loadConfigDraft();
     updateLocationHash();
+  }
+
+  // ==========================================================================
+  // 控制台 · 运行日志 (Runtime Logs) 管理模块
+  // ==========================================================================
+
+  let logsSearchDebounce = null;
+
+  async function loadRuntimeLogs(showIndicator = false) {
+    if (state.logsLoading) return;
+    state.logsLoading = true;
+    if (showIndicator && (!state.runtimeLogs || state.runtimeLogs.length === 0)) {
+      if (elements.logsContainer) {
+        elements.logsContainer.innerHTML = '<div class="logs-empty-state">正在拉取最新系统运行日志...</div>';
+      }
+    }
+    const level = elements.logsLevelFilter?.value || "ALL";
+    const search = elements.logsSearchInput?.value?.trim() || "";
+
+    try {
+      const params = new URLSearchParams({ limit: "400" });
+      if (level && level !== "ALL") params.set("level", level);
+      if (search) params.set("search", search);
+
+      const res = await apiRequest(`/api/logs?${params.toString()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      state.runtimeLogs = Array.isArray(data.logs) ? data.logs : [];
+      renderRuntimeLogs(state.runtimeLogs);
+    } catch (err) {
+      if (elements.logsContainer && (!state.runtimeLogs || state.runtimeLogs.length === 0)) {
+        elements.logsContainer.innerHTML = `<div class="logs-empty-state" style="color: #f87171;">日志读取失败: ${escapeHtml(err.message || String(err))}</div>`;
+      }
+    } finally {
+      state.logsLoading = false;
+    }
+  }
+
+  function renderRuntimeLogs(logs) {
+    if (!elements.logsContainer) return;
+    if (elements.logsCountBadge) {
+      elements.logsCountBadge.textContent = `${logs.length} 条记录`;
+    }
+    if (logs.length === 0) {
+      elements.logsContainer.innerHTML = '<div class="logs-empty-state">暂无匹配的运行日志记录</div>';
+      return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    for (const entry of logs) {
+      const row = document.createElement("div");
+      const lvl = (entry.level || "INFO").toUpperCase();
+      row.className = `log-row ${lvl === "ERROR" ? "is-error" : lvl === "WARN" ? "is-warn" : ""}`;
+      row.title = "点击复制该行日志";
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "log-time";
+      let timeText = entry.timestamp || "";
+      if (timeText) {
+        const d = new Date(timeText);
+        if (!isNaN(d.getTime())) {
+          const pad = (n) => String(n).padStart(2, "0");
+          timeText = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3, "0")}`;
+        }
+      }
+      timeSpan.textContent = timeText ? `[${timeText}]` : "";
+
+      const badgeSpan = document.createElement("span");
+      badgeSpan.className = `log-badge level-${lvl.toLowerCase()}`;
+      badgeSpan.textContent = lvl;
+
+      const modSpan = document.createElement("span");
+      modSpan.className = "log-module";
+      modSpan.textContent = entry.module ? `[${entry.module}]` : "";
+
+      const msgSpan = document.createElement("span");
+      msgSpan.className = "log-message";
+      msgSpan.textContent = entry.message || entry.raw || "";
+
+      row.append(timeSpan, badgeSpan, modSpan, msgSpan);
+      row.addEventListener("click", () => {
+        const lineText = entry.raw || `[${entry.timestamp}] [${entry.level}] [${entry.module}] ${entry.message}`;
+        navigator.clipboard?.writeText(lineText).then(() => {
+          showToast("已复制该行日志到剪贴板");
+        }).catch(() => {});
+      });
+
+      fragment.appendChild(row);
+    }
+
+    elements.logsContainer.replaceChildren(fragment);
+
+    if (elements.logsAutoScrollCheck?.checked && elements.logsViewport) {
+      elements.logsViewport.scrollTop = elements.logsViewport.scrollHeight;
+    }
+  }
+
+  function startLogsAutoRefresh() {
+    stopLogsAutoRefresh();
+    state.logsAutoRefreshTimer = setInterval(() => {
+      if (consoleIsOpen() && state.consolePanel === "logs" && !document.hidden) {
+        loadRuntimeLogs(false);
+      }
+    }, 2500);
+  }
+
+  function stopLogsAutoRefresh() {
+    if (state.logsAutoRefreshTimer) {
+      clearInterval(state.logsAutoRefreshTimer);
+      state.logsAutoRefreshTimer = null;
+    }
+  }
+
+  function copyAllLogs() {
+    if (!state.runtimeLogs || state.runtimeLogs.length === 0) {
+      showToast("当前没有可复制的日志", "warning");
+      return;
+    }
+    const fullText = state.runtimeLogs
+      .map((l) => l.raw || `[${l.timestamp}] [${l.level}] [${l.module}] ${l.message}`)
+      .join("\n");
+    navigator.clipboard?.writeText(fullText).then(() => {
+      showToast(`已复制全部 ${state.runtimeLogs.length} 条日志`);
+    }).catch(() => {
+      showToast("复制失败，请检查浏览器权限", "error");
+    });
+  }
+
+  function exportLogsToFile() {
+    if (!state.runtimeLogs || state.runtimeLogs.length === 0) {
+      showToast("当前没有可导出的日志", "warning");
+      return;
+    }
+    const fullText = state.runtimeLogs
+      .map((l) => l.raw || `[${l.timestamp}] [${l.level}] [${l.module}] ${l.message}`)
+      .join("\n");
+    const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const pad = (n) => String(n).padStart(2, "0");
+    const now = new Date();
+    const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    a.href = url;
+    a.download = `natria_logs_${ts}.log`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast("已开始下载日志文件");
+  }
+
+  function clearLogsView() {
+    state.runtimeLogs = [];
+    if (elements.logsContainer) {
+      elements.logsContainer.innerHTML = '<div class="logs-empty-state">日志视图已清空，点击「刷新」可重新载入</div>';
+    }
+    if (elements.logsCountBadge) {
+      elements.logsCountBadge.textContent = "0 条记录";
+    }
+    showToast("日志界面已清屏");
   }
 
   async function loadUsageStats() {
@@ -10944,6 +11124,26 @@
     });
     elements.usageSrcFilter.addEventListener("change", () => loadUsageRecords());
     elements.usageModelFilter.addEventListener("change", () => loadUsageRecords());
+
+    // 运行日志 (Runtime Logs) 事件绑定
+    elements.logsLevelFilter?.addEventListener("change", () => loadRuntimeLogs(true));
+    elements.logsSearchInput?.addEventListener("input", (e) => {
+      const val = e.target.value;
+      if (elements.logsSearchClear) elements.logsSearchClear.hidden = !val;
+      clearTimeout(logsSearchDebounce);
+      logsSearchDebounce = setTimeout(() => loadRuntimeLogs(false), 300);
+    });
+    elements.logsSearchClear?.addEventListener("click", () => {
+      if (elements.logsSearchInput) elements.logsSearchInput.value = "";
+      elements.logsSearchClear.hidden = true;
+      loadRuntimeLogs(true);
+    });
+    elements.logsRefreshButton?.addEventListener("click", () => loadRuntimeLogs(true));
+    elements.logsCopyButton?.addEventListener("click", () => copyAllLogs());
+    elements.logsExportButton?.addEventListener("click", () => exportLogsToFile());
+    elements.logsClearButton?.addEventListener("click", () => clearLogsView());
+    elements.jumpToLogsPanelButton?.addEventListener("click", () => setConsolePanel("logs"));
+
     document.addEventListener("keydown", (event) => {
       if (event.key !== "Escape") return;
       const fullscreenVideo = document.querySelector(".video-shell.webfs");

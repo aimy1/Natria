@@ -28,7 +28,7 @@ use stdin_input::*;
 use tool_cmds::*;
 use usage_view::*;
 mod alarm_worker;
-mod daemon_log;
+pub(crate) mod daemon_log;
 mod data_cmds;
 mod footer;
 mod migrate_cmds;

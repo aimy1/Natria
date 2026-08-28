@@ -382,6 +382,7 @@ pub(in crate::web) fn router(state: DaemonState) -> Router {
         .route("/api/jobs", get(list_jobs_http))
         .route("/api/usage/stats", get(usage_stats_web))
         .route("/api/usage/details", get(usage_details_web))
+        .route("/api/logs", get(runtime_logs_web))
         .route("/api/jobs/{job_id}", delete(stop_job_http))
         // OneBot v11 reverse-WS endpoint: NapCat connects here as a WS
         // client. Gated by platforms.qq config, not web auth.
@@ -670,6 +671,85 @@ pub(in crate::web) async fn usage_details_web(
     .map_err(ApiError::internal)?
     .map_err(ApiError::internal)?;
     Ok(Json(json!({ "ok": true, "records": records })).into_response())
+}
+
+#[derive(Debug, Deserialize)]
+pub(in crate::web) struct RuntimeLogsQuery {
+    pub limit: Option<usize>,
+    pub level: Option<String>,
+    pub search: Option<String>,
+}
+
+pub(in crate::web) async fn runtime_logs_web(
+    State(state): State<DaemonState>,
+    headers: HeaderMap,
+    Query(query): Query<RuntimeLogsQuery>,
+) -> std::result::Result<Response, ApiError> {
+    require_auth(&headers, &state)?;
+    let limit = query.limit.unwrap_or(300).clamp(1, 2000);
+    let paths = state.paths.clone();
+    let level_filter = query.level.clone();
+    let search_filter = query.search.clone();
+
+    let logs = tokio::task::spawn_blocking(move || {
+        crate::cli::daemon_log::recent_daemon_log_lines(&paths, limit * 2)
+    })
+    .await
+    .map_err(ApiError::internal)?
+    .map_err(ApiError::internal)?;
+
+    let mut structured = Vec::with_capacity(logs.len());
+    for raw in logs {
+        if let Some(parsed) = crate::cli::daemon_log::parse_daemon_log_line(&raw) {
+            if let Some(ref lvl) = level_filter {
+                if !lvl.is_empty() && lvl != "ALL" && !parsed.level.eq_ignore_ascii_case(lvl) {
+                    continue;
+                }
+            }
+            if let Some(ref q) = search_filter {
+                if !q.is_empty() && !raw.to_lowercase().contains(&q.to_lowercase()) {
+                    continue;
+                }
+            }
+            structured.push(json!({
+                "raw": raw,
+                "timestamp": parsed.timestamp,
+                "level": parsed.level,
+                "module": parsed.module,
+                "message": parsed.message,
+            }));
+        } else {
+            if let Some(ref lvl) = level_filter {
+                if !lvl.is_empty() && lvl != "ALL" {
+                    continue;
+                }
+            }
+            if let Some(ref q) = search_filter {
+                if !q.is_empty() && !raw.to_lowercase().contains(&q.to_lowercase()) {
+                    continue;
+                }
+            }
+            structured.push(json!({
+                "raw": raw,
+                "timestamp": "",
+                "level": "INFO",
+                "module": "system",
+                "message": raw,
+            }));
+        }
+    }
+
+    if structured.len() > limit {
+        let start = structured.len() - limit;
+        structured.drain(..start);
+    }
+
+    Ok(Json(json!({
+        "ok": true,
+        "logs": structured,
+        "total": structured.len(),
+    }))
+    .into_response())
 }
 
 pub(in crate::web) use crate::runtime::trim_process_memory;

@@ -50,14 +50,14 @@ pub(in crate::cli) async fn run_daemon_logs(paths: &MiyuPaths, args: DaemonLogsA
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub(in crate::cli) struct ParsedDaemonLogLine<'a> {
-    pub(in crate::cli) timestamp: &'a str,
-    pub(in crate::cli) level: &'a str,
-    pub(in crate::cli) module: &'a str,
-    pub(in crate::cli) message: &'a str,
+pub(crate) struct ParsedDaemonLogLine<'a> {
+    pub(crate) timestamp: &'a str,
+    pub(crate) level: &'a str,
+    pub(crate) module: &'a str,
+    pub(crate) message: &'a str,
 }
 
-pub(in crate::cli) fn parse_daemon_log_line(line: &str) -> Option<ParsedDaemonLogLine<'_>> {
+pub(crate) fn parse_daemon_log_line(line: &str) -> Option<ParsedDaemonLogLine<'_>> {
     let timestamp_end = line.find(char::is_whitespace)?;
     let timestamp = &line[..timestamp_end];
     DateTime::parse_from_rfc3339(timestamp).ok()?;
@@ -360,7 +360,7 @@ pub(in crate::cli) fn recent_daemon_log_snapshot(
     })
 }
 
-pub(in crate::cli) fn recent_daemon_log_lines(
+pub(crate) fn recent_daemon_log_lines(
     paths: &MiyuPaths,
     limit: usize,
 ) -> Result<Vec<String>> {

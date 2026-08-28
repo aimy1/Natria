@@ -266,6 +266,10 @@
             <span class="icon-slot" data-icon="chart-column" aria-hidden="true"><span class="icon-fallback">▮</span></span>
             <span>数据统计</span>
           </button>
+          <button class="con-rail-item" type="button" data-console-panel="logs">
+            <span class="icon-slot" data-icon="terminal" aria-hidden="true"><span class="icon-fallback">⌨</span></span>
+            <span>运行日志</span>
+          </button>
           <button class="con-rail-item" type="button" data-console-panel="settings">
             <span class="icon-slot" data-icon="sliders-horizontal" aria-hidden="true"><span class="icon-fallback">⚙</span></span>
             <span>设置</span>
@@ -338,6 +342,62 @@
           </div>
         </div>
         </div>
+        <div class="con-panel" data-console-panel="logs" hidden>
+        <div class="con-inner logs-inner">
+          <div class="con-head logs-head">
+            <div class="logs-head-left">
+              <h2>运行日志</h2>
+              <span class="logs-live-badge" id="logsLiveBadge"><i class="logs-pulse"></i>实时监听中</span>
+              <span class="logs-count-badge" id="logsCountBadge">0 条记录</span>
+            </div>
+            <div class="logs-controls">
+              <div class="logs-filter-group">
+                <select id="logsLevelFilter" class="logs-select" aria-label="日志级别筛选">
+                  <option value="ALL">全部级别 (ALL)</option>
+                  <option value="ERROR">🔴 错误 (ERROR)</option>
+                  <option value="WARN">🟡 警告 (WARN)</option>
+                  <option value="INFO">🟢 信息 (INFO)</option>
+                  <option value="DEBUG">🔵 调试 (DEBUG)</option>
+                  <option value="TRACE">⚪ 跟踪 (TRACE)</option>
+                </select>
+                <div class="logs-search-wrap">
+                  <input type="text" id="logsSearchInput" class="logs-search-input" placeholder="搜索关键词 (模块、错误、会话 ID...)" aria-label="搜索日志">
+                  <button type="button" id="logsSearchClear" class="logs-search-clear" title="清空搜索" hidden>×</button>
+                </div>
+              </div>
+              <div class="logs-actions-group">
+                <label class="logs-autoscroll-label" title="新日志到达时自动滚动到底部">
+                  <input type="checkbox" id="logsAutoScrollCheck" checked>
+                  <span>自动滚屏</span>
+                </label>
+                <button class="secondary-button compact-button" id="logsRefreshButton" type="button" title="立即拉取最新日志">
+                  <span class="icon-slot" data-icon="refresh-cw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
+                  刷新
+                </button>
+                <button class="secondary-button compact-button" id="logsCopyButton" type="button" title="复制所有已显示的日志内容">
+                  <span class="icon-slot" data-icon="copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
+                  复制
+                </button>
+                <button class="secondary-button compact-button" id="logsExportButton" type="button" title="导出日志为 .log 文本文件">
+                  <span class="icon-slot" data-icon="download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+                  导出
+                </button>
+                <button class="secondary-button compact-button" id="logsClearButton" type="button" title="清空当前日志界面显示">
+                  <span class="icon-slot" data-icon="trash-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></span>
+                  清屏
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="logs-terminal-card">
+            <div class="logs-terminal-viewport" id="logsViewport" role="region" aria-label="日志输出终端" tabindex="0">
+              <div class="logs-stream-container" id="logsContainer">
+                <div class="logs-empty-state">正在载入系统日志...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
         <div class="con-panel" data-console-panel="settings" hidden>
         <div class="settings-layout">
           <nav class="settings-nav" aria-label="设置分类">
@@ -348,6 +408,7 @@
             <button type="button" data-settings-view="providers">供应商</button>
             <button type="button" data-settings-view="models">模型池</button>
             <button type="button" data-settings-view="plugins">插件</button>
+            <button type="button" data-settings-view="logs">运行日志</button>
             <button type="button" data-settings-view="advanced">高级</button>
           </nav>
           <div class="settings-content">
@@ -730,8 +791,23 @@
                </form>
                <div class="qq-history-status" id="qqHistoryStatus" role="status"></div>
                <div class="qq-history-output" id="qqHistoryOutput" hidden></div>
-             </section>
-             </section>
+              </section>
+              </section>
+            <section class="settings-section settings-panel" data-settings-panel="logs" hidden>
+            <div class="settings-section-heading">
+              <div>
+                <h2>运行日志 (Runtime Logs)</h2>
+                <p class="settings-description" style="margin: 2px 0 0;">查看 Natria 核心后台实时运行日志、API 调用记录与调试信息</p>
+              </div>
+              <button class="primary-button compact-button" id="jumpToLogsPanelButton" type="button">
+                <span class="icon-slot" data-icon="terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
+                切换至全屏日志终端
+              </button>
+            </div>
+            <div class="config-group" style="padding: 16px;">
+              <p style="color: var(--text-soft); font-size: 13px; line-height: 1.6; margin: 0 0 12px;">系统已开启全天候运行时日志记录。你可点击上方按钮或在控制台左侧侧栏直接点击「运行日志」进入沉浸式日志终端，支持实时监听、多级别过滤（ERROR/WARN/INFO/DEBUG）、关键词搜索与日志导出。</p>
+            </div>
+            </section>
             <section class="settings-section settings-panel" data-settings-panel="advanced" hidden>
             <h2>完整配置</h2>
             <p class="settings-description">这里包含结构化表单未单独展示的所有配置项。应用到草稿后仍需保存。</p>
