@@ -1004,14 +1004,15 @@
     const selected = ["interface", "voice", "prompts", "general", "providers", "models", "plugins", "advanced"].includes(view) ? view : "interface";
     state.settingsView = selected;
     safeStorageSet(SETTINGS_VIEW_KEY, selected);
-    elements.settingsNav.querySelectorAll("[data-settings-view]").forEach((button) => {
+    elements.settingsNav?.querySelectorAll("[data-settings-view]").forEach((button) => {
       const active = button.dataset.settingsView === selected;
       button.classList.toggle("active", active);
       button.setAttribute("aria-current", active ? "page" : "false");
     });
-    elements.settingsPanels.forEach((panel) => {
+    elements.settingsPanels?.forEach((panel) => {
       panel.hidden = panel.dataset.settingsPanel !== selected;
     });
+    updateLocationHash();
   }
 
   function configValue(path, fallback = undefined) {
@@ -4035,13 +4036,7 @@
     // 记住浏览位置，刷新后回到这里而不是跳去终端车道（见 preferredBootSession）。
     if (!isTerminalSession(sessionId)) {
       safeStorageSet(VIEW_SESSION_KEY, sessionId);
-      try {
-        const hash = window.location.hash;
-        const targetHash = `#session=${encodeURIComponent(sessionId)}`;
-        if (hash !== targetHash && !hash.includes("settings") && !hash.includes("console")) {
-          history.replaceState(null, "", targetHash);
-        }
-      } catch (_) {}
+      updateLocationHash();
     }
     if (state.sessionModelOverrideFor !== sessionId) {
       // 会话切换：先按"跟随全局"显示，再异步取回该会话的覆盖池。
@@ -7345,15 +7340,7 @@
     // 直播状态由三点弹跳/思考签表达,header 不再写「正在回复」;完成后写「刚刚」等
     status.textContent = "";
     identity.append(name, status);
-    // Each running reply owns a compact stop control in its bubble corner.
-    const stop = document.createElement("button");
-    stop.type = "button";
-    stop.className = "live-stop-button";
-    stop.dataset.runId = live.runId;
-    stop.appendChild(makeIconSlot("stop-square"));
-    stop.addEventListener("click", () => cancelLiveRun(live));
-    live.stopButton = stop;
-    header.append(avatar, identity, stop);
+    header.append(avatar, identity);
     const assistantContent = document.createElement("div");
     assistantContent.className = "assistant-content is-slim";
     const blocks = document.createElement("div");
@@ -7387,13 +7374,11 @@
     live.article = article;
     live.blocks = blocks;
     live.headerStatus = status;
-    live.stopButton = stop;
     live.meta = metaText;
     live.endpoint = endpoint;
     live.copyButton = copy;
     live.voiceButton = voiceBtn;
     live.streamRail = streamRail;
-    updateLiveStopButton(live);
     contentAdded(live);
     return article;
   }
@@ -10410,23 +10395,46 @@
     return rate.toFixed(2);
   }
 
+  const CONSOLE_OPEN_KEY = "natria.web.consoleOpen";
+  const CONSOLE_PANEL_KEY = "natria.web.consolePanel";
+
+  function updateLocationHash() {
+    try {
+      let targetHash = "";
+      if (consoleIsOpen()) {
+        if (state.consolePanel === "settings") {
+          targetHash = `#settings=${encodeURIComponent(state.settingsView || "interface")}`;
+        } else {
+          targetHash = `#console=${encodeURIComponent(state.consolePanel || "usage")}`;
+        }
+      } else if (state.viewSessionId && !isTerminalSession(state.viewSessionId)) {
+        targetHash = `#session=${encodeURIComponent(state.viewSessionId)}`;
+      }
+      if (targetHash && window.location.hash !== targetHash) {
+        history.replaceState(null, "", targetHash);
+      }
+    } catch (_) {}
+  }
+
   function consoleOpen(panel = "usage") {
     elements.consoleView.hidden = false;
     elements.consoleView.setAttribute("aria-hidden", "false");
+    safeStorageSet(CONSOLE_OPEN_KEY, "true");
     setConsolePanel(panel);
+    updateLocationHash();
   }
+
   function consoleClose() {
     elements.consoleView.hidden = true;
     elements.consoleView.setAttribute("aria-hidden", "true");
+    safeStorageSet(CONSOLE_OPEN_KEY, "false");
     usageTipHide();
+    updateLocationHash();
   }
+
   function consoleIsOpen() {
     return !elements.consoleView.hidden;
   }
-
-  /// 切控制台标签页。数据统计的图表要等真正显示了才量得到尺寸,配置也是进了
-  /// 设置页才拉——都放在这里,免得开个控制台把两边的请求都打出去。
-  const CONSOLE_PANEL_KEY = "natria.web.consolePanel";
 
   function setConsolePanel(panel) {
     state.consolePanel = panel;
@@ -10445,6 +10453,7 @@
       usageTipHide();
     }
     if (panel === "settings" && !state.configLoaded && !state.configLoading) loadConfigDraft();
+    updateLocationHash();
   }
 
   async function loadUsageStats() {
@@ -13070,10 +13079,29 @@
 
   function initialize() {
     renderIconSlots();
-    const savedConsolePanel = safeStorageGet("natria.web.consolePanel") || "settings";
-    if (window.location.hash.includes("console") || window.location.hash.includes("settings")) {
-      consoleOpen(savedConsolePanel);
+    const hash = window.location.hash || "";
+    const savedSettingsView = safeStorageGet(SETTINGS_VIEW_KEY) || "interface";
+    const savedConsolePanel = safeStorageGet(CONSOLE_PANEL_KEY) || "settings";
+    const savedConsoleOpen = safeStorageGet(CONSOLE_OPEN_KEY) === "true";
+
+    const isSettingsHash = hash.includes("settings");
+    const isConsoleHash = hash.includes("console");
+
+    let initialSettingsTab = savedSettingsView;
+    if (isSettingsHash) {
+      const match = hash.match(/#settings(?:=([^&]+))?/);
+      if (match && match[1]) initialSettingsTab = decodeURIComponent(match[1]);
     }
+    setSettingsView(initialSettingsTab);
+
+    if (isSettingsHash || (savedConsoleOpen && savedConsolePanel === "settings")) {
+      consoleOpen("settings");
+    } else if (isConsoleHash || savedConsoleOpen) {
+      const match = hash.match(/#console(?:=([^&]+))?/);
+      const panel = (match && match[1]) ? decodeURIComponent(match[1]) : savedConsolePanel;
+      consoleOpen(panel);
+    }
+
     setTheme(safeStorageGet("natria.web.theme") || "graphite", false);
     const storedScheme = safeStorageGet("natria.web.colorScheme");
     if (storedScheme) setColorScheme(storedScheme, false);
@@ -13087,14 +13115,24 @@
     }
     setSidebarCollapsed(safeStorageGet("natria.web.sidebarCollapsed") === "true");
     syncArtifactLayout();
-    const savedSettingsView = safeStorageGet("natria.web.settingsView") || "interface";
-    setSettingsView(savedSettingsView);
     bindEvents();
     window.addEventListener("hashchange", () => {
       try {
-        const hashMatch = window.location.hash.match(/(?:#|&)?session=([^&]+)/);
-        if (hashMatch) {
-          const targetSessionId = decodeURIComponent(hashMatch[1]);
+        const h = window.location.hash || "";
+        const settingsMatch = h.match(/#settings(?:=([^&]+))?/);
+        const consoleMatch = h.match(/#console(?:=([^&]+))?/);
+        const sessionMatch = h.match(/(?:#|&)?session=([^&]+)/);
+
+        if (settingsMatch) {
+          const tab = settingsMatch[1] ? decodeURIComponent(settingsMatch[1]) : (state.settingsView || "interface");
+          setSettingsView(tab);
+          if (!consoleIsOpen() || state.consolePanel !== "settings") consoleOpen("settings");
+        } else if (consoleMatch) {
+          const panel = consoleMatch[1] ? decodeURIComponent(consoleMatch[1]) : "usage";
+          if (!consoleIsOpen() || state.consolePanel !== panel) consoleOpen(panel);
+        } else if (sessionMatch) {
+          if (consoleIsOpen()) consoleClose();
+          const targetSessionId = decodeURIComponent(sessionMatch[1]);
           if (targetSessionId && targetSessionId !== state.viewSessionId && findSession(targetSessionId)) {
             loadSessionView(targetSessionId, { quiet: true });
           }
