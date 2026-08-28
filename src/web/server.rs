@@ -365,6 +365,7 @@ pub(in crate::web) fn router(state: DaemonState) -> Router {
             delete(remove_queue_prompt),
         )
         .route("/api/runs/{run_id}/cancel", post(cancel_run))
+        .route("/api/sessions/{session_id}/cancel", post(cancel_session_runs))
         .route("/api/questions/{question_id}", delete(close_question))
         .route("/api/questions/{question_id}/answer", post(answer_question))
         .route("/api/models/active", put(set_models))

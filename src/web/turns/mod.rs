@@ -563,6 +563,42 @@ pub(in crate::web) async fn cancel_run(
         .into_response())
 }
 
+pub(in crate::web) async fn cancel_session_runs(
+    State(state): State<DaemonState>,
+    headers: HeaderMap,
+    Path(session_id): Path<String>,
+) -> std::result::Result<Response, ApiError> {
+    require_mutation(&headers, &state)?;
+    require_local_web_session(&state, &session_id)?;
+
+    let run_ids: Vec<String> = {
+        let manager = state.manager.lock().unwrap();
+        manager
+            .active_runs
+            .iter()
+            .filter(|(_, run)| *run.session_id == session_id)
+            .map(|(id, _)| id.clone())
+            .collect()
+    };
+
+    let mut cancelled_count = 0;
+    for run_id in run_ids {
+        if cancel_run_and_disarm_goal(&state, &run_id) {
+            cancelled_count += 1;
+        }
+    }
+
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(json!({
+            "session_id": session_id,
+            "cancelled_count": cancelled_count,
+            "cancellation_requested": true,
+        })),
+    )
+        .into_response())
+}
+
 pub(in crate::web) async fn answer_question(
     State(state): State<DaemonState>,
     headers: HeaderMap,

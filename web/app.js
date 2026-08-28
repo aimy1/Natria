@@ -122,6 +122,9 @@
     "zoom-out": [["circle", { cx: "11", cy: "11", r: "8" }], ["path", { d: "m21 21-4.3-4.3" }], ["path", { d: "M8 11h6" }]],
     "volume-2": [["polygon", { points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5" }], ["path", { d: "M15.54 8.46a5 5 0 0 1 0 7.07" }], ["path", { d: "M19.07 4.93a10 10 0 0 1 0 14.14" }]],
     "volume-x": [["polygon", { points: "11 5 6 9 2 9 2 15 6 15 11 19 11 5" }], ["line", { x1: "22", x2: "16", y1: "9", y2: "15" }], ["line", { x1: "16", x2: "22", y1: "9", y2: "15" }]],
+    square: [["rect", { width: "14", height: "14", x: "5", y: "5", rx: "2" }]],
+    undo: [["path", { d: "M3 7v6h6" }], ["path", { d: "M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" }]],
+    "undo-2": [["path", { d: "M9 14 4 9l5-5" }], ["path", { d: "M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" }]],
     x: [["path", { d: "M18 6 6 18" }], ["path", { d: "m6 6 12 12" }]]
   };
 
@@ -4604,12 +4607,20 @@
     });
     updateModelMenuState();
 
-    elements.sendButton.classList.remove("is-cancel");
-    elements.sendButton.querySelector(".icon-slot").replaceChildren(createIcon("arrow-up"));
-    elements.sendButton.title = running ? "加入队列" : "发送消息";
-    elements.sendButton.setAttribute("aria-label", elements.sendButton.title);
-    elements.sendButton.disabled = state.blocked || state.adminBusy || state.submitting || hasPendingQuestion()
-      || (inputCount === 0 && !attachmentReady) || inputCount > MAX_CONTENT_CHARS || attachmentUploading || attachmentError;
+    if (running && inputCount === 0 && !attachmentReady) {
+      elements.sendButton.classList.add("is-cancel");
+      elements.sendButton.querySelector(".icon-slot").replaceChildren(createIcon("square"));
+      elements.sendButton.title = "停止回复";
+      elements.sendButton.setAttribute("aria-label", "停止回复");
+      elements.sendButton.disabled = state.blocked || state.adminBusy;
+    } else {
+      elements.sendButton.classList.remove("is-cancel");
+      elements.sendButton.querySelector(".icon-slot").replaceChildren(createIcon("arrow-up"));
+      elements.sendButton.title = running ? "加入队列" : "发送消息";
+      elements.sendButton.setAttribute("aria-label", elements.sendButton.title);
+      elements.sendButton.disabled = state.blocked || state.adminBusy || state.submitting || hasPendingQuestion()
+        || (inputCount === 0 && !attachmentReady) || inputCount > MAX_CONTENT_CHARS || attachmentUploading || attachmentError;
+    }
     document.querySelectorAll(".edit-action, .redo-action").forEach((button) => {
       button.disabled = !revisionEligible();
     });
@@ -5444,6 +5455,13 @@
       });
       edit.className = "edit-action";
       actions.appendChild(edit);
+    }
+    if (attributes.turnId) {
+      const rollback = makeMessageAction("undo-2", "退回此轮对话并重新编辑", () => {
+        rollbackTurn(attributes.turnId, textContent);
+      });
+      rollback.className = "rollback-action";
+      actions.appendChild(rollback);
     }
     if (textContent.trim()) actions.appendChild(makeCopyButton(textContent, "复制消息"));
     if (attachments) article.appendChild(attachments);
@@ -6681,6 +6699,44 @@
       context.textContent = "已移出当前上下文";
       status.appendChild(context);
     }
+
+    const actionGroup = document.createElement("div");
+    actionGroup.className = "turn-status-actions";
+
+    if (!isInterrupted) {
+      const stopBtn = document.createElement("button");
+      stopBtn.type = "button";
+      stopBtn.className = "turn-action-btn turn-stop-btn";
+      stopBtn.title = "停止当前生成";
+      stopBtn.setAttribute("aria-label", "停止当前生成");
+      stopBtn.appendChild(makeIconSlot("square"));
+      const stopLabel = document.createElement("span");
+      stopLabel.textContent = "停止生成";
+      stopBtn.appendChild(stopLabel);
+      stopBtn.onclick = (e) => {
+        e.stopPropagation();
+        stopCurrentGeneration();
+      };
+      actionGroup.appendChild(stopBtn);
+    }
+
+    const rollbackBtn = document.createElement("button");
+    rollbackBtn.type = "button";
+    rollbackBtn.className = "turn-action-btn turn-rollback-btn";
+    rollbackBtn.title = "退回本轮对话并重新编辑";
+    rollbackBtn.setAttribute("aria-label", "退回本轮对话");
+    rollbackBtn.appendChild(makeIconSlot("undo-2"));
+    const rollbackLabel = document.createElement("span");
+    rollbackLabel.textContent = "退回对话";
+    rollbackBtn.appendChild(rollbackLabel);
+    rollbackBtn.onclick = (e) => {
+      e.stopPropagation();
+      const userText = turn?.user_content || "";
+      rollbackTurn(turn?.id, userText);
+    };
+    actionGroup.appendChild(rollbackBtn);
+
+    status.appendChild(actionGroup);
     return status;
   }
 
@@ -7181,6 +7237,63 @@
       if ((error.status === 404 || error.status === 409) && state.viewSessionId) {
         await loadSessionView(state.viewSessionId, { quiet: true });
       }
+    }
+  }
+
+  async function stopCurrentGeneration() {
+    stopVoice();
+    let cancelled = false;
+    // 1. 尝试停止内存中正在进行的 liveRuns
+    for (const live of state.liveRuns.values()) {
+      if (live && !live.ended && !live.cancellationRequested) {
+        cancelled = true;
+        cancelLiveRun(live);
+      }
+    }
+    // 2. 调用后端会话级中断接口，确保任何后台运行或未挂载的 run 被直接终止
+    if (state.viewSessionId) {
+      try {
+        await apiRequest(`/api/sessions/${encodeURIComponent(state.viewSessionId)}/cancel`, { method: "POST" });
+        cancelled = true;
+      } catch (err) {
+        console.warn("Session cancel error:", err);
+      }
+    }
+    if (cancelled) {
+      showToast("已停止当前生成");
+      setTimeout(() => {
+        if (state.viewSessionId) loadSessionView(state.viewSessionId, { quiet: true });
+      }, 350);
+    }
+  }
+
+  async function rollbackTurn(turnId = null, userText = "") {
+    stopVoice();
+    const sessionId = state.viewSessionId;
+    if (!sessionId) return;
+
+    // 先停止当前正在运行的回复
+    await stopCurrentGeneration();
+
+    try {
+      const body = { session_id: sessionId };
+      if (turnId) body.turn_ids = [String(turnId)];
+      await apiRequest("/api/conversation/pop", {
+        method: "POST",
+        body: JSON.stringify(body)
+      });
+      showToast("已退回本轮对话");
+
+      // 将原用户输入自动填回输入框，方便用户修改与重发
+      if (userText && typeof userText === "string") {
+        elements.composerInput.value = userText;
+        resizeComposer();
+        elements.composerInput.focus();
+      }
+
+      await loadSessionView(sessionId, { quiet: true });
+    } catch (err) {
+      showToast(err.message || "退回失败", "error");
     }
   }
 
@@ -9709,6 +9822,10 @@
   }
 
   async function submitTurn() {
+    if (elements.sendButton.classList.contains("is-cancel") || (conversationRunning() && !elements.composerInput.value.trim() && !state.composerAttachments.some((i) => i.status === "ready"))) {
+      await stopCurrentGeneration();
+      return;
+    }
     if (state.adminBusy || state.submitting || state.blocked) return;
     if (hasPendingQuestion()) return;
     const sessionId = state.viewSessionId;
