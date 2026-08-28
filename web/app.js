@@ -371,6 +371,7 @@
     logsCopyButton: document.getElementById("logsCopyButton"),
     logsExportButton: document.getElementById("logsExportButton"),
     logsClearButton: document.getElementById("logsClearButton"),
+    logsDeleteButton: document.getElementById("logsDeleteButton"),
     logsViewport: document.getElementById("logsViewport"),
     logsContainer: document.getElementById("logsContainer"),
     logsCountBadge: document.getElementById("logsCountBadge"),
@@ -10722,12 +10723,29 @@
   function clearLogsView() {
     state.runtimeLogs = [];
     if (elements.logsContainer) {
-      elements.logsContainer.innerHTML = '<div class="logs-empty-state">日志视图已清空，点击「刷新」可重新载入</div>';
+      elements.logsContainer.innerHTML = '<div class="logs-empty-state">日志视图已清屏，点击「刷新」可重新拉取</div>';
     }
     if (elements.logsCountBadge) {
       elements.logsCountBadge.textContent = "0 条记录";
     }
     showToast("日志界面已清屏");
+  }
+
+  async function deleteRuntimeLogs() {
+    if (!confirm("确定要彻底删除服务器上的全部运行日志吗？此操作不可恢复。")) return;
+    try {
+      const res = await apiRequest("/api/logs", { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      showToast("已成功删除所有运行日志");
+      state.runtimeLogs = [];
+      renderRuntimeLogs([]);
+      if (elements.statTotalLogs) elements.statTotalLogs.innerHTML = `<span class="stat-dot dot-total"></span>总计 0`;
+      if (elements.statErrorLogs) elements.statErrorLogs.innerHTML = `<span class="stat-dot dot-error"></span>错误 0`;
+      if (elements.statWarnLogs) elements.statWarnLogs.innerHTML = `<span class="stat-dot dot-warn"></span>警告 0`;
+      if (elements.statInfoLogs) elements.statInfoLogs.innerHTML = `<span class="stat-dot dot-info"></span>正常 0`;
+    } catch (err) {
+      showToast(`删除日志失败: ${err.message || String(err)}`, "error");
+    }
   }
 
   async function loadUsageStats() {
@@ -11247,6 +11265,7 @@
     elements.logsCopyButton?.addEventListener("click", () => copyAllLogs());
     elements.logsExportButton?.addEventListener("click", () => exportLogsToFile());
     elements.logsClearButton?.addEventListener("click", () => clearLogsView());
+    elements.logsDeleteButton?.addEventListener("click", () => deleteRuntimeLogs());
     elements.jumpToLogsPanelButton?.addEventListener("click", () => setConsolePanel("logs"));
 
     document.addEventListener("keydown", (event) => {

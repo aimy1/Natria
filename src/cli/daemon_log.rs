@@ -237,7 +237,7 @@ pub(in crate::cli) fn write_daemon_log_line_bytes(
     )
 }
 
-pub(in crate::cli) fn daemon_log_files(paths: &MiyuPaths) -> Result<Vec<PathBuf>> {
+pub(crate) fn daemon_log_files(paths: &MiyuPaths) -> Result<Vec<PathBuf>> {
     let mut files = match std::fs::read_dir(paths.logs_dir()) {
         Ok(entries) => entries
             .filter_map(|entry| entry.ok())

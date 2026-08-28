@@ -382,7 +382,7 @@ pub(in crate::web) fn router(state: DaemonState) -> Router {
         .route("/api/jobs", get(list_jobs_http))
         .route("/api/usage/stats", get(usage_stats_web))
         .route("/api/usage/details", get(usage_details_web))
-        .route("/api/logs", get(runtime_logs_web))
+        .route("/api/logs", get(runtime_logs_web).delete(clear_runtime_logs_web))
         .route("/api/jobs/{job_id}", delete(stop_job_http))
         // OneBot v11 reverse-WS endpoint: NapCat connects here as a WS
         // client. Gated by platforms.qq config, not web auth.
@@ -850,6 +850,38 @@ pub(in crate::web) async fn runtime_logs_web(
             "info": info_cnt,
             "debug": debug_cnt,
         }
+    }))
+    .into_response())
+}
+
+pub(in crate::web) async fn clear_runtime_logs_web(
+    State(state): State<DaemonState>,
+    headers: HeaderMap,
+) -> std::result::Result<Response, ApiError> {
+    require_auth(&headers, &state)?;
+    let paths = state.paths.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let files = crate::cli::daemon_log::daemon_log_files(&paths).unwrap_or_default();
+        for file in files {
+            let _ = std::fs::remove_file(&file).or_else(|_| std::fs::write(&file, ""));
+        }
+        let logs_dir = paths.logs_dir();
+        if let Ok(entries) = std::fs::read_dir(&logs_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_file() {
+                    let _ = std::fs::remove_file(&p).or_else(|_| std::fs::write(&p, ""));
+                }
+            }
+        }
+    })
+    .await
+    .map_err(ApiError::internal)?;
+
+    Ok(Json(json!({
+        "ok": true,
+        "message": "Logs deleted successfully"
     }))
     .into_response())
 }
