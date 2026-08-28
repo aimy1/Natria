@@ -11301,12 +11301,12 @@
 
     let response = null;
     let lastErr = null;
-    const maxAttempts = (payload.engine === "gpt_sovits" || payload.engine === "cosyvoice") ? 2 : 1;
+    const maxAttempts = (payload.engine === "gpt_sovits" || payload.engine === "cosyvoice") ? 3 : 1;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       if (attempt > 1) {
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 250 * attempt));
       }
       try {
         response = await fetch("/api/voice/synthesize", {
@@ -11335,10 +11335,12 @@
       }
 
       console.warn(`[Voice] ${payload.engine} 合成异常: ${errDesc}`);
-      if (payload.engine === "gpt_sovits") {
-        showToast(`GPT-SoVITS 语音合成异常: ${errDesc}`, "warning");
-      } else {
-        showToast(`语音合成失败: ${errDesc}`, "error");
+      if (!signal?.aborted) {
+        if (payload.engine === "gpt_sovits") {
+          showToast(`GPT-SoVITS 语音合成异常: ${errDesc}`, "warning");
+        } else {
+          showToast(`语音合成失败: ${errDesc}`, "error");
+        }
       }
       throw new Error(errDesc);
     }

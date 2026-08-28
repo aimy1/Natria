@@ -11,6 +11,8 @@ use serde_json::json;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+static INFER_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
 #[derive(Clone)]
 pub struct GptSovitsEngine {
     client: Client,
@@ -20,7 +22,7 @@ impl GptSovitsEngine {
     pub fn new() -> Self {
         Self {
             client: Client::builder()
-                .timeout(Duration::from_secs(60))
+                .timeout(Duration::from_secs(90))
                 .connect_timeout(Duration::from_secs(10))
                 .tcp_keepalive(Some(Duration::from_secs(30)))
                 .pool_idle_timeout(Some(Duration::from_secs(120)))
@@ -96,6 +98,14 @@ impl GptSovitsEngine {
     }
 
     pub async fn synthesize(&self, text: &str, config: &VoiceConfig) -> Result<Vec<u8>> {
+        let clean_text = text.trim();
+        if clean_text.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // 排队锁：防止前端流式输出并发轰炸导致 GPT-SoVITS 崩溃或断链
+        let _guard = INFER_MUTEX.lock().await;
+
         let endpoint_raw = config
             .endpoint
             .as_deref()
@@ -128,7 +138,7 @@ impl GptSovitsEngine {
         .clamp(0.6, 1.8);
 
         let body = json!({
-            "text": text,
+            "text": clean_text,
             "text_lang": text_lang,
             "ref_audio_path": ref_audio,
             "prompt_text": prompt_text,
@@ -149,7 +159,7 @@ impl GptSovitsEngine {
 
         for attempt in 1..=max_attempts {
             if attempt > 1 {
-                tokio::time::sleep(Duration::from_millis(150 * attempt as u64)).await;
+                tokio::time::sleep(Duration::from_millis(200 * attempt as u64)).await;
             }
 
             let mut req = self.client.post(&url).json(&body);
