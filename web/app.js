@@ -11299,35 +11299,47 @@
       volume: options.volume || state.voiceConfig.volume || "+0%"
     };
 
-    const response = await fetch("/api/voice/synthesize", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "audio/*"
-      },
-      body: JSON.stringify(payload),
-      signal
-    });
+    let response = null;
+    let lastErr = null;
+    const maxAttempts = (payload.engine === "gpt_sovits" || payload.engine === "cosyvoice") ? 2 : 1;
 
-    if (!response.ok) {
-      let errDesc = `HTTP ${response.status}`;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+      if (attempt > 1) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
       try {
-        const errJson = await response.json();
-        if (errJson?.error?.message) errDesc = errJson.error.message;
-      } catch (_) {}
+        response = await fetch("/api/voice/synthesize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "audio/*"
+          },
+          body: JSON.stringify(payload),
+          signal
+        });
+        if (response.ok) break;
+      } catch (err) {
+        if (err.name === "AbortError") throw err;
+        lastErr = err;
+      }
+    }
 
-      // 若为本地声音克隆引擎且请求失败（如未启动本地服务），自动友好降级为 Edge-TTS 播放
-      if (payload.engine && payload.engine !== "edge_tts") {
-        console.warn(`[Voice] ${payload.engine} 请求异常 (${errDesc})，自动降级为 Edge-TTS 朗读`);
-        showToast("本地克隆服务未连通，已自动切换为 Edge-TTS 朗读", "warning");
-        const fallbackOptions = {
-          ...options,
-          engine: "edge_tts",
-          voice: state.voiceList.find((v) => !v.isLocal)?.id || "zh-CN-XiaoxiaoNeural"
-        };
-        return await fetchSpeechAudioBuffer(text, fallbackOptions, signal);
+    if (!response || !response.ok) {
+      let errDesc = response ? `HTTP ${response.status}` : (lastErr?.message || "连接失败");
+      if (response) {
+        try {
+          const errJson = await response.json();
+          if (errJson?.error?.message) errDesc = errJson.error.message;
+        } catch (_) {}
       }
 
+      console.warn(`[Voice] ${payload.engine} 合成异常: ${errDesc}`);
+      if (payload.engine === "gpt_sovits") {
+        showToast(`GPT-SoVITS 语音合成异常: ${errDesc}`, "warning");
+      } else {
+        showToast(`语音合成失败: ${errDesc}`, "error");
+      }
       throw new Error(errDesc);
     }
 
