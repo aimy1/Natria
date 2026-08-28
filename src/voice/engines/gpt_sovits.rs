@@ -137,16 +137,21 @@ impl GptSovitsEngine {
         .unwrap_or(1.0)
         .clamp(0.6, 1.8);
 
+        let mut text_to_send = clean_text.to_string();
+        if !text_to_send.ends_with(|c| "。！？!?.,;；…~".contains(c)) {
+            text_to_send.push('。');
+        }
+
         let body = json!({
-            "text": clean_text,
+            "text": text_to_send,
             "text_lang": text_lang,
             "ref_audio_path": ref_audio,
             "prompt_text": prompt_text,
             "prompt_lang": prompt_lang,
             "text_split_method": "cut0",
             "top_k": 15,
-            "top_p": 0.95,
-            "temperature": 0.65,
+            "top_p": 1.0,
+            "temperature": 1.0,
             "speed_factor": speed_factor,
             "repetition_penalty": 1.35,
             "sample_steps": 32,
