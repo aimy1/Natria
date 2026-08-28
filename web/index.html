@@ -620,8 +620,8 @@
               </div>
             </div>
 
-            <!-- 模块 3：本地音频与录音样本管理 (原生 config-group 风格) -->
-            <div style="margin-top: 16px;">
+            <!-- 模块 3：本地音频与录音样本管理 (仅在克隆引擎下展示) -->
+            <div id="voiceSamplesSection" style="margin-top: 16px;">
               <h2>录音样本管理</h2>
               <div class="config-group">
                 <header style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
@@ -686,16 +686,20 @@
             <div class="config-form" id="generalConfigForm"></div>
             </section>
             <section class="settings-section settings-panel" data-settings-panel="providers" hidden>
-            <div class="settings-section-heading">
-              <div>
-                <h2>供应商配置 (Providers)</h2>
-                <div id="providerActiveBanner" class="provider-active-banner">当前主用：<span id="activeProviderNameTag" class="active-provider-tag">--</span></div>
+            <div class="settings-section-heading provider-header-heading">
+              <div class="heading-text-group">
+                <div class="heading-title-row">
+                  <h2>供应商配置 (Providers)</h2>
+                  <div id="providerActiveBanner" class="provider-active-banner">当前主用：<span id="activeProviderNameTag" class="active-provider-tag">--</span></div>
+                </div>
+                <p class="settings-description" style="margin: 2px 0 0;">管理大语言模型 API 供应商与认证密钥</p>
               </div>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="secondary-button compact-button" id="toggleProviderTemplateButton" type="button" title="从预置模板快捷添加">
+              <div class="heading-actions-group">
+                <button class="secondary-button compact-button" id="toggleProviderTemplateButton" type="button" title="从预置常用模板快捷添加">
+                  <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span>
                   常用模板
                 </button>
-                <button class="primary-button compact-button" id="addProviderButton" type="button">
+                <button class="primary-button compact-button" id="addProviderButton" type="button" title="新建空白自定义供应商">
                   <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
                   新建空白
                 </button>

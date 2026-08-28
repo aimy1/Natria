@@ -361,7 +361,8 @@
     refreshVoiceFilesButton: document.getElementById("refreshVoiceFilesButton"),
     voiceFileDropZone: document.getElementById("voiceFileDropZone"),
     voiceFileList: document.getElementById("voiceFileList"),
-    voiceFileCount: document.getElementById("voiceFileCount")
+    voiceFileCount: document.getElementById("voiceFileCount"),
+    voiceSamplesSection: document.getElementById("voiceSamplesSection")
   };
 
   const state = {
@@ -12196,6 +12197,9 @@
     }
     if (elements.voicePanelCustom) {
       elements.voicePanelCustom.hidden = (activeTabKey !== "custom");
+    }
+    if (elements.voiceSamplesSection) {
+      elements.voiceSamplesSection.hidden = (activeTabKey === "edge_tts");
     }
 
     // 3. 同步克隆与自定义子选择器
