@@ -158,6 +158,14 @@ impl GptSovitsEngine {
             "media_type": "wav"
         });
 
+        let start_time = std::time::Instant::now();
+        tracing::info!(
+            provider = "gpt_sovits",
+            endpoint = %base_url,
+            text_len = clean_text.len(),
+            "GPT-SoVITS voice synthesis request started"
+        );
+
         // 自动重试机制：针对临时空闲断开、瞬时波动重试最多 3 次
         let max_attempts = 3;
         let mut last_error: Option<anyhow::Error> = None;
@@ -180,10 +188,29 @@ impl GptSovitsEngine {
                         if bytes.is_empty() {
                             bail!("GPT-SoVITS API returned empty audio stream");
                         }
+                        let elapsed_ms = start_time.elapsed().as_millis();
+                        tracing::info!(
+                            provider = "gpt_sovits",
+                            status = 200,
+                            elapsed_ms = %elapsed_ms,
+                            attempt = attempt,
+                            audio_bytes = bytes.len(),
+                            "GPT-SoVITS voice synthesis succeeded in {}ms",
+                            elapsed_ms
+                        );
                         return Ok(bytes.to_vec());
                     }
 
                     let err_body = resp.text().await.unwrap_or_default();
+                    let elapsed_ms = start_time.elapsed().as_millis();
+                    tracing::warn!(
+                        provider = "gpt_sovits",
+                        status = %status.as_u16(),
+                        elapsed_ms = %elapsed_ms,
+                        attempt = attempt,
+                        "GPT-SoVITS attempt {} failed ({status}): {err_body}",
+                        attempt
+                    );
                     if status.is_server_error() && attempt < max_attempts {
                         last_error = Some(anyhow::anyhow!("GPT-SoVITS HTTP {status}: {err_body}"));
                         continue;
@@ -202,17 +229,42 @@ impl GptSovitsEngine {
                             if resp.status().is_success() {
                                 let bytes = resp.bytes().await?;
                                 if !bytes.is_empty() {
+                                    let elapsed_ms = start_time.elapsed().as_millis();
+                                    tracing::info!(
+                                        provider = "gpt_sovits",
+                                        status = 200,
+                                        elapsed_ms = %elapsed_ms,
+                                        attempt = attempt,
+                                        audio_bytes = bytes.len(),
+                                        "GPT-SoVITS voice synthesis (fallback) succeeded in {}ms",
+                                        elapsed_ms
+                                    );
                                     return Ok(bytes.to_vec());
                                 }
                             }
                         }
                     }
 
+                    let elapsed_ms = start_time.elapsed().as_millis();
+                    tracing::warn!(
+                        provider = "gpt_sovits",
+                        elapsed_ms = %elapsed_ms,
+                        attempt = attempt,
+                        "Connection error to GPT-SoVITS ({base_url}) on attempt {}: {e}",
+                        attempt
+                    );
                     last_error = Some(anyhow::anyhow!("Connection error to GPT-SoVITS ({base_url}): {e}"));
                 }
             }
         }
 
+        let elapsed_ms = start_time.elapsed().as_millis();
+        tracing::error!(
+            provider = "gpt_sovits",
+            elapsed_ms = %elapsed_ms,
+            "GPT-SoVITS voice synthesis failed after {max_attempts} attempts: {:?}",
+            last_error
+        );
         Err(last_error.unwrap_or_else(|| anyhow::anyhow!("Failed to connect to GPT-SoVITS API ({base_url})")))
     }
 }

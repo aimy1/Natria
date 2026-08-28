@@ -356,11 +356,48 @@ pub(in crate::web) async fn synthesize_voice_http(
         }
     }
 
+    let started = std::time::Instant::now();
+    tracing::info!(
+        category = "voice",
+        engine = ?config.engine,
+        text_len = text.len(),
+        "Voice synthesis requested: engine={:?} text_len={}",
+        config.engine,
+        text.len()
+    );
+
     let engine = crate::voice::traits::VoiceEngine::new(config.engine);
-    let audio_bytes = engine
-        .synthesize(text, &config)
-        .await
-        .map_err(|err| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, format!("TTS synthesis failed: {err:#}")))?;
+    let audio_bytes = match engine.synthesize(text, &config).await {
+        Ok(bytes) => {
+            let elapsed_ms = started.elapsed().as_millis();
+            tracing::info!(
+                category = "voice",
+                engine = ?config.engine,
+                status = 200,
+                elapsed_ms = %elapsed_ms,
+                bytes = bytes.len(),
+                "Voice synthesis finished in {}ms ({} bytes)",
+                elapsed_ms,
+                bytes.len()
+            );
+            bytes
+        }
+        Err(err) => {
+            let elapsed_ms = started.elapsed().as_millis();
+            tracing::error!(
+                category = "voice",
+                engine = ?config.engine,
+                status = 500,
+                elapsed_ms = %elapsed_ms,
+                "Voice synthesis failed ({}ms): {err:#}",
+                elapsed_ms
+            );
+            return Err(ApiError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("TTS synthesis failed: {err:#}"),
+            ));
+        }
+    };
 
     let content_type = match config.engine {
         VoiceEngineKind::GptSovits | VoiceEngineKind::CosyVoice => "audio/wav",

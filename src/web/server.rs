@@ -8,6 +8,13 @@
 use crate::web::*;
 
 pub async fn run(paths: MiyuPaths, args: WebArgs) -> Result<()> {
+    let _logging_guard = crate::logging::init(&paths, false).ok();
+    tracing::info!(
+        version = env!("CARGO_PKG_VERSION"),
+        port = args.port,
+        "Natria WebUI service started on port {}",
+        args.port
+    );
     let password = resolve_web_password(&args)?;
     AppConfig::init_files(&paths)?;
     let config = AppConfig::load_or_default(&paths)?;
@@ -682,19 +689,27 @@ pub(in crate::web) struct RuntimeLogsQuery {
 }
 
 fn classify_log_category(module: &str, message: &str) -> &'static str {
-    if module.contains("llm") || message.contains("provider=") || message.contains("model=") {
-        "llm"
-    } else if module.contains("voice")
+    if module.contains("voice")
         || module.contains("tts")
-        || message.contains("Edge TTS")
+        || message.contains("edge_tts")
+        || message.contains("Edge-TTS")
         || message.contains("GPT-SoVITS")
+        || message.contains("gpt_sovits")
         || message.contains("sovits")
+        || message.contains("category=\"voice\"")
     {
         "voice"
+    } else if module.contains("llm")
+        || message.contains("provider=")
+        || message.contains("model=")
+        || message.contains("category=\"llm\"")
+    {
+        "llm"
     } else if module.contains("tools")
         || module.contains("subagent")
         || module.contains("job")
         || module.contains("claude_code")
+        || message.contains("category=\"tools\"")
     {
         "tools"
     } else if module.contains("web")
@@ -702,6 +717,7 @@ fn classify_log_category(module: &str, message: &str) -> &'static str {
         || module.contains("server")
         || module.contains("onebot")
         || module.contains("qq")
+        || message.contains("category=\"web\"")
     {
         "web"
     } else {
@@ -875,6 +891,10 @@ pub(in crate::web) async fn clear_runtime_logs_web(
                 }
             }
         }
+        let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Micros, true);
+        let init_line = format!("{now} INFO natria::runtime: 运行日志已清空重置，正在监听实时记录\n");
+        let today_log = logs_dir.join(format!("miyu.{}.log", chrono::Local::now().format("%Y-%m-%d")));
+        let _ = std::fs::write(&today_log, init_line);
     })
     .await
     .map_err(ApiError::internal)?;

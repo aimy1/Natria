@@ -84,8 +84,12 @@ pub(crate) fn parse_daemon_log_line(line: &str) -> Option<ParsedDaemonLogLine<'_
 
 pub(in crate::cli) fn is_miyu_log_target(value: &str) -> bool {
     value == "miyu"
+        || value == "natria"
         || value
             .strip_prefix("miyu::")
+            .is_some_and(|suffix| !suffix.is_empty())
+        || value
+            .strip_prefix("natria::")
             .is_some_and(|suffix| !suffix.is_empty())
 }
 

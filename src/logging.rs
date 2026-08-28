@@ -9,7 +9,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
-const LOG_ENV: &str = "MIYU_LOG";
+const LOG_ENV: &str = "NATRIA_LOG";
 const LOG_FILE_LIMIT: usize = 8;
 const LOG_BUFFERED_LINES_LIMIT: usize = 1_024;
 
@@ -18,7 +18,9 @@ pub struct LoggingGuard {
 }
 
 pub fn init(paths: &MiyuPaths, cli_debug: bool) -> Result<LoggingGuard> {
-    let env_value = std::env::var(LOG_ENV).ok();
+    let env_value = std::env::var("NATRIA_LOG")
+        .or_else(|_| std::env::var("MIYU_LOG"))
+        .ok();
     let (level, invalid_env) = selected_level(cli_debug, env_value.as_deref());
     if level == LevelFilter::OFF {
         return Ok(LoggingGuard { _worker: None });
@@ -36,23 +38,20 @@ pub fn init(paths: &MiyuPaths, cli_debug: bool) -> Result<LoggingGuard> {
         .max_log_files(LOG_FILE_LIMIT)
         .build(&logs_dir)
         .with_context(|| format!("opening log file in {}", logs_dir.display()))?;
-    let (writer, worker) = tracing_appender::non_blocking::NonBlockingBuilder::default()
-        .buffered_lines_limit(LOG_BUFFERED_LINES_LIMIT)
-        .lossy(false)
-        .finish(appender);
     let targets = Targets::new()
-        .with_default(LevelFilter::OFF)
+        .with_default(LevelFilter::WARN)
         .with_target("miyu", level)
-        .with_target("miyu::qq", qq_level(level, cli_debug, env_value.is_some()));
+        .with_target("natria", level)
+        .with_target("miyu::qq", qq_level(level, cli_debug, env_value.is_some()))
+        .with_target("natria::qq", qq_level(level, cli_debug, env_value.is_some()));
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(false)
         .with_target(true)
-        .with_writer(writer)
+        .with_writer(appender)
         .with_filter(targets);
-    tracing_subscriber::registry()
+    let _ = tracing_subscriber::registry()
         .with(fmt_layer)
-        .try_init()
-        .context("initializing debug logging")?;
+        .try_init();
 
     if invalid_env {
         tracing::error!(
@@ -64,14 +63,14 @@ pub fn init(paths: &MiyuPaths, cli_debug: bool) -> Result<LoggingGuard> {
             )
         );
     }
-    tracing::debug!(
+    tracing::info!(
         level = %level,
         log_dir = %logs_dir.display(),
         "{}",
-        t("debug logging initialized", "调试日志已初始化")
+        t("runtime logging initialized", "运行日志已初始化并启动记录")
     );
     Ok(LoggingGuard {
-        _worker: Some(worker),
+        _worker: None,
     })
 }
 
@@ -87,7 +86,7 @@ fn selected_level(cli_debug: bool, env_value: Option<&str>) -> (LevelFilter, boo
     let fallback = if cli_debug {
         LevelFilter::DEBUG
     } else {
-        LevelFilter::ERROR
+        LevelFilter::INFO
     };
     let Some(value) = env_value else {
         return (fallback, false);

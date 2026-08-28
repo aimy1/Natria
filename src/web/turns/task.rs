@@ -441,6 +441,12 @@ async fn run_turn_task_inner(
         TurnTaskInput::Create {
             content, images, ..
         } => {
+            tracing::info!(
+                session_id = %session_id,
+                run_id = %run_id,
+                prompt_len = content.len(),
+                "User prompt received, starting LLM inference turn"
+            );
             let callback_mapper = mapper.clone();
             let images = into_pasted_images(images);
             let chat = agent.chat_stream_with_control(&content, &images, &control, move |event| {
@@ -462,6 +468,11 @@ async fn run_turn_task_inner(
             }
         }
         TurnTaskInput::Redo { candidate, prompts } => {
+            tracing::info!(
+                session_id = %session_id,
+                run_id = %run_id,
+                "Redo turn requested, re-evaluating prompt history"
+            );
             let callback_mapper = mapper.clone();
             let prompts = prompts
                 .into_iter()
@@ -495,6 +506,11 @@ async fn run_turn_task_inner(
 
     let result = match chat_outcome {
         TurnOutcome::Cancelled => {
+            tracing::info!(
+                session_id = %session_id,
+                run_id = %run_id,
+                "Turn execution cancelled by user"
+            );
             drop_cancelled_queue(&store, events, run_id, &session_id);
             finish_cancelled_run(
                 manager,
@@ -522,6 +538,12 @@ async fn run_turn_task_inner(
             return;
         }
         TurnOutcome::Finished(Err(error)) => {
+            tracing::error!(
+                session_id = %session_id,
+                run_id = %run_id,
+                status = 500,
+                "Turn execution failed: {error:#}"
+            );
             finish_failed_run(
                 manager,
                 events,
@@ -535,7 +557,15 @@ async fn run_turn_task_inner(
             finish_turn_task(&config, &paths, &store, &title_seed, events, false);
             return;
         }
-        TurnOutcome::Finished(Ok(result)) => result,
+        TurnOutcome::Finished(Ok(result)) => {
+            tracing::info!(
+                session_id = %session_id,
+                run_id = %run_id,
+                status = 200,
+                "Turn execution completed successfully"
+            );
+            result
+        }
     };
 
     questions.cancel_run(run_id);

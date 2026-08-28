@@ -38,9 +38,18 @@ impl EdgeTtsEngine {
     }
 
     pub async fn synthesize(&self, text: &str, config: &VoiceConfig) -> Result<Vec<u8>> {
-        if text.trim().is_empty() {
+        let clean_text = text.trim();
+        if clean_text.is_empty() {
             return Ok(Vec::new());
         }
+
+        let start_time = std::time::Instant::now();
+        tracing::info!(
+            provider = "edge_tts",
+            voice = %config.voice,
+            text_len = clean_text.len(),
+            "Edge-TTS voice synthesis request started"
+        );
 
         let connection_id = format!("{:032x}", rand::random::<u128>());
         let request_id = format!("{:032x}", rand::random::<u128>());
@@ -94,7 +103,7 @@ impl EdgeTtsEngine {
         write.send(Message::Text(config_message.into())).await?;
 
         // 2. 构造 SSML 语音合成请求帧
-        let escaped_text = escape_ssml_text(text);
+        let escaped_text = escape_ssml_text(clean_text);
         let lang = {
             let parts: Vec<&str> = config.voice.split('-').collect();
             if parts.len() >= 2 {
@@ -142,8 +151,26 @@ impl EdgeTtsEngine {
         }
 
         if audio_buffer.is_empty() {
+            let elapsed_ms = start_time.elapsed().as_millis();
+            tracing::error!(
+                provider = "edge_tts",
+                voice = %config.voice,
+                elapsed_ms = %elapsed_ms,
+                "Edge-TTS returned empty audio buffer"
+            );
             bail!("Edge TTS returned empty audio buffer");
         }
+
+        let elapsed_ms = start_time.elapsed().as_millis();
+        tracing::info!(
+            provider = "edge_tts",
+            voice = %config.voice,
+            status = 200,
+            elapsed_ms = %elapsed_ms,
+            audio_bytes = audio_buffer.len(),
+            "Edge-TTS voice synthesis completed in {}ms",
+            elapsed_ms
+        );
 
         Ok(audio_buffer)
     }
