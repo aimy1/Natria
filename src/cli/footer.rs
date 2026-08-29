@@ -364,7 +364,7 @@ pub(in crate::cli) fn turn_meter(
 /// The footer/status display must reflect the session's pinned model pool,
 /// not just the global config.
 pub(in crate::cli) fn footer_config_for_session(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     config: &AppConfig,
     session_id: &str,
 ) -> AppConfig {

@@ -6,7 +6,7 @@
 
 use crate::cli::*;
 
-pub(in crate::cli) fn remove_shell_hooks(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) fn remove_shell_hooks(paths: &NatriaPaths) -> Result<()> {
     let removed = shell::fish::uninstall(paths)?;
     let removed = shell::bash::uninstall(paths)? || removed;
     let removed = shell::zsh::uninstall(paths)? || removed;
@@ -14,15 +14,15 @@ pub(in crate::cli) fn remove_shell_hooks(paths: &MiyuPaths) -> Result<()> {
         println!(
             "{}",
             t(
-                "no installed Miyu shell hooks found",
-                "未找到已安装的 Miyu shell hook"
+                "no installed Natria shell hooks found",
+                "未找到已安装的 Natria shell hook"
             )
         );
     }
     Ok(())
 }
 
-pub(in crate::cli) fn run_clipboard_paste(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) fn run_clipboard_paste(paths: &NatriaPaths) -> Result<()> {
     match crate::clipboard::read_clipboard() {
         Ok(crate::clipboard::ClipboardContent::Image(img)) => {
             let path = img.write_temp_file(&paths.cache_dir, 0)?;
@@ -121,7 +121,7 @@ pub(in crate::cli) fn run_shell_classify(shell_name: &str, message: &str) -> Res
 }
 
 pub(in crate::cli) async fn run_shell_intercept(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     shell_name: &str,
     message: String,
 ) -> Result<()> {
@@ -171,7 +171,7 @@ pub(in crate::cli) async fn run_shell_intercept(
 }
 
 pub(in crate::cli) fn expand_shell_pasted_text_placeholders(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     message: &str,
 ) -> Result<String> {
     let placeholders = find_pasted_text_placeholders(message);

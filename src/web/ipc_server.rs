@@ -193,7 +193,7 @@ pub(in crate::web) async fn handle_ipc_connection<S: AsyncReadExt + AsyncWriteEx
             // 缺失或指向已删/已归档的会话时,一律自举一个新的本地会话。
             //
             // normal 以前在这两处都退到 `store.session_id()`——那是终端集成
-            // (shellhook)的车道。于是第一次 `miyu normal` 就把 REPL 焊在终端
+            // (shellhook)的车道。于是第一次 `natria normal` 就把 REPL 焊在终端
             // 会话上,两边的对话混成一摊。dev 早就是自举的,normal 没跟上。
             //
             // 空名字是有意的:首条消息会自动命名(与 dev 同路)。不动

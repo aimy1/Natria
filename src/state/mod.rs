@@ -19,7 +19,7 @@ pub fn latest_schema_version() -> i64 {
 
 use crate::llm::{TurnTokens, Usage};
 use crate::memory_types::EvictedTurn;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -53,7 +53,7 @@ pub const USER_SESSION_KIND: &str = "user";
 /// 按人格隔离机制白拿会话/记忆/REPL 指针的分家;模式由会话的
 /// persona==DEV_PERSONA 推导,无需迁移。
 pub const DEV_PERSONA: &str = "dev";
-/// Backs a one-shot `miyu ask` / `miyu '<message>'` turn: created just before
+/// Backs a one-shot `natria ask` / `natria '<message>'` turn: created just before
 /// the turn, deleted right after, and invisible to every listing in between.
 pub const ASK_SESSION_KIND: &str = "ask";
 
@@ -192,7 +192,7 @@ pub struct StateStore {
 }
 
 impl StateStore {
-    pub fn new(paths: &MiyuPaths) -> Result<Self> {
+    pub fn new(paths: &NatriaPaths) -> Result<Self> {
         let state_dir = paths.state_dir.clone();
         let conv_db = Arc::new(ConversationDb::open(&state_dir)?);
         let platform_access = shared_platform_access_index(&state_dir, &conv_db)?;

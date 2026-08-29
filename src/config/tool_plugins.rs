@@ -79,10 +79,9 @@ pub struct ClaudeCodePluginConfig {
     /// 经桥的 Miyu 工具反正不走 Miyu 渲染管线,所以默认 all。
     #[serde(default = "default_claude_code_native_tools")]
     pub native_tools: String,
-    /// 哪些模式的会话把 Miyu 工具经 MCP 桥挂给 claude(记忆/生图/表情包等
-    /// claude 没有的能力):off/dev/normal/all,默认 normal(dev 走原生工具
-    /// 的极简形态)。两套同开时与原生重复的 Miyu 工具被剔除,原生优先。
-    #[serde(default = "default_claude_code_miyu_tools")]
+    /// 哪些模式的会话把 Natria 工具经 MCP 桥挂给 claude(记忆/生图/表情包等
+    /// claude 没有的能力):off/dev/normal/all,默认 all。两套同开时与原生重复的 Natria 工具被剔除,原生优先。
+    #[serde(default = "default_claude_code_natria_tools", alias = "natria_tools")]
     pub miyu_tools: String,
     /// 供应商中转模式的流空闲看门狗（秒）：这么久没有任何输出就杀进程。
     #[serde(default = "default_claude_code_idle_timeout_seconds")]
@@ -683,7 +682,7 @@ impl MemesPluginConfig {
                 .persona_libraries
                 .get("default")
                 .cloned()
-                .unwrap_or_else(|| "miyu".to_string());
+                .unwrap_or_else(|| "natria".to_string());
         }
         let persona = persona_scope_name(persona);
         self.persona_libraries

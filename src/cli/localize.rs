@@ -284,7 +284,7 @@ pub(in crate::cli) fn localize_subcommands(mut command: clap::Command) -> clap::
         command = command.mut_subcommand(name, |subcommand| subcommand.about(t(en, zh)));
     }
     // 终端无缝集成组:从 {subcommands} 里藏掉,根帮助模板里以静态段
-    // 单独成节(clap 不支持子命令分组);`miyu <cmd> -h` 不受影响。
+    // 单独成节(clap 不支持子命令分组);`natria <cmd> -h` 不受影响。
     for name in [
         "fish-init",
         "bash-init",

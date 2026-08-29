@@ -1,13 +1,13 @@
 //! 平台层测试共用的 fixture。
 
 use crate::platforms::*;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use futures_util::future::BoxFuture;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering as AtomicOrdering};
 
-pub(super) fn test_paths(root: &std::path::Path) -> MiyuPaths {
-    MiyuPaths {
+pub(super) fn test_paths(root: &std::path::Path) -> NatriaPaths {
+    NatriaPaths {
         root_dir: root.to_path_buf(),
         config_dir: root.join("config"),
         config_file: root.join("config/config.jsonc"),

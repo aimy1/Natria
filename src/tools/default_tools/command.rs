@@ -107,7 +107,7 @@ pub(in crate::tools) async fn execute_command_with_shell(
         // Explicit cwd: shell commands must run in the turn workspace, not
         // whatever the daemon process cwd happens to be.
         .current_dir(crate::tools::workspace::effective_workdir());
-    // 工具桥环境(任务#12):脚本里 `miyu tool-call` 凭这些以本回合的
+    // 工具桥环境(任务#12):脚本里 `natria tool-call` 凭这些以本回合的
     // 会话身份/来源打回 daemon 执行结构化工具,内层调用照走 guard 管线。
     if let Some(session) = crate::tools::workspace::try_session() {
         command_process.env("NATRIA_SESSION", &*session);

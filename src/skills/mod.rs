@@ -4,7 +4,7 @@ pub(crate) use draft::*;
 pub(crate) use manifest::*;
 
 use crate::config::{persona_scope_name, AppConfig};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -32,7 +32,7 @@ const MAX_SKILL_CATALOG_ENTRIES: usize = 256;
 const MAX_SKILL_ROOT_DIRECTORIES: usize = 1_024;
 const MAX_SKILL_RESOURCE_ENTRIES: usize = 256;
 
-pub fn discover(config: &AppConfig, paths: &MiyuPaths) -> Result<Vec<SkillEntry>> {
+pub fn discover(config: &AppConfig, paths: &NatriaPaths) -> Result<Vec<SkillEntry>> {
     let mut entries = Vec::new();
     let mut seen = BTreeSet::new();
     for (root, source) in skill_roots(config, paths) {
@@ -86,7 +86,7 @@ pub fn discover(config: &AppConfig, paths: &MiyuPaths) -> Result<Vec<SkillEntry>
     Ok(entries)
 }
 
-pub fn catalog_fingerprint(config: &AppConfig, paths: &MiyuPaths) -> Result<[u8; 32]> {
+pub fn catalog_fingerprint(config: &AppConfig, paths: &NatriaPaths) -> Result<[u8; 32]> {
     let mut hasher = blake3::Hasher::new();
     for (root, source) in skill_roots(config, paths) {
         hasher.update(source.as_str().as_bytes());
@@ -103,7 +103,7 @@ pub fn catalog_fingerprint(config: &AppConfig, paths: &MiyuPaths) -> Result<[u8;
     Ok(*hasher.finalize().as_bytes())
 }
 
-pub fn load(name: &str, config: &AppConfig, paths: &MiyuPaths) -> Result<LoadedSkill> {
+pub fn load(name: &str, config: &AppConfig, paths: &NatriaPaths) -> Result<LoadedSkill> {
     let name = name.trim();
     if name.is_empty() {
         bail!("skill name is required");
@@ -163,7 +163,7 @@ pub fn is_generated_skill(raw: &str) -> bool {
         || raw.contains("Auto-learned method from Miyu conversation")
 }
 
-fn skill_roots(config: &AppConfig, paths: &MiyuPaths) -> Vec<(PathBuf, SkillSource)> {
+fn skill_roots(config: &AppConfig, paths: &NatriaPaths) -> Vec<(PathBuf, SkillSource)> {
     vec![
         (
             config.active_persona_skills_dir(paths),
@@ -203,8 +203,8 @@ fn sorted_skill_directories(root: &Path) -> Result<Vec<PathBuf>> {
 mod tests {
     use super::*;
 
-    fn test_paths(root: &Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),

@@ -31,7 +31,7 @@ use crate::config::{AppConfig, ProviderConfig};
 use crate::default_models::OPENCODE_ZEN_BASE_URL;
 use crate::i18n::text as t;
 use crate::models_cache::{self, ModelReasoningInfo, ReasoningSetting, ReasoningVariant};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Context, Result};
 use futures_util::{Stream, StreamExt};
 use reqwest::Client;

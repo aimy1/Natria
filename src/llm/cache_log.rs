@@ -13,7 +13,7 @@
 
 use crate::config::CacheConfig;
 use crate::llm::Usage;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -34,7 +34,7 @@ static SINK: OnceLock<Mutex<Sink>> = OnceLock::new();
 /// Installs (or updates) the process-wide sink. Called from client
 /// construction so every path that can issue LLM requests configures the
 /// sink before its first request; later calls just refresh the settings.
-pub(crate) fn configure(paths: &MiyuPaths, config: &CacheConfig) {
+pub(crate) fn configure(paths: &NatriaPaths, config: &CacheConfig) {
     let dir = paths.cache_dir.join("logs");
     let mutex = SINK.get_or_init(|| {
         Mutex::new(Sink {

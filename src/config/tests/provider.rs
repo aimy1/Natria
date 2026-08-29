@@ -292,6 +292,7 @@ fn vision_provider_choice_prefers_multimodal_pool_then_default_mimo() {
     );
 
     config.active_multimodal_provider_models = Some(Vec::new());
+    config.active_provider_models = Some(Vec::new());
     assert_eq!(
         config.vision_provider_choice().unwrap(),
         (
@@ -887,7 +888,7 @@ fn real_config_window_source() {
         println!("\n  跳过：没给 MIYU_HOME");
         return;
     };
-    let paths = crate::paths::MiyuPaths::new().unwrap();
+    let paths = crate::paths::NatriaPaths::new().unwrap();
     println!("\n  MIYU_HOME = {}", std::path::Path::new(&home).display());
     let config = AppConfig::load(&paths).unwrap();
     crate::models_cache::ensure_active_metadata(&paths, &config);

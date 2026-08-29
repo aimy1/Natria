@@ -20,7 +20,7 @@ pub fn input_modalities(provider_id: &str, model_id: &str) -> Option<Vec<String>
 }
 
 pub fn input_modalities_blocking(
-    paths: &crate::paths::MiyuPaths,
+    paths: &crate::paths::NatriaPaths,
     provider_id: &str,
     model_id: &str,
 ) -> Option<Vec<String>> {

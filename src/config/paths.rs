@@ -37,12 +37,12 @@ pub(crate) fn relative_path_equals(value: &str, expected: &str) -> bool {
     normalized_relative_path(value).as_deref() == Some(Path::new(expected))
 }
 
-pub(crate) fn migrated_resource_path(paths: &MiyuPaths, value: &str) -> Option<PathBuf> {
+pub(crate) fn migrated_resource_path(paths: &NatriaPaths, value: &str) -> Option<PathBuf> {
     paths.migrated_resource_path(Path::new(value.trim()))
 }
 
 pub(crate) fn fallback_resource_file(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     namespace: &str,
     file_name: &str,
 ) -> PathBuf {
@@ -54,7 +54,7 @@ pub(crate) fn fallback_resource_file(
 }
 
 pub(crate) fn migrated_fallback_file(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     value: &str,
     namespace: &str,
     file_name: &str,
@@ -68,7 +68,7 @@ pub(crate) fn migrated_fallback_file(
         .then(|| fallback_resource_file(paths, namespace, file_name))
 }
 
-pub(crate) fn config_relative_path(paths: &MiyuPaths, value: &str) -> PathBuf {
+pub(crate) fn config_relative_path(paths: &NatriaPaths, value: &str) -> PathBuf {
     let path = PathBuf::from(value.trim());
     if path.is_absolute() {
         path

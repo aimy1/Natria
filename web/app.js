@@ -336,14 +336,24 @@
     voicePitchSlider: document.getElementById("voicePitchSlider"),
     voicePitchLabel: document.getElementById("voicePitchLabel"),
     voiceTestButton: document.getElementById("voiceTestButton"),
+    voiceCloneCharacterPresetSelect: document.getElementById("voiceCloneCharacterPresetSelect"),
     voiceCloneEngineSubSelect: document.getElementById("voiceCloneEngineSubSelect"),
     voiceCloneStatusBadge: document.getElementById("voiceCloneStatusBadge"),
     checkVoiceCloneHealthButton: document.getElementById("checkVoiceCloneHealthButton"),
     voiceCloneEndpointInput: document.getElementById("voiceCloneEndpointInput"),
     voiceClonePromptAudioSelect: document.getElementById("voiceClonePromptAudioSelect"),
+    voiceCloneTextLangSelect: document.getElementById("voiceCloneTextLangSelect"),
     voiceClonePromptTextInput: document.getElementById("voiceClonePromptTextInput"),
     voiceClonePromptLangSelect: document.getElementById("voiceClonePromptLangSelect"),
     voiceCloneApiKeyInput: document.getElementById("voiceCloneApiKeyInput"),
+    voiceCloneTempSlider: document.getElementById("voiceCloneTempSlider"),
+    voiceCloneTempLabel: document.getElementById("voiceCloneTempLabel"),
+    voiceCloneTopKSlider: document.getElementById("voiceCloneTopKSlider"),
+    voiceCloneTopKLabel: document.getElementById("voiceCloneTopKLabel"),
+    voiceCloneRepPenaltySlider: document.getElementById("voiceCloneRepPenaltySlider"),
+    voiceCloneRepPenaltyLabel: document.getElementById("voiceCloneRepPenaltyLabel"),
+    voiceCloneRateSlider: document.getElementById("voiceCloneRateSlider"),
+    voiceCloneRateLabel: document.getElementById("voiceCloneRateLabel"),
     voiceCloneTestButton: document.getElementById("voiceCloneTestButton"),
     voiceCustomEngineSubSelect: document.getElementById("voiceCustomEngineSubSelect"),
     voiceCustomEndpointInput: document.getElementById("voiceCustomEndpointInput"),
@@ -393,13 +403,19 @@
     logsAutoRefreshTimer: null,
     logsLoading: false,
     voiceConfig: {
-      engine: localStorage.getItem("natria.voice.engine") || localStorage.getItem("natria.voice.engine") || "edge_tts",
-      endpoint: localStorage.getItem("natria.voice.endpoint") || localStorage.getItem("natria.voice.endpoint") || "",
-      promptAudio: localStorage.getItem("natria.voice.promptAudio") || localStorage.getItem("natria.voice.promptAudio") || "",
-      promptText: localStorage.getItem("natria.voice.promptText") || localStorage.getItem("natria.voice.promptText") || "",
-      promptLang: localStorage.getItem("natria.voice.promptLang") || localStorage.getItem("natria.voice.promptLang") || "zh",
-      apiKey: localStorage.getItem("natria.voice.apiKey") || localStorage.getItem("natria.voice.apiKey") || "",
-      filterActions: (localStorage.getItem("natria.voice.filterActions") ?? localStorage.getItem("natria.voice.filterActions")) !== "0",
+      engine: localStorage.getItem("natria.voice.engine") || "edge_tts",
+      endpoint: localStorage.getItem("natria.voice.endpoint") || "",
+      promptAudio: localStorage.getItem("natria.voice.promptAudio") || "4-03.wav",
+      promptText: localStorage.getItem("natria.voice.promptText") || "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
+      promptLang: localStorage.getItem("natria.voice.promptLang") || "zh",
+      textLang: (localStorage.getItem("natria.voice.textLang") === "ko" ? "auto" : (localStorage.getItem("natria.voice.textLang") || "auto")),
+      temperature: parseFloat(localStorage.getItem("natria.voice.temperature") || "0.80"),
+      topK: parseInt(localStorage.getItem("natria.voice.topK") || "5", 10),
+      topP: parseFloat(localStorage.getItem("natria.voice.topP") || "1.0"),
+      repetitionPenalty: parseFloat(localStorage.getItem("natria.voice.repetitionPenalty") || "1.35"),
+      characterPreset: localStorage.getItem("natria.voice.characterPreset") || "tsundere",
+      apiKey: localStorage.getItem("natria.voice.apiKey") || "",
+      filterActions: (localStorage.getItem("natria.voice.filterActions") ?? "1") !== "0",
       voice: "zh-CN-XiaoxiaoNeural",
       pitch: "+0Hz",
       rate: "+0%",
@@ -594,7 +610,7 @@
   }
 
   function normalizeStorageKey(key) {
-    if (typeof key === "string" && key.startsWith("miyu.")) {
+    if (typeof key === "string" && key.startsWith("natria.")) {
       return "natria." + key.slice(5);
     }
     return key;
@@ -602,7 +618,7 @@
 
   function legacyStorageKey(key) {
     if (typeof key === "string" && key.startsWith("natria.")) {
-      return "miyu." + key.slice(7);
+      return "natria." + key.slice(7);
     }
     return key;
   }
@@ -4483,7 +4499,7 @@
     request.setRequestHeader("Accept", "application/json");
     request.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
     request.setRequestHeader("X-Natria-Filename", encodeURIComponent(item.file.name));
-    request.setRequestHeader("X-Miyu-Filename", encodeURIComponent(item.file.name));
+    request.setRequestHeader("X-Natria-Filename", encodeURIComponent(item.file.name));
     request.upload.addEventListener("progress", (event) => {
       if (!event.lengthComputable || item.request !== request) return;
       item.progress = Math.min(99, Math.round((event.loaded / event.total) * 100));
@@ -10596,7 +10612,7 @@
       const modSpan = document.createElement("span");
       modSpan.className = "log-module";
       let modName = entry.module || "";
-      if (modName.startsWith("miyu::")) modName = modName.substring(6);
+      if (modName.startsWith("natria::")) modName = modName.substring(6);
       modSpan.textContent = modName ? `[${modName}]` : "";
 
       topRow.append(timeSpan, badgeSpan, catSpan, modSpan);
@@ -11525,12 +11541,35 @@
     document.addEventListener("keydown", handleGlobalKeydown);
   }
 
-  /* ── 语音系统 (Edge-TTS) 与前端音频控制器 ── */
+  /* ── 语音系统 (Edge-TTS / GPT-SoVITS) 与前端音频控制器 ── */
+  function isTheatricalAction(inner) {
+    if (!inner) return false;
+    const s = String(inner).trim();
+    if (!s || s.length > 24) return false;
+
+    // 包含明显说明性关键词、数字、版本、链接等，绝非动作描写
+    const nonActionKeywords = [
+      "例如", "比如", "注意", "提示", "推荐", "可选", "默认", "参见", "参考",
+      "包括", "即", "第", "共", "注：", "注:", "http", "url", "px", "%", "v0.", "v1.", "v2.", "v3."
+    ];
+    if (nonActionKeywords.some((kw) => s.includes(kw))) return false;
+    if (/\d/.test(s)) return false;
+
+    // 常见角色扮演舞台动作描写关键词
+    const actionCues = [
+      "笑", "叹", "白眼", "翻白眼", "咳嗽", "脸红", "挠头", "摸头", "揉头", "托腮",
+      "嘟嘴", "撇嘴", "扶额", "摊手", "傲娇", "抽泣", "小声", "轻声", "转头", "看向",
+      "低头", "抬头", "别过头", "眨眼", "深吸一口气", "清了清嗓子", "愣了一下", "顿了顿",
+      "把头转过去", "顺势", "心虚", "害羞", "委屈", "生气", "抱胸", "握拳", "耸肩"
+    ];
+    return actionCues.some((cue) => s.includes(cue));
+  }
+
   function cleanTextForVoice(raw) {
     if (!raw) return "";
     let text = String(raw);
 
-    // 1. 去除代码块及内容、HTML 标签、图片、超链接等无声内容，将行内代码 `code` 还原为纯文字 code
+    // 1. 去除代码块及内容、HTML 标签、图片、超链接，将行内代码 `code` 还原为纯文字 code，保留 Markdown 链接标题 [标题](url) -> 标题
     text = text.replace(/```[\s\S]*?```/g, "");
     text = text.replace(/`([^`]+)`/g, "$1");
     text = text.replace(/!\[[^\]]*\]\([^)]+\)/g, "");
@@ -11538,23 +11577,28 @@
     text = text.replace(/https?:\/\/\S+/gi, "");
     text = text.replace(/<[^>]+>/g, "");
 
-    // 2. 彻底剥离所有 Emoji 与特殊表情符号（防止模型词表 [UNK] 崩溃导致胡言乱语/无限杂音）
+    // 2. 彻底剥离所有 Emoji 与特殊表情符号（防止模型词表 [UNK] 崩溃导致杂音）
     text = text.replace(/[\u{1F300}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1F000}-\u{1F02F}\u{1F0A0}-\u{1F0FF}\u{1F100}-\u{1F1FF}\u{1F200}-\u{1F2FF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{200D}]/gu, "");
 
     // 3. 去除数学公式块与行内公式定界符
     text = text.replace(/\$\$[\s\S]*?\$\$/g, "");
     text = text.replace(/\$([^$]+)\$/g, "$1");
 
-    // 4. 过滤显式动作描写（如 *（微笑着递给你杯子）*、*（托腮）* 或 *叹气*），绝不误删正常的正文对话
+    // 4. 过滤显式动作描写（如 *（微笑着递给你杯子）*、*叹气*），绝不误删正常的正文对话、书名号、标签或括号内解释
     if (state.voiceConfig?.filterActions !== false) {
-      // 剥离星号包裹的动作描写，如 *（轻笑）*、*(揉头发)*、*叹气*
-      text = text.replace(/\*\s*[（(【［〔〈\[][^）)】］〕〉\]]*[）)】］〕〉\]]\s*\*/g, "");
-      text = text.replace(/\*[^*\n]{1,24}\*/g, "");
-      // 剥离以常见动作/舞台提示词开头的纯动作括号（如 （低头看了看手机）、（轻声细语）），保留正常句意解释括号
-      text = text.replace(/[（(【［〔〈\[][^（）()【】［］〔〕〈〉\[\]]{0,18}(?:笑|叹|看|点|摇|走|抱|拉|摸|揉|眨|语|声|息|动|低|轻|怒|哭|嗔|哼|歪|靠|贴|凑|缩|跳|想|瞥|转|坐|站|语调|神色|动作)[^（）()【】［］〔〕〈〉\[\]]*[）)】］〕〉\]]/g, "");
+      // 剥离星号包裹的动作描写，如 *（轻笑）*、*叹气*、*脸红*
+      text = text.replace(/\*\s*[（(][^）)]*[）)]\s*\*/g, "");
+      text = text.replace(/\*([^*\n]{1,24})\*/g, (match, inner) => {
+        return isTheatricalAction(inner) ? "" : inner;
+      });
+
+      // 剥离圆括号内的纯舞台动作描写，保留正文说明（如 （例如包含 3 个章节））
+      text = text.replace(/[（(]([^（）()]{1,30})[）)]/g, (match, inner) => {
+        return isTheatricalAction(inner) ? "" : `，${inner}，`;
+      });
     }
 
-    // 5. 提取 Markdown 加粗、斜体格式中的文字（保留 **`获取`** / **安装** 里的文字内容）
+    // 5. 提取 Markdown 加粗、斜体格式中的文字（保留 **`获取`** / **安装** / *重点* 里的文字内容）
     text = text.replace(/^#+\s+/gm, "");
     text = text.replace(/^>\s+/gm, "");
     text = text.replace(/^[-*_]{3,}$/gm, "");
@@ -11582,13 +11626,16 @@
     text = text.replace(/([A-Z])([A-Z])/g, "$1 $2");
     text = text.replace(/([A-Z])([A-Z])/g, "$1 $2");
 
-    // 8. 彻底清除所有残留或单独出现的特殊格式符号（保留常规对话文字，将括号转为自然短停顿）
+    // 8. 将书名号《》、标签号【】、括号() 等转为自然语流停顿，不读出符号本体
     text = text.replace(/[\\`*~^{}[\]【】［］<>《》〔〕〈〉@#%+=/|_]/g, " ");
     text = text.replace(/[()（）]/g, "，");
 
     // 9. 换行与空白规整
     text = text.replace(/\r?\n\s*\r?\n/g, "。").replace(/\r?\n/g, "，");
     text = text.replace(/\s+/g, " ");
+    text = text.replace(/\s+([，。！？；：、])/g, "$1");
+    text = text.replace(/，([。！？；])/g, "$1");
+    text = text.replace(/([。！？；])，/g, "$1");
     text = text.replace(/([，。！？；])\1+/g, "$1");
     text = text.replace(/^[，、；：\s]+|[，、；：\s]+$/g, "");
 
@@ -11738,8 +11785,8 @@
       }
     }
 
-    // 过滤掉纯标点或无汉字/英文字符的空片段，防止模型发生语义丢失与死循环
-    return finalSentences.filter((s) => /[\u4e00-\u9fa5a-zA-Z0-9]/.test(s));
+    // 过滤掉纯标点或无有效字符的空片段，支持中文、日文、韩文、英文与数字
+    return finalSentences.filter((s) => /\p{L}|\p{N}/u.test(s));
   }
 
   async function fetchSpeechAudioBuffer(text, options, signal) {
@@ -11766,6 +11813,11 @@
       prompt_audio: options.promptAudio || state.voiceConfig.promptAudio || undefined,
       prompt_text: options.promptText || state.voiceConfig.promptText || undefined,
       prompt_lang: options.promptLang || state.voiceConfig.promptLang || undefined,
+      text_lang: options.textLang || state.voiceConfig.textLang || "auto",
+      temperature: options.temperature ?? state.voiceConfig.temperature ?? 0.80,
+      top_k: options.topK ?? state.voiceConfig.topK ?? 5,
+      top_p: options.topP ?? state.voiceConfig.topP ?? 1.0,
+      repetition_penalty: options.repetitionPenalty ?? state.voiceConfig.repetitionPenalty ?? 1.35,
       voice: voiceId,
       pitch: options.pitch || state.voiceConfig.pitch || "+0Hz",
       rate: options.rate || state.voiceConfig.rate || "+0%",
@@ -11932,23 +11984,21 @@
       const strongPunct = /[。！？!?\n;；…]/;
       const weakPunct = /[，,、：:]/;
 
-      let bracketDepth = 0;
-      let inAsterisk = false;
+      let parenDepth = 0;
+      let parenStartIdx = 0;
 
       for (let i = 0; i < this.buffer.length; i++) {
         const char = this.buffer[i];
 
-        // 维护动作与括号嵌套深度，避免在动作描写中途切句导致标记破坏与误朗读
-        if (char === "*" || char === "~") {
-          inAsterisk = !inAsterisk;
-        } else if (char === "（" || char === "(" || char === "【" || char === "［" || char === "[" || char === "〔" || char === "〈") {
-          bracketDepth++;
-        } else if (char === "）" || char === ")" || char === "】" || char === "］" || char === "]" || char === "〕" || char === "〉") {
-          if (bracketDepth > 0) bracketDepth--;
+        if (char === "（" || char === "(") {
+          if (parenDepth === 0) parenStartIdx = i;
+          parenDepth++;
+        } else if (char === "）" || char === ")") {
+          if (parenDepth > 0) parenDepth--;
         }
 
-        // 处于未闭合的动作描写/括号内时，坚决不进行断句，等待完整动作块闭合
-        if (bracketDepth > 0 || inAsterisk) {
+        // 短括号保护（< 25 字符）避免在动作或简短补充说明中途中断，超过 25 字符视为普通文本正常断句
+        if (parenDepth > 0 && (i - parenStartIdx < 25)) {
           continue;
         }
 
@@ -11968,7 +12018,7 @@
     dispatchText(rawText) {
       if (!rawText) return;
       const cleaned = cleanTextForVoice(rawText);
-      if (cleaned && /[\u4e00-\u9fa5a-zA-Z0-9]/.test(cleaned)) {
+      if (cleaned && /\p{L}|\p{N}/u.test(cleaned)) {
         this.enqueueSentence(cleaned);
       }
     }
@@ -12563,6 +12613,7 @@
     // 1. 同步顶部 3 个特性卡片的激活高亮状态
     elements.voiceModeTabs?.forEach((tab) => {
       const isActive = tab.dataset.engineTab === activeTabKey;
+      tab.classList.toggle("active", isActive);
       tab.classList.toggle("is-active", isActive);
       tab.setAttribute("aria-selected", String(isActive));
     });
@@ -12593,7 +12644,33 @@
       }
     }
 
-    // 4. 同步克隆面板表单值
+    // 4. 同步克隆面板表单值与调优滑块
+    if (elements.voiceCloneCharacterPresetSelect) {
+      elements.voiceCloneCharacterPresetSelect.value = state.voiceConfig.characterPreset || "tsundere";
+    }
+    if (elements.voiceCloneTextLangSelect) {
+      elements.voiceCloneTextLangSelect.value = state.voiceConfig.textLang || "auto";
+    }
+    if (elements.voiceCloneTempSlider && elements.voiceCloneTempLabel) {
+      const tempVal = state.voiceConfig.temperature ?? 0.80;
+      elements.voiceCloneTempSlider.value = String(tempVal);
+      elements.voiceCloneTempLabel.textContent = Number(tempVal).toFixed(2);
+    }
+    if (elements.voiceCloneTopKSlider && elements.voiceCloneTopKLabel) {
+      const topKVal = state.voiceConfig.topK ?? 5;
+      elements.voiceCloneTopKSlider.value = String(topKVal);
+      elements.voiceCloneTopKLabel.textContent = String(topKVal);
+    }
+    if (elements.voiceCloneRepPenaltySlider && elements.voiceCloneRepPenaltyLabel) {
+      const repVal = state.voiceConfig.repetitionPenalty ?? 1.35;
+      elements.voiceCloneRepPenaltySlider.value = String(repVal);
+      elements.voiceCloneRepPenaltyLabel.textContent = Number(repVal).toFixed(2);
+    }
+    if (elements.voiceCloneRateSlider && elements.voiceCloneRateLabel) {
+      const rateVal = parseInt(state.voiceConfig.rate) || 0;
+      elements.voiceCloneRateSlider.value = String(rateVal);
+      elements.voiceCloneRateLabel.textContent = `${rateVal >= 0 ? "+" : ""}${rateVal}%`;
+    }
     if (elements.voiceCloneEndpointInput) {
       elements.voiceCloneEndpointInput.value = state.voiceConfig.endpoint || "";
       if (!state.voiceConfig.endpoint) {
@@ -12764,6 +12841,17 @@
         state.voiceConfig.promptAudio = file.name;
         safeStorageSet("natria.voice.promptAudio", file.name);
         const PRESET_PROMPT_TEXTS = {
+          "4-03.wav": "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
+          "3-02.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+          "2-04（Y）.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+          "2-04(Y).wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+          "4-02.wav": "我才没有特地打扮给你看呢，你千万别自作多情哦。",
+          "5-01.wav": "你的眼睛里只能看着我一个人，听懂了吗？",
+          "3-06.wav": "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
+          "2-01（n）.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+          "2-01(n).wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+          "2-02（Y）.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+          "2-02(Y).wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
           "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
           "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
           "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
@@ -12775,7 +12863,8 @@
           "xiaoyan_sweet.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
           "xiaoyan_v2proplus.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
           "xiaoyan_ref.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
-          "2-0102.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。"
+          "sample_sweet.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+          "sample_tsundere.wav": "哼，今天就勉强允许你牵我的手好了，下不为例哦。"
         };
         if (PRESET_PROMPT_TEXTS[file.name]) {
           state.voiceConfig.promptText = PRESET_PROMPT_TEXTS[file.name];
@@ -12866,7 +12955,7 @@
         method: "POST",
         headers: {
           "x-natria-filename": encodeURIComponent(file.name),
-          "x-miyu-filename": encodeURIComponent(file.name),
+          "x-natria-filename": encodeURIComponent(file.name),
           "Content-Type": "application/octet-stream"
         },
         body: file
@@ -12928,7 +13017,7 @@
         safeStorageSet("natria.voice.engine", state.voiceConfig.engine);
         safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint || "");
         updateVoiceControls();
-        showToast(`已切换发音方式为：${tab.querySelector(".tab-title")?.textContent || tabMode}`);
+        showToast(`已切换发音方式为：${tab.textContent.trim() || tabMode}`);
       });
     });
 
@@ -12973,7 +13062,85 @@
       safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint);
     });
 
+    const CHARACTER_PRESETS = {
+      tsundere: {
+        name: "傲娇小盐",
+        audio: "4-03.wav",
+        text: "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
+        temp: 0.80,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      gentle: {
+        name: "温柔依偎",
+        audio: "3-02.wav",
+        text: "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+        temp: 0.75,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      playful: {
+        name: "调皮撩人",
+        audio: "2-04（Y）.wav",
+        text: "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+        temp: 0.80,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      confident: {
+        name: "元气自信",
+        audio: "4-02.wav",
+        text: "我才没有特地打扮给你看呢，你千万别自作多情哦。",
+        temp: 0.80,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      possessive: {
+        name: "独占女王",
+        audio: "5-01.wav",
+        text: "你的眼睛里只能看着我一个人，听懂了吗？",
+        temp: 0.80,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      lazy: {
+        name: "慵懒撒娇",
+        audio: "3-06.wav",
+        text: "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
+        temp: 0.75,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      shy: {
+        name: "害羞脸红",
+        audio: "2-01（n）.wav",
+        text: "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+        temp: 0.80,
+        topK: 5,
+        repPenalty: 1.35
+      },
+      sweet: {
+        name: "甜美宠溺",
+        audio: "2-02（Y）.wav",
+        text: "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+        temp: 0.75,
+        topK: 5,
+        repPenalty: 1.35
+      }
+    };
+
     const PRESET_PROMPT_TEXTS = {
+      "4-03.wav": "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
+      "3-02.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
+      "2-04（Y）.wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+      "2-04(Y).wav": "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
+      "4-02.wav": "我才没有特地打扮给你看呢，你千万别自作多情哦。",
+      "5-01.wav": "你的眼睛里只能看着我一个人，听懂了吗？",
+      "3-06.wav": "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
+      "2-01（n）.wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+      "2-01(n).wav": "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
+      "2-02（Y）.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+      "2-02(Y).wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
       "xiaoyan_studio_clean.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
       "xiaoyan_playful_302.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
       "xiaoyan_gentle_306.wav": "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
@@ -12985,8 +13152,66 @@
       "xiaoyan_sweet.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
       "xiaoyan_v2proplus.wav": "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
       "xiaoyan_ref.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
-      "2-0102.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。"
+      "sample_sweet.wav": "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
+      "sample_tsundere.wav": "哼，今天就勉强允许你牵我的手好了，下不为例哦。"
     };
+
+    elements.voiceCloneCharacterPresetSelect?.addEventListener("change", (e) => {
+      const presetKey = e.target.value;
+      state.voiceConfig.characterPreset = presetKey;
+      safeStorageSet("natria.voice.characterPreset", presetKey);
+      if (CHARACTER_PRESETS[presetKey]) {
+        const p = CHARACTER_PRESETS[presetKey];
+        state.voiceConfig.promptAudio = p.audio;
+        state.voiceConfig.promptText = p.text;
+        state.voiceConfig.temperature = p.temp;
+        state.voiceConfig.topK = p.topK;
+        state.voiceConfig.repetitionPenalty = p.repPenalty;
+        safeStorageSet("natria.voice.promptAudio", p.audio);
+        safeStorageSet("natria.voice.promptText", p.text);
+        safeStorageSet("natria.voice.temperature", String(p.temp));
+        safeStorageSet("natria.voice.topK", String(p.topK));
+        safeStorageSet("natria.voice.repetitionPenalty", String(p.repPenalty));
+        updateVoiceControls();
+        renderVoiceFileList();
+        showToast(`已切换专属性格预设：${p.name}`);
+      }
+    });
+
+    elements.voiceCloneTextLangSelect?.addEventListener("change", (e) => {
+      state.voiceConfig.textLang = e.target.value;
+      safeStorageSet("natria.voice.textLang", state.voiceConfig.textLang);
+    });
+
+    elements.voiceCloneTempSlider?.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value) || 0.80;
+      state.voiceConfig.temperature = val;
+      if (elements.voiceCloneTempLabel) elements.voiceCloneTempLabel.textContent = val.toFixed(2);
+      safeStorageSet("natria.voice.temperature", String(val));
+    });
+
+    elements.voiceCloneTopKSlider?.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10) || 5;
+      state.voiceConfig.topK = val;
+      if (elements.voiceCloneTopKLabel) elements.voiceCloneTopKLabel.textContent = String(val);
+      safeStorageSet("natria.voice.topK", String(val));
+    });
+
+    elements.voiceCloneRepPenaltySlider?.addEventListener("input", (e) => {
+      const val = parseFloat(e.target.value) || 1.35;
+      state.voiceConfig.repetitionPenalty = val;
+      if (elements.voiceCloneRepPenaltyLabel) elements.voiceCloneRepPenaltyLabel.textContent = val.toFixed(2);
+      safeStorageSet("natria.voice.repetitionPenalty", String(val));
+    });
+
+    elements.voiceCloneRateSlider?.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value, 10) || 0;
+      state.voiceConfig.rate = `${val >= 0 ? "+" : ""}${val}%`;
+      if (elements.voiceCloneRateLabel) elements.voiceCloneRateLabel.textContent = state.voiceConfig.rate;
+      if (elements.voiceRateLabel) elements.voiceRateLabel.textContent = state.voiceConfig.rate;
+      if (elements.voiceRateSlider) elements.voiceRateSlider.value = String(val);
+      safeStorageSet("natria.voice.rate", state.voiceConfig.rate);
+    });
 
     elements.voiceClonePromptAudioSelect?.addEventListener("change", (e) => {
       state.voiceConfig.promptAudio = e.target.value;
@@ -13043,7 +13268,11 @@
           api_key: elements.voiceCloneApiKeyInput?.value.trim() || state.voiceConfig.apiKey || undefined,
           prompt_audio: elements.voiceClonePromptAudioSelect?.value || state.voiceConfig.promptAudio || undefined,
           prompt_text: elements.voiceClonePromptTextInput?.value || state.voiceConfig.promptText || undefined,
-          prompt_lang: elements.voiceClonePromptLangSelect?.value || state.voiceConfig.promptLang || undefined
+          prompt_lang: elements.voiceClonePromptLangSelect?.value || state.voiceConfig.promptLang || undefined,
+          text_lang: elements.voiceCloneTextLangSelect?.value || state.voiceConfig.textLang || "auto",
+          temperature: state.voiceConfig.temperature ?? 0.80,
+          top_k: state.voiceConfig.topK ?? 5,
+          repetition_penalty: state.voiceConfig.repetitionPenalty ?? 1.35
         };
         const res = await fetch("/api/voice/synthesize", {
           method: "POST",
@@ -13097,14 +13326,16 @@
     });
 
     elements.voiceRateSlider?.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value) || 0;
+      const val = parseInt(e.target.value, 10) || 0;
       state.voiceConfig.rate = `${val >= 0 ? "+" : ""}${val}%`;
       if (elements.voiceRateLabel) elements.voiceRateLabel.textContent = state.voiceConfig.rate;
+      if (elements.voiceCloneRateLabel) elements.voiceCloneRateLabel.textContent = state.voiceConfig.rate;
+      if (elements.voiceCloneRateSlider) elements.voiceCloneRateSlider.value = String(val);
       safeStorageSet("natria.voice.rate", state.voiceConfig.rate);
     });
 
     elements.voicePitchSlider?.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value) || 0;
+      const val = parseInt(e.target.value, 10) || 0;
       state.voiceConfig.pitch = `${val >= 0 ? "+" : ""}${val}Hz`;
       if (elements.voicePitchLabel) elements.voicePitchLabel.textContent = state.voiceConfig.pitch;
       safeStorageSet("natria.voice.pitch", state.voiceConfig.pitch);
@@ -13125,19 +13356,26 @@
       const promptAudio = elements.voiceClonePromptAudioSelect?.value || state.voiceConfig.promptAudio;
       const promptText = elements.voiceClonePromptTextInput?.value || state.voiceConfig.promptText;
       const promptLang = elements.voiceClonePromptLangSelect?.value || state.voiceConfig.promptLang || "zh";
+      const textLang = elements.voiceCloneTextLangSelect?.value || state.voiceConfig.textLang || "auto";
       const endpoint = elements.voiceCloneEndpointInput?.value.trim() || state.voiceConfig.endpoint || "http://127.0.0.1:9880";
       const engine = elements.voiceCloneEngineSubSelect?.value || state.voiceConfig.engine || "gpt_sovits";
 
       if (!promptAudio) {
-        showToast("请先在下方上传或选取一段参考录音音频", "warning");
+        showToast("请先在下方选取或上传一段参考录音音频", "warning");
         return;
       }
-      playVoiceText("你好，这是一段使用本地声音克隆技术合成的语音测试。", {
+      playVoiceText("你好呀，我是小盐。现在的发音清晰度和稳定性都经过了深度优化哦！", {
         engine: engine,
         endpoint: endpoint,
         promptAudio: promptAudio,
         promptText: promptText,
         promptLang: promptLang,
+        textLang: textLang,
+        temperature: state.voiceConfig.temperature ?? 0.80,
+        topK: state.voiceConfig.topK ?? 5,
+        topP: state.voiceConfig.topP ?? 1.0,
+        repetitionPenalty: state.voiceConfig.repetitionPenalty ?? 1.35,
+        rate: state.voiceConfig.rate || "+0%",
         apiKey: elements.voiceCloneApiKeyInput?.value.trim() || state.voiceConfig.apiKey
       });
     });
@@ -13473,11 +13711,11 @@
     // 灯箱自己不会画图标（图标集在这边），把工厂函数递过去。
     (window.NatriaLightbox || window.MiyuLightbox)?.init({ makeIconSlot });
     startBrailleTicker();
-    // G2:页面不可见时给 body 挂 natria-paused/miyu-paused,CSS 据此暂停全部装饰动画。
+    // G2:页面不可见时给 body 挂 natria-paused/natria-paused,CSS 据此暂停全部装饰动画。
     // 实测(Xvfb+Chrome)不挂这个时隐藏窗口的合成负载与可见时完全一样。
     const syncPaused = () => {
       document.body.classList.toggle("natria-paused", document.hidden);
-      document.body.classList.toggle("miyu-paused", document.hidden);
+      document.body.classList.toggle("natria-paused", document.hidden);
     };
     document.addEventListener("visibilitychange", syncPaused);
     syncPaused();

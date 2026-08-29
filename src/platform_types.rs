@@ -444,7 +444,7 @@ pub(crate) trait PlatformAdapter: Send + Sync {
     fn fetch_platform_file<'a>(
         &'a self,
         _file_ref: &'a PlatformContextFileRef,
-        _paths: &'a crate::paths::MiyuPaths,
+        _paths: &'a crate::paths::NatriaPaths,
     ) -> BoxFuture<'a, Result<PlatformFileDownload>> {
         Box::pin(async {
             anyhow::bail!("platform file downloads are not supported by this platform")

@@ -59,12 +59,12 @@ impl Drop for StarterLease {
     }
 }
 
-pub fn acquire_direct_core(paths: &MiyuPaths) -> Result<DirectCoreLease> {
+pub fn acquire_direct_core(paths: &NatriaPaths) -> Result<DirectCoreLease> {
     prepare_runtime_dir(paths)?;
     acquire_direct_core_at(paths.ipc_lock())
 }
 
-pub fn acquire_web_core(paths: &MiyuPaths) -> Result<WebCoreLease> {
+pub fn acquire_web_core(paths: &NatriaPaths) -> Result<WebCoreLease> {
     prepare_runtime_dir(paths)?;
     let lock_file = acquire_lock(paths.ipc_lock())?;
     let socket_path = paths.ipc_socket();
@@ -77,7 +77,7 @@ pub fn acquire_web_core(paths: &MiyuPaths) -> Result<WebCoreLease> {
     })
 }
 
-pub(crate) fn prepare_runtime_dir(paths: &MiyuPaths) -> Result<()> {
+pub(crate) fn prepare_runtime_dir(paths: &NatriaPaths) -> Result<()> {
     let runtime_dir = paths.runtime_dir();
     std::fs::create_dir_all(&runtime_dir)?;
     crate::platform_fs::set_file_mode(&runtime_dir, 0o700)?;
@@ -134,7 +134,7 @@ pub async fn connect(path: &Path) -> Result<tokio::net::TcpStream> {
     bail!("Unix domain sockets are not supported on this platform: {}", path.display());
 }
 
-pub async fn daemon_info(paths: &MiyuPaths) -> Option<DaemonInfo> {
+pub async fn daemon_info(paths: &NatriaPaths) -> Option<DaemonInfo> {
     let socket = paths.ipc_socket();
     let frame = ping_daemon(&socket, PROTOCOL_VERSION).await?;
     match frame {
@@ -198,7 +198,7 @@ pub(crate) async fn ping_daemon(path: &Path, protocol_version: u16) -> Option<Fr
 }
 
 pub async fn ensure_daemon(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     requested: Option<&DaemonLaunchConfig>,
 ) -> Result<DaemonInfo> {
     let mut active_paths = paths.clone();
@@ -206,7 +206,7 @@ pub async fn ensure_daemon(
     let mut current = daemon_info(&active_paths).await;
     if current.is_none() {
         let previous_paths = active_paths.clone();
-        active_paths = match MiyuPaths::new().context("refreshing Natria paths before daemon startup")
+        active_paths = match NatriaPaths::new().context("refreshing Natria paths before daemon startup")
         {
             Ok(paths) => paths,
             Err(error) => {
@@ -238,7 +238,7 @@ pub async fn ensure_daemon(
             }
             return Err(error);
         }
-        active_paths = match MiyuPaths::new().context("refreshing Natria paths after daemon shutdown")
+        active_paths = match NatriaPaths::new().context("refreshing Natria paths after daemon shutdown")
         {
             Ok(paths) => paths,
             Err(error) => {
@@ -274,7 +274,7 @@ pub async fn ensure_daemon(
             return Err(error);
         }
         drop(starter);
-        active_paths = match MiyuPaths::new().context("refreshing Natria paths after daemon shutdown")
+        active_paths = match NatriaPaths::new().context("refreshing Natria paths after daemon shutdown")
         {
             Ok(paths) => paths,
             Err(error) => {
@@ -335,13 +335,13 @@ pub async fn ensure_daemon(
 
 /// Shuts down a daemon left over from an older build so the caller can spawn
 /// one matching the current binary.
-pub(crate) async fn restart_stale_daemon(paths: &MiyuPaths, info: &DaemonInfo) -> Result<()> {
+pub(crate) async fn restart_stale_daemon(paths: &NatriaPaths, info: &DaemonInfo) -> Result<()> {
     shutdown_daemon(paths, info)
         .await
         .context("waiting for the outdated Natria daemon to stop")
 }
 
-pub async fn shutdown_daemon(paths: &MiyuPaths, info: &DaemonInfo) -> Result<()> {
+pub async fn shutdown_daemon(paths: &NatriaPaths, info: &DaemonInfo) -> Result<()> {
     let process = daemon_process_identity(info.pid);
     let mut stream = connect(&paths.ipc_socket()).await?;
     send(
@@ -423,7 +423,7 @@ pub(crate) fn linux_process_state(pid: u32) -> Option<(char, u64)> {
     Some((state, start_time))
 }
 
-pub(crate) fn acquire_starter(paths: &MiyuPaths) -> Result<StarterLease> {
+pub(crate) fn acquire_starter(paths: &NatriaPaths) -> Result<StarterLease> {
     prepare_runtime_dir(paths)?;
     let lock_file = OpenOptions::new()
         .create(true)
@@ -442,7 +442,7 @@ pub(crate) fn acquire_starter(paths: &MiyuPaths) -> Result<StarterLease> {
 }
 
 pub(crate) fn start_daemon_process(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     launch: &DaemonLaunchConfig,
 ) -> Result<std::process::Child> {
     std::fs::create_dir_all(paths.logs_dir())?;

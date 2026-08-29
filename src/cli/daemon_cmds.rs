@@ -14,7 +14,7 @@ pub(in crate::cli) const RELOAD_RETRY_INTERVAL: Duration = Duration::from_secs(5
 
 pub(in crate::cli) const RELOAD_RESPONSE_TIMEOUT: Duration = Duration::from_secs(60);
 
-pub(in crate::cli) async fn run_web(paths: &MiyuPaths, mut args: WebArgs) -> Result<()> {
+pub(in crate::cli) async fn run_web(paths: &NatriaPaths, mut args: WebArgs) -> Result<()> {
     #[cfg(not(unix))]
     {
         if args.password.as_deref() == Some("") {
@@ -66,7 +66,7 @@ pub(in crate::cli) async fn run_web(paths: &MiyuPaths, mut args: WebArgs) -> Res
     }
 }
 
-pub(in crate::cli) fn web_launch_config(paths: &MiyuPaths, args: &WebArgs) -> Result<Option<ipc::DaemonLaunchConfig>> {
+pub(in crate::cli) fn web_launch_config(paths: &NatriaPaths, args: &WebArgs) -> Result<Option<ipc::DaemonLaunchConfig>> {
     if !args.port_explicit
         && args.bind.is_none()
         && args.password.is_none()
@@ -107,7 +107,7 @@ pub(in crate::cli) fn daemon_web_access_urls(info: &ipc::DaemonInfo) -> Vec<Stri
     ipc::web_access_urls_for(bind, info.web_port)
 }
 
-pub(in crate::cli) async fn run_daemon_command(paths: &MiyuPaths, args: DaemonArgs) -> Result<()> {
+pub(in crate::cli) async fn run_daemon_command(paths: &NatriaPaths, args: DaemonArgs) -> Result<()> {
     let command = args.command.unwrap_or(DaemonCommand::Start);
     if args.port.is_some() && !matches!(command, DaemonCommand::Start | DaemonCommand::Restart) {
         bail!(
@@ -139,7 +139,7 @@ pub(in crate::cli) async fn run_daemon_command(paths: &MiyuPaths, args: DaemonAr
                 );
             }
             ipc::ensure_daemon(paths, launch.as_ref()).await?;
-            let refreshed = MiyuPaths::new()?;
+            let refreshed = NatriaPaths::new()?;
             print_daemon_status(&refreshed).await
         }
         DaemonCommand::Stop => stop_daemon(paths).await,
@@ -158,7 +158,7 @@ pub(in crate::cli) async fn run_daemon_command(paths: &MiyuPaths, args: DaemonAr
                 }
                 return Err(error);
             };
-            let refreshed = match MiyuPaths::new() {
+            let refreshed = match NatriaPaths::new() {
                 Ok(paths) => paths,
                 Err(error) => {
                     if let Some(launch) = &pending_launch {
@@ -180,7 +180,7 @@ pub(in crate::cli) async fn run_daemon_command(paths: &MiyuPaths, args: DaemonAr
     }
 }
 
-pub(in crate::cli) async fn stop_daemon(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) async fn stop_daemon(paths: &NatriaPaths) -> Result<()> {
     match ipc::daemon_info(paths).await {
         Some(info) => {
             ipc::shutdown_daemon(paths, &info).await?;
@@ -204,11 +204,11 @@ pub(in crate::cli) async fn stop_daemon(paths: &MiyuPaths) -> Result<()> {
 }
 
 /// 扫描并终止属于本 home 的 `__daemon` 残留进程。归属按 /proc 环境里的
-/// MIYU_HOME 判定(未设 = 默认 ~/.miyu),隔离测试环境的 daemon 不受波及。
-async fn sweep_stray_daemons(paths: &MiyuPaths) -> usize {
+/// NATRIA_HOME / MIYU_HOME 判定(未设 = 默认 ~/.natria),隔离测试环境的 daemon 不受波及。
+async fn sweep_stray_daemons(paths: &NatriaPaths) -> usize {
     let my_root = paths.root_dir.clone();
     let default_root =
-        std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".miyu"));
+        std::env::var_os("HOME").map(|home| std::path::PathBuf::from(home).join(".natria"));
     let mut strays = Vec::new();
     let Ok(entries) = std::fs::read_dir("/proc") else {
         return 0;
@@ -228,7 +228,9 @@ async fn sweep_stray_daemons(paths: &MiyuPaths) -> usize {
             continue;
         };
         let mut parts = cmdline.split(|byte| *byte == 0);
-        let is_daemon = parts.next().is_some_and(|argv0| argv0.ends_with(b"miyu"))
+        let is_daemon = parts
+            .next()
+            .is_some_and(|argv0| argv0.ends_with(b"natria") || argv0.ends_with(b"miyu"))
             && parts.next() == Some(b"__daemon");
         if !is_daemon {
             continue;
@@ -238,7 +240,10 @@ async fn sweep_stray_daemons(paths: &MiyuPaths) -> usize {
         };
         let home = environ
             .split(|byte| *byte == 0)
-            .find_map(|pair| pair.strip_prefix(b"MIYU_HOME="))
+            .find_map(|pair| {
+                pair.strip_prefix(b"NATRIA_HOME=")
+                    .or_else(|| pair.strip_prefix(b"MIYU_HOME="))
+            })
             .map(|value| std::path::PathBuf::from(String::from_utf8_lossy(value).to_string()))
             .or_else(|| default_root.clone());
         if home.as_deref() != Some(my_root.as_path()) {
@@ -265,7 +270,7 @@ async fn sweep_stray_daemons(paths: &MiyuPaths) -> usize {
     strays.len()
 }
 
-pub(in crate::cli) async fn print_daemon_status(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) async fn print_daemon_status(paths: &NatriaPaths) -> Result<()> {
     let Some(info) = ipc::daemon_info(paths).await else {
         println!("{}", t("Natria daemon: stopped", "Natria daemon：已停止"));
         return Ok(());
@@ -338,10 +343,10 @@ pub(in crate::cli) fn daemon_web_status_lines(label: &str, urls: &[String]) -> V
         .collect()
 }
 
-/// `miyu daemon logs request`:监控期间开启录制,滚动打印每个出网请求
+/// `natria daemon logs request`:监控期间开启录制,滚动打印每个出网请求
 /// 的摘要行;完整请求体在 JSONL 文件里(整段 prompt 打终端没法看)。
 /// Ctrl+C 退出时关闭录制——开关是 daemon 进程级内存位,不落配置。
-pub(in crate::cli) async fn run_request_monitor(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) async fn run_request_monitor(paths: &NatriaPaths) -> Result<()> {
     if ipc::daemon_info(paths).await.is_none() {
         bail!(
             "{}",
@@ -478,7 +483,7 @@ pub(in crate::cli) fn daemon_process_alive(_pid: u32) -> bool {
     true
 }
 
-pub(in crate::cli) async fn reload_daemon_if_running(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) async fn reload_daemon_if_running(paths: &NatriaPaths) -> Result<()> {
     if ipc::daemon_info(paths).await.is_some() {
         retry_config_reload(RELOAD_MAX_ATTEMPTS, RELOAD_RETRY_INTERVAL, || {
             request_config_reload(paths)
@@ -512,7 +517,7 @@ pub(in crate::cli) fn validate_config_reload_response(frame: Option<IpcFrame>) -
     Ok(ConfigReloadResponse::Reloaded)
 }
 
-pub(in crate::cli) async fn request_config_reload(paths: &MiyuPaths) -> Result<ConfigReloadResponse> {
+pub(in crate::cli) async fn request_config_reload(paths: &NatriaPaths) -> Result<ConfigReloadResponse> {
     request_config_reload_at(&paths.ipc_socket(), RELOAD_RESPONSE_TIMEOUT).await
 }
 
@@ -534,7 +539,7 @@ pub(in crate::cli) async fn request_config_reload_at(
     })?
 }
 
-pub(in crate::cli) async fn run_reload(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) async fn run_reload(paths: &NatriaPaths) -> Result<()> {
     if ipc::daemon_info(paths).await.is_none() {
         bail!("{}", t("Natria daemon is not running", "Natria daemon 未运行"));
     }

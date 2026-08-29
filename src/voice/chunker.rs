@@ -93,22 +93,24 @@ fn find_next_sentence_cut(text: &str, is_final: bool) -> Option<(usize, usize)> 
     // 弱断句标点：逗号、冒号、顿号
     const WEAK_PUNCT: &[char] = &['，', ',', '：', ':', '、'];
 
-    let mut bracket_depth = 0;
-    let mut in_asterisk = false;
+    let mut paren_depth = 0;
+    let mut paren_start_idx = 0;
 
     for (i, &(_byte_offset, ch)) in chars.iter().enumerate() {
-        if ch == '*' || ch == '~' {
-            in_asterisk = !in_asterisk;
-        } else if matches!(ch, '（' | '(' | '【' | '［' | '[' | '〔' | '〈' | '《') {
-            bracket_depth += 1;
-        } else if matches!(ch, '）' | ')' | '】' | '］' | ']' | '〕' | '〉' | '》') {
-            if bracket_depth > 0 {
-                bracket_depth -= 1;
+        if ch == '（' || ch == '(' {
+            if paren_depth == 0 {
+                paren_start_idx = i;
+            }
+            paren_depth += 1;
+        } else if ch == '）' || ch == ')' {
+            if paren_depth > 0 {
+                paren_depth -= 1;
             }
         }
 
-        // 处于动作描写或未闭合括号内，坚决不进行断句
-        if bracket_depth > 0 || in_asterisk {
+        // 如果括号距离过长（> 25 字符）仍未闭合，视为普通标点或长引用，不再阻塞切句
+        let in_short_paren = paren_depth > 0 && (i.saturating_sub(paren_start_idx) < 25);
+        if in_short_paren {
             continue;
         }
 
@@ -142,100 +144,238 @@ fn find_next_sentence_cut(text: &str, is_final: bool) -> Option<(usize, usize)> 
     }
 }
 
-/// 移除文本中的各种动作描写（（...）、(...)、【...】、［...］、[...]）以及星号动作（*...*）
+/// 检查某段括号内的文本是否为纯角色扮演动作/舞台描写（如“叹气”、“轻笑”、“捂脸”等），
+/// 坚决避免误伤“例如 123”、“点击下一步”、“动态规划”等正常说明性括号内容。
+fn is_theatrical_action(inner: &str) -> bool {
+    let s = inner.trim();
+    if s.is_empty() || s.chars().count() > 24 {
+        return false;
+    }
+
+    // 包含明显说明性关键词、数字、版本、链接时，绝非动作描写
+    let non_action_keywords = [
+        "例如", "比如", "注意", "提示", "推荐", "可选", "默认", "参见", "参考",
+        "包括", "即", "第", "共", "注：", "注:", "http", "url", "px", "%", "v0.", "v1.", "v2.", "v3."
+    ];
+    for kw in non_action_keywords {
+        if s.contains(kw) {
+            return false;
+        }
+    }
+
+    // 含有阿拉伯数字说明（如 "(共 3 个)" 或 "(第 2 步)"）时保留
+    if s.chars().any(|c| c.is_ascii_digit()) {
+        return false;
+    }
+
+    // 常见舞台/动作描写特征动词与词汇
+    let action_cues = [
+        "笑", "叹", "白眼", "翻白眼", "咳嗽", "脸红", "挠头", "摸头", "揉头", "托腮",
+        "嘟嘴", "撇嘴", "扶额", "摊手", "傲娇", "抽泣", "小声", "轻声", "转头", "看向",
+        "低头", "抬头", "别过头", "眨眼", "深吸一口气", "清了清嗓子", "愣了一下", "顿了顿",
+        "把头转过去", "顺势", "心虚", "害羞", "委屈", "生气", "抱胸", "握拳", "耸肩"
+    ];
+
+    action_cues.iter().any(|&cue| s.contains(cue))
+}
+
+/// 移除文本中的纯动作描写（如 *（微笑着递给你杯子）*、*叹气*、（轻声细语）），
+/// 保留所有正常的说明括号、书名号、标签和正文对话。
 pub fn strip_action_descriptions(text: &str) -> String {
     let mut s = text.to_string();
 
-    // 1. 递归剥离各类括号（支持多层嵌套）
-    let open_chars = ['（', '(', '【', '［', '[', '〔', '〈', '《'];
-    loop {
-        let mut changed = false;
-        let mut best_start = None;
-        for (idx, ch) in s.char_indices() {
-            if open_chars.contains(&ch) {
-                best_start = Some((idx, ch));
-            } else if let Some((start_idx, open_ch)) = best_start {
-                let matches_close = match open_ch {
-                    '（' => ch == '）',
-                    '(' => ch == ')',
-                    '【' => ch == '】',
-                    '［' => ch == '］',
-                    '[' => ch == ']',
-                    '〔' => ch == '〕',
-                    '〈' => ch == '〉',
-                    '《' => ch == '》',
-                    _ => false,
-                };
-                if matches_close {
-                    s.replace_range(start_idx..idx + ch.len_utf8(), "");
-                    changed = true;
-                    break;
+    // 1. 剥离星号包裹的动作描写，如 *脸红*、*（轻笑）*、*叹了口气*
+    // 注意：只剥离非粗体（非 **）且较短的星号动作，不误删正常列表项
+    while let Some(start) = s.find('*') {
+        // 如果是 ** 粗体前缀，则跳过
+        if s[start..].starts_with("**") {
+            break;
+        }
+        if let Some(end_offset) = s[start + 1..].find('*') {
+            let end = start + 1 + end_offset;
+            if !s[end..].starts_with("**") && end - start <= 40 {
+                let inside = &s[start + 1..end];
+                if is_theatrical_action(inside) || inside.starts_with('（') || inside.starts_with('(') {
+                    s.replace_range(start..end + 1, "");
+                    continue;
                 }
             }
         }
-        if !changed {
-            break;
-        }
+        break;
     }
 
-    // 2. 剥离星号动作描写，如 *脸红*、*叹了口气*
-    while let Some(start) = s.find('*') {
-        if let Some(end) = s[start + 1..].find('*') {
-            s.replace_range(start..start + 1 + end + 1, "");
+    // 2. 剥离中英文圆括号中的纯舞台/动作描写，保留正常解释说明
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch == '（' || ch == '(' {
+            let close_char = if ch == '（' { '）' } else { ')' };
+            let mut inside = String::new();
+            let mut matched_close = false;
+
+            for next_ch in chars.by_ref() {
+                if next_ch == close_char {
+                    matched_close = true;
+                    break;
+                }
+                inside.push(next_ch);
+                if inside.len() > 80 {
+                    break;
+                }
+            }
+
+            if matched_close && is_theatrical_action(&inside) {
+                // 是纯舞台动作，剥离不朗读
+                continue;
+            } else {
+                // 是正常说明括号，保留括号内文字并以逗号短停顿朗读
+                result.push('，');
+                result.push_str(&inside);
+                if matched_close {
+                    result.push('，');
+                }
+            }
         } else {
-            break;
+            result.push(ch);
         }
     }
 
-    // 3. 去除首尾残留的脱落标点符号与空格
-    let trimmed = s.trim();
-    let cleaned = trimmed
-        .trim_start_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | '：' | ':' | ' ' | '\t' | '*' | '（' | '(' | '【' | '［' | '[' | '）' | ')' | '】' | '］' | ']'))
-        .trim_end_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | '：' | ':' | ' ' | '\t' | '*' | '（' | '(' | '【' | '［' | '[' | '）' | ')' | '】' | '］' | ']'));
-    cleaned.to_string()
+    result
 }
 
-/// 将文本中的 Markdown 标记与动作描写清洗为适合语音朗读的纯文本。
+/// 将文本中的 Markdown 标记清洗为适合语音朗读的自然纯文本。
 pub fn clean_markdown_for_speech(raw: &str) -> String {
-    let without_actions = strip_action_descriptions(raw);
-    let mut text = without_actions;
+    if raw.is_empty() {
+        return String::new();
+    }
 
-    // 1. 过滤行内代码 `code` -> 纯文本
-    let mut cleaned = String::new();
-    let mut in_inline_code = false;
+    let mut text = raw.to_string();
+
+    // 1. 去除代码块及内容、图片与超链接
+    // 1.1 图片：![alt](url) -> 移除
+    while let Some(start) = text.find("![") {
+        if let Some(mid) = text[start..].find("](") {
+            if let Some(end) = text[start + mid..].find(')') {
+                text.replace_range(start..start + mid + end + 1, "");
+                continue;
+            }
+        }
+        break;
+    }
+
+    // 1.2 Markdown 链接：[标题](url) -> 转换为 "标题"（朗读标题，忽略 URL）
+    while let Some(start) = text.find('[') {
+        if let Some(mid) = text[start..].find("](") {
+            if let Some(end) = text[start + mid..].find(')') {
+                let link_title = text[start + 1..start + mid].to_string();
+                text.replace_range(start..start + mid + end + 1, &link_title);
+                continue;
+            }
+        }
+        break;
+    }
+
+    // 1.3 移除独立 URL (http:// 或 https://)
+    while let Some(start) = text.find("http://").or_else(|| text.find("https://")) {
+        let end = text[start..]
+            .find(|c: char| c.is_whitespace() || matches!(c, '）' | ')' | ']' | '】' | '，' | '。' | '；'))
+            .map(|offset| start + offset)
+            .unwrap_or(text.len());
+        text.replace_range(start..end, "");
+    }
+
+    // 2. 剥离角色扮演的纯舞台动作描写
+    text = strip_action_descriptions(&text);
+
+    // 3. 行内代码 `code` -> 纯文字 code
+    let mut without_backticks = String::with_capacity(text.len());
     for ch in text.chars() {
-        if ch == '`' {
-            in_inline_code = !in_inline_code;
-        } else {
-            cleaned.push(ch);
+        if ch != '`' {
+            without_backticks.push(ch);
         }
     }
-    text = cleaned;
+    text = without_backticks;
 
-    // 2. 清洗标题 # Header
-    text = text
-        .lines()
-        .map(|line| {
-            let trimmed = line.trim_start();
-            if trimmed.starts_with('#') {
-                trimmed.trim_start_matches('#').trim_start()
-            } else if trimmed.starts_with('>') {
-                trimmed.trim_start_matches('>').trim_start()
-            } else if trimmed.starts_with("- ") || trimmed.starts_with("* ") {
-                &trimmed[2..]
-            } else {
-                line
+    // 4. 清洗标题 # Header、引用 > Quote、列表 - / * / 1.
+    let mut cleaned_lines = Vec::new();
+    for line in text.lines() {
+        let mut trimmed = line.trim();
+        // 标题
+        if trimmed.starts_with('#') {
+            trimmed = trimmed.trim_start_matches('#').trim();
+        }
+        // 引用
+        if trimmed.starts_with('>') {
+            trimmed = trimmed.trim_start_matches('>').trim();
+        }
+        // 列表符号
+        if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("+ ") {
+            trimmed = &trimmed[2..].trim();
+        } else if let Some(dot_idx) = trimmed.find(". ") {
+            if trimmed[..dot_idx].chars().all(|c| c.is_ascii_digit()) {
+                trimmed = &trimmed[dot_idx + 2..].trim();
             }
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
+        }
+        if !trimmed.is_empty() {
+            cleaned_lines.push(trimmed);
+        }
+    }
+    text = cleaned_lines.join(" ");
 
-    // 3. 移除粗体/斜体格式符 **bold**, *italic*, ~~strikethrough~~
-    text = text.replace("**", "").replace("*", "").replace("~~", "");
+    // 5. 移除粗体/斜体/删除线标记符 (**bold**, *italic*, ~~strikethrough~~)
+    text = text.replace("***", "").replace("**", "").replace('*', "").replace("~~", "").replace("___", "").replace("__", "").replace('_', "");
 
-    // 4. 清理多余空白
+    // 6. 将书名号《》、标签号【】、括号() 等转为自然语流停顿
+    let mut smoothed = String::with_capacity(text.len());
+    for ch in text.chars() {
+        match ch {
+            '《' | '》' | '【' | '】' | '［' | '］' | '[' | ']' | '〔' | '〕' | '〈' | '〉' => {
+                smoothed.push(' ');
+            }
+            '（' | '(' | '）' | ')' => {
+                smoothed.push('，');
+            }
+            _ => smoothed.push(ch),
+        }
+    }
+    text = smoothed;
+
+    // 7. 技术名词口语化归一化
+    text = text
+        .replace("GPT-SoVITS", "GPT 声音模型")
+        .replace("gpt-sovits", "GPT 声音模型")
+        .replace("Edge-TTS", "Edge TTS")
+        .replace("edge-tts", "Edge TTS")
+        .replace("WebUI", "Web UI")
+        .replace("webui", "Web UI")
+        .replace("natria", "小盐")
+        .replace("Natria", "小盐");
+
+    // 8. 规整多重标点与空白
     let words: Vec<&str> = text.split_whitespace().collect();
-    words.join(" ")
+    let mut joined = words.join(" ");
+
+    // 去除标点前的多余空格与重复或冲突标点（如 " ，" -> "，", "，。" -> "。"）
+    for punc in ['，', '。', '！', '？', '；', '：', '、', ',', '.', '!', '?', ';', ':'] {
+        let space_punc = format!(" {}", punc);
+        let punc_str = punc.to_string();
+        while joined.contains(&space_punc) {
+            joined = joined.replace(&space_punc, &punc_str);
+        }
+    }
+    while joined.contains("，。") || joined.contains("，！") || joined.contains("，？") {
+        joined = joined.replace("，。", "。").replace("，！", "！").replace("，？", "？");
+    }
+    while joined.contains("。，") || joined.contains("！，") || joined.contains("？，") {
+        joined = joined.replace("。，", "。").replace("！，", "！").replace("？，", "？");
+    }
+
+    let cleaned = joined
+        .trim_start_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | ' ' | '\t'))
+        .trim_end_matches(|c| matches!(c, '，' | ',' | '、' | '；' | ';' | ' ' | '\t'));
+
+    cleaned.to_string()
 }
 
 fn split_into_clean_sentences(text: &str, is_final: bool) -> Vec<String> {
@@ -254,8 +394,8 @@ mod tests {
     #[test]
     fn test_chunker_basic_sentences() {
         let mut chunker = SentenceChunker::new(false);
-        let s1 = chunker.push_delta("你好！我是Miyu。");
-        assert_eq!(s1, vec!["你好！", "我是Miyu。"]);
+        let s1 = chunker.push_delta("你好！我是小盐。");
+        assert_eq!(s1, vec!["你好！", "我是小盐。"]);
     }
 
     #[test]
@@ -281,7 +421,13 @@ mod tests {
     fn test_markdown_cleaning() {
         let raw = "**重要提示**：请访问 [Miyu文档](https://example.com) 获取详情。";
         let clean = clean_markdown_for_speech(raw);
-        assert_eq!(clean, "重要提示：请访问 [Miyu文档](https://example.com) 获取详情。");
+        assert_eq!(clean, "重要提示：请访问 Miyu文档 获取详情。");
+
+        let raw_book = "我推荐你阅读《三体》和《人工智能导论》（包含 3 个核心章节）。";
+        let clean_book = clean_markdown_for_speech(raw_book);
+        assert!(clean_book.contains("三体"));
+        assert!(clean_book.contains("人工智能导论"));
+        assert!(clean_book.contains("包含 3 个核心章节"));
     }
 
     #[test]
@@ -297,5 +443,10 @@ mod tests {
 
         let raw_bold_code = "**`获取`** 或 **`安装`**";
         assert_eq!(clean_markdown_for_speech(raw_bold_code), "获取 或 安装");
+
+        let raw_explain = "请点击确认（需要管理员权限）。";
+        let clean_explain = clean_markdown_for_speech(raw_explain);
+        assert!(clean_explain.contains("需要管理员权限"));
     }
 }
+

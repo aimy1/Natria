@@ -1,5 +1,5 @@
 use super::{ToolProgress, ToolRegistry, ToolSpec};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 use std::io::Write;
@@ -10,7 +10,7 @@ use std::path::{Component, Path};
 
 pub(super) const MAX_ARTIFACT_BYTES: usize = 20 * 1024 * 1024;
 
-pub fn register_webui(registry: &mut ToolRegistry, paths: &MiyuPaths, session_id: &str) {
+pub fn register_webui(registry: &mut ToolRegistry, paths: &NatriaPaths, session_id: &str) {
     let root = paths.data_dir.join("artifacts");
     register_create(registry, root.clone(), session_id);
     register_present(registry);
@@ -18,7 +18,7 @@ pub fn register_webui(registry: &mut ToolRegistry, paths: &MiyuPaths, session_id
     super::apply_patch::register_artifact(registry, root, session_id);
 }
 
-pub fn managed_manifest(paths: &MiyuPaths, session_id: &str) -> Result<String> {
+pub fn managed_manifest(paths: &NatriaPaths, session_id: &str) -> Result<String> {
     let root = paths.data_dir.join("artifacts");
     validate_session_id(session_id)?;
     let session_dir = root.join(session_id);
@@ -383,7 +383,7 @@ mod tests {
     #[test]
     fn artifact_manifest_lists_names_without_file_contents() {
         let temp = tempfile::tempdir().unwrap();
-        let paths = MiyuPaths {
+        let paths = NatriaPaths {
             root_dir: temp.path().to_path_buf(),
             config_dir: temp.path().join("config"),
             config_file: temp.path().join("config/config.jsonc"),

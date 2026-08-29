@@ -3,7 +3,7 @@ pub(super) mod tools;
 
 use super::{PlatformPlugin, PluginDescriptor, PreparedSend};
 use crate::config::{QqMessageHistoryPluginSettings, QQ_MESSAGE_HISTORY_PLUGIN_ID};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::platforms::{
     ConversationKind, OutboundBody, OutboundMessage, OutboundSegment, PlatformInboundEvent,
     PlatformInboundEventKind, PlatformMediaKind, PlatformTurnContext, SendReceipt,
@@ -31,7 +31,7 @@ fn stores() -> &'static Mutex<HashMap<PathBuf, HistoryStore>> {
     STORES.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-pub(super) fn store_for_paths(paths: &MiyuPaths) -> HistoryStore {
+pub(super) fn store_for_paths(paths: &NatriaPaths) -> HistoryStore {
     let path = history_db_path(paths);
     let mut stores = stores().lock().unwrap();
     stores
@@ -40,7 +40,7 @@ pub(super) fn store_for_paths(paths: &MiyuPaths) -> HistoryStore {
         .clone()
 }
 
-fn history_db_path(paths: &MiyuPaths) -> PathBuf {
+fn history_db_path(paths: &NatriaPaths) -> PathBuf {
     let path = paths.data_dir.join(HISTORY_DB);
     if path.exists() {
         return path;
@@ -125,7 +125,7 @@ impl MessageHistoryPlugin {
         ))
     }
 
-    async fn record_inbound(paths: &MiyuPaths, event: &PlatformInboundEvent) -> Result<()> {
+    async fn record_inbound(paths: &NatriaPaths, event: &PlatformInboundEvent) -> Result<()> {
         let key = ConversationKey::for_kind(
             event.conversation.platform.clone(),
             event.conversation.account_id.clone(),
@@ -242,7 +242,7 @@ impl PlatformPlugin for MessageHistoryPlugin {
 
     fn observe_ingress<'a>(
         &'a self,
-        paths: &'a MiyuPaths,
+        paths: &'a NatriaPaths,
         _config: &'a crate::config::AppConfig,
         event: &'a PlatformInboundEvent,
     ) -> BoxFuture<'a, Result<()>> {
@@ -448,8 +448,8 @@ mod tests {
     };
     use std::time::Instant;
 
-    fn test_paths(root: &std::path::Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &std::path::Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),

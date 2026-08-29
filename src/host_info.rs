@@ -148,7 +148,7 @@ pub(crate) fn host_environment_block(root_dir: &Path) -> String {
         block.push_str(&format!(" kernel=\"{}\"", xml_attr_escape(kernel)));
     }
     block.push_str(&format!(
-        " miyu_home=\"{}\"/>",
+        " natria_home=\"{}\"/>",
         xml_attr_escape(&root_dir.display().to_string())
     ));
     block
@@ -203,10 +203,10 @@ mod tests {
 
     #[test]
     fn host_block_is_a_single_self_closing_tag_with_the_real_root() {
-        let block = host_environment_block(&PathBuf::from("/home/tester/.miyu"));
+        let block = host_environment_block(&PathBuf::from("/home/tester/.natria"));
         assert!(block.starts_with("<host-environment os=\""));
         assert!(block.ends_with("/>"));
-        assert!(block.contains(" miyu_home=\"/home/tester/.miyu\""));
+        assert!(block.contains(" natria_home=\"/home/tester/.natria\""));
         assert!(!block.contains('\n'));
         // No placeholder values leak in when a probe comes back empty.
         assert!(!block.contains("\"\""));
@@ -216,7 +216,7 @@ mod tests {
     #[test]
     fn host_block_escapes_paths_that_would_break_the_attribute() {
         let block = host_environment_block(&PathBuf::from("/tmp/a\"b&c"));
-        assert!(block.contains(" miyu_home=\"/tmp/a&quot;b&amp;c\"/>"));
+        assert!(block.contains(" natria_home=\"/tmp/a&quot;b&amp;c\"/>"));
     }
 
     #[cfg(unix)]

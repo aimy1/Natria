@@ -5,7 +5,7 @@ pub(crate) use launch::*;
 pub(crate) use lifecycle::*;
 pub(crate) use protocol::*;
 
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::question::QuestionAnswers;
 use anyhow::{bail, Context, Result};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -122,8 +122,8 @@ mod tests {
         assert!(overridden_args.iter().all(|arg| !arg.contains("secret")));
     }
 
-    fn test_paths(root: &Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),

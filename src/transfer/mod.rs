@@ -1,4 +1,4 @@
-//! Moving a Miyu installation between machines: `miyu export` / `miyu import`.
+//! Moving a Miyu installation between machines: `natria export` / `natria import`.
 
 pub mod export;
 pub mod fixups;
@@ -9,13 +9,13 @@ pub mod registry;
 #[cfg(test)]
 pub(crate) mod tests {
     use super::registry::{is_backup_name, unit_for, Tier, IGNORED_SUFFIXES, UNITS};
-    use crate::paths::MiyuPaths;
+    use crate::paths::NatriaPaths;
     use std::collections::BTreeSet;
     use std::path::Path;
 
-    /// A MiyuPaths rooted at `root`, mirroring the real layout.
-    pub(crate) fn test_paths(root: &Path) -> MiyuPaths {
-        MiyuPaths {
+    /// A NatriaPaths rooted at `root`, mirroring the real layout.
+    pub(crate) fn test_paths(root: &Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),
@@ -40,7 +40,7 @@ pub(crate) mod tests {
     /// the new machine, after the old one is gone.
     /// Builds a populated home: config with a secret, a database holding a
     /// row, a user resource, and things that must not travel.
-    fn populated_home(root: &Path) -> MiyuPaths {
+    fn populated_home(root: &Path) -> NatriaPaths {
         let paths = test_paths(root);
         std::fs::create_dir_all(&paths.config_dir).unwrap();
         std::fs::create_dir_all(&paths.state_dir).unwrap();

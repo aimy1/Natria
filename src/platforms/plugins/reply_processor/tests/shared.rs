@@ -2,7 +2,7 @@
 
 use crate::platforms::plugins::reply_processor::*;
 use crate::config::AppConfig;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::platforms::{ConversationKind, PlatformAdapter, PlatformConversation};
 use crate::state::StateStore;
 use futures_util::future::BoxFuture;
@@ -11,7 +11,7 @@ use std::path::PathBuf;
 pub(super) fn test_context(is_admin: bool) -> (tempfile::TempDir, PlatformTurnContext) {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: root.to_path_buf(),
         config_dir: root.join("config"),
         config_file: root.join("config/config.jsonc"),

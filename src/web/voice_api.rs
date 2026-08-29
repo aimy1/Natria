@@ -31,6 +31,16 @@ pub(in crate::web) struct SynthesizeVoiceRequest {
     #[serde(default)]
     pub(in crate::web) text_lang: Option<String>,
     #[serde(default)]
+    pub(in crate::web) temperature: Option<f64>,
+    #[serde(default)]
+    pub(in crate::web) top_k: Option<u32>,
+    #[serde(default)]
+    pub(in crate::web) top_p: Option<f64>,
+    #[serde(default)]
+    pub(in crate::web) repetition_penalty: Option<f64>,
+    #[serde(default)]
+    pub(in crate::web) text_split_method: Option<String>,
+    #[serde(default)]
     pub(in crate::web) voice: Option<String>,
     #[serde(default)]
     pub(in crate::web) pitch: Option<String>,
@@ -321,6 +331,21 @@ pub(in crate::web) async fn synthesize_voice_http(
     }
     if let Some(text_lang) = request.text_lang {
         config.text_lang = Some(text_lang);
+    }
+    if let Some(temperature) = request.temperature {
+        config.temperature = Some(temperature);
+    }
+    if let Some(top_k) = request.top_k {
+        config.top_k = Some(top_k);
+    }
+    if let Some(top_p) = request.top_p {
+        config.top_p = Some(top_p);
+    }
+    if let Some(repetition_penalty) = request.repetition_penalty {
+        config.repetition_penalty = Some(repetition_penalty);
+    }
+    if let Some(text_split_method) = request.text_split_method {
+        config.text_split_method = Some(text_split_method);
     }
     if let Some(voice) = request.voice {
         config.voice = voice;

@@ -189,7 +189,7 @@ fn resource_layout_rejects_absolute_symlinks_into_moved_trees() {
 fn resource_path_remapping_includes_the_legacy_xdg_config_root() {
     let base = BaseDirs::new().unwrap();
     let root = base.home_dir().join(".miyu");
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: root.to_path_buf(),
         config_dir: root.join("config"),
         config_file: root.join("config/config.jsonc"),

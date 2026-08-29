@@ -11,7 +11,7 @@ use crate::cli::repl::tail::*;
 use crate::cli::*;
 
 pub(in crate::cli) async fn run_chat_with_images(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     message: String,
     pasted_images: Vec<Option<crate::clipboard::PastedImage>>,
 ) -> Result<()> {
@@ -136,7 +136,7 @@ pub(in crate::cli) async fn run_chat_with_images(
 }
 
 pub(in crate::cli) async fn run_chat_with_options(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     message: String,
     show_reasoning: Option<bool>,
     plain: bool,
@@ -294,7 +294,7 @@ pub(in crate::cli) async fn run_chat_with_options(
 }
 
 pub(in crate::cli) async fn run_direct_repl(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     initial_mode: AgentMode,
 ) -> Result<()> {
     let _core_lease = ipc::acquire_direct_core(paths)?;

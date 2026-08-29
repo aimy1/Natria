@@ -175,8 +175,8 @@ pub(super) fn test_client(provider: ProviderConfig) -> OpenAiCompatibleClient {
     }
 }
 
-pub(super) fn test_paths(root: &std::path::Path) -> MiyuPaths {
-    MiyuPaths {
+pub(super) fn test_paths(root: &std::path::Path) -> NatriaPaths {
+    NatriaPaths {
         root_dir: root.to_path_buf(),
         config_dir: root.join("config"),
         config_file: root.join("config/config.jsonc"),

@@ -1,7 +1,7 @@
 use super::{MemoryStore, OrganizationBatch, OrganizedOutput};
 use crate::config::AppConfig;
 use crate::llm::{ChatMessage, OpenAiCompatibleClient};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::state::StateStore;
 use anyhow::{Context, Result};
 use serde_json::json;
@@ -32,7 +32,7 @@ pub(crate) struct MemoryOrganizer {
 #[derive(Clone)]
 struct OrganizerJob {
     config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     state_store: StateStore,
     retry_count: u8,
     next_attempt: Instant,
@@ -96,7 +96,7 @@ impl Drop for MemoryOrganizer {
 }
 
 impl MemoryOrganizerHandle {
-    pub(crate) fn wake(&self, config: AppConfig, paths: MiyuPaths, state_store: StateStore) {
+    pub(crate) fn wake(&self, config: AppConfig, paths: NatriaPaths, state_store: StateStore) {
         if self.shutdown.load(Ordering::Acquire) {
             return;
         }
@@ -319,8 +319,8 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::atomic::AtomicUsize;
 
-    fn test_paths(temp: &tempfile::TempDir) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(temp: &tempfile::TempDir) -> NatriaPaths {
+        NatriaPaths {
             root_dir: temp.path().to_path_buf(),
             config_dir: temp.path().join("config"),
             config_file: temp.path().join("config/config.jsonc"),

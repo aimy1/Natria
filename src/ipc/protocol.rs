@@ -207,7 +207,7 @@ pub enum Command {
     SetReplSession {
         target: SessionRef,
     },
-    /// 工具桥(任务#12):`miyu tool-call` 打回 daemon,以指定会话的身份与
+    /// 工具桥(任务#12):`natria tool-call` 打回 daemon,以指定会话的身份与
     /// 回合来源执行结构化工具——内层调用照走 guard/超时管线。bash 就是
     /// 编排层:中间数据在脚本里流动,不经模型上下文往返。
     ToolCall {

@@ -5,14 +5,14 @@
 //! that is not this one, and left alone they either silently do nothing or
 //! point work at directories that do not exist here.
 
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{Context, Result};
 use rusqlite::Connection;
 use std::path::Path;
 
 /// Applies every machine-specific rewrite to the restored state.
 /// Returns how many session workspaces had to be cleared.
-pub fn apply(paths: &MiyuPaths) -> Result<usize> {
+pub fn apply(paths: &NatriaPaths) -> Result<usize> {
     let database = paths.state_dir.join("conversation.db");
     if !database.exists() {
         return Ok(0);

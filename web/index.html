@@ -430,7 +430,6 @@
             <button type="button" data-settings-view="providers">供应商</button>
             <button type="button" data-settings-view="models">模型池</button>
             <button type="button" data-settings-view="plugins">插件</button>
-            <button type="button" data-settings-view="logs">运行日志</button>
             <button type="button" data-settings-view="advanced">高级</button>
           </nav>
           <div class="settings-content">
@@ -484,40 +483,16 @@
                 <button class="toggle on" id="voiceFilterActionsToggle" type="button" role="switch" aria-checked="true" aria-label="过滤动作描写与旁白"></button>
               </div>
 
-              <!-- 模式切换 Tabs -->
-              <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+              <!-- 模式切换 Segmented Control -->
+              <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 8px;">
                 <div class="lbl">
                   <strong>发音方式 / 引擎</strong>
                   <small>选择云端免部署语音服务或本地开源零样本克隆</small>
                 </div>
-                <div class="voice-mode-tabs" role="tablist">
-                  <button type="button" class="voice-mode-tab is-active" data-engine-tab="edge_tts">
-                    <div class="voice-tab-header">
-                      <span class="voice-tab-pill pill-green">免部署</span>
-                    </div>
-                    <div class="tab-meta">
-                      <span class="tab-title">微软 Edge-TTS</span>
-                      <span class="tab-desc">云端神经网络 · 自然拟真</span>
-                    </div>
-                  </button>
-                  <button type="button" class="voice-mode-tab" data-engine-tab="clone">
-                    <div class="voice-tab-header">
-                      <span class="voice-tab-pill pill-purple">零样本</span>
-                    </div>
-                    <div class="tab-meta">
-                      <span class="tab-title">本地声音克隆</span>
-                      <span class="tab-desc">GPT-SoVITS / CosyVoice</span>
-                    </div>
-                  </button>
-                  <button type="button" class="voice-mode-tab" data-engine-tab="custom">
-                    <div class="voice-tab-header">
-                      <span class="voice-tab-pill pill-blue">API 扩展</span>
-                    </div>
-                    <div class="tab-meta">
-                      <span class="tab-title">自定义 / OpenAI</span>
-                      <span class="tab-desc">私有接口或 OpenAI TTS</span>
-                    </div>
-                  </button>
+                <div class="segmented" id="voiceModeSegmented" role="tablist" aria-label="发音方式" style="width: 100%; display: grid; grid-template-columns: repeat(3, 1fr);">
+                  <button type="button" class="voice-mode-tab active" data-engine-tab="edge_tts">微软 Edge-TTS (云端)</button>
+                  <button type="button" class="voice-mode-tab" data-engine-tab="clone">本地克隆 (GPT-SoVITS)</button>
+                  <button type="button" class="voice-mode-tab" data-engine-tab="custom">自定义 / OpenAI API</button>
                 </div>
               </div>
             </div>
@@ -538,8 +513,7 @@
                   <div class="lbl"><strong>选择预置音色</strong><small>提供傲娇小盐、晓晓、云扬、云希等优质声线</small></div>
                   <div class="voice-select-wrap">
                     <select id="voiceSelect" class="config-input voice-select" aria-label="音色选择"></select>
-                    <button class="primary-button compact-button" id="voiceTestButton" type="button" title="试听当前选中的声音">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
+                    <button class="primary-button compact-button" id="voiceTestButton" type="button">
                       试听
                     </button>
                   </div>
@@ -573,11 +547,9 @@
                   </div>
                   <div class="voice-form-actions">
                     <button class="compact-button" id="resetPresetsButton" type="button" title="恢复所有预置音色">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span>
                       恢复默认预置
                     </button>
                     <button class="primary-button compact-button" id="addCustomVoiceButton" type="button">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
                       添加音色
                     </button>
                   </div>
@@ -608,7 +580,6 @@
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span id="voiceCloneStatusBadge" class="voice-status-badge">待检测</span>
                     <button type="button" id="checkVoiceCloneHealthButton" class="compact-button">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
                       检测连通性
                     </button>
                   </div>
@@ -618,6 +589,20 @@
                     <strong>持久直连</strong>：直连本地 GPT-SoVITS 语音服务，内置自动保活与连接重试机制，保持纯正专属音色，不切换至其他语音。
                   </div>
                   <div class="config-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                    <div class="config-field" style="grid-column: 1 / -1;">
+                      <label class="config-field-label" for="voiceCloneCharacterPresetSelect">预置角色性格 / 专属音色</label>
+                      <select id="voiceCloneCharacterPresetSelect" class="config-input">
+                        <option value="tsundere">傲娇小盐（推荐 · 经典原版）</option>
+                        <option value="gentle">温柔依偎（轻声软语 · 治愈）</option>
+                        <option value="playful">调皮撩人（声线微甜 · 灵动）</option>
+                        <option value="confident">元气自信（清澈明亮 · 甜美）</option>
+                        <option value="possessive">独占女王（气场从容 · 御姐）</option>
+                        <option value="lazy">慵懒撒娇（尾音微颤 · 舒适）</option>
+                        <option value="shy">害羞脸红（心跳加速 · 娇羞）</option>
+                        <option value="sweet">甜美宠溺（温柔亲和 · 宠溺）</option>
+                        <option value="custom">自定义录音与台词...</option>
+                      </select>
+                    </div>
                     <div class="config-field">
                       <label class="config-field-label" for="voiceCloneEngineSubSelect">克隆引擎</label>
                       <select id="voiceCloneEngineSubSelect" class="config-input">
@@ -636,6 +621,16 @@
                       </select>
                     </div>
                     <div class="config-field">
+                      <label class="config-field-label" for="voiceCloneTextLangSelect">目标合成语种 (Text Lang)</label>
+                      <select id="voiceCloneTextLangSelect" class="config-input">
+                        <option value="auto">智能识别 / 中英混合 (auto)</option>
+                        <option value="zh">中文 (zh)</option>
+                        <option value="en">英语 (en)</option>
+                        <option value="ja">日语 (ja)</option>
+                        <option value="yue">粤语 (yue)</option>
+                      </select>
+                    </div>
+                    <div class="config-field">
                       <label class="config-field-label" for="voiceClonePromptLangSelect">参考音频语种</label>
                       <select id="voiceClonePromptLangSelect" class="config-input">
                         <option value="zh">中文 (zh)</option>
@@ -644,19 +639,44 @@
                         <option value="auto">自动识别 (auto)</option>
                       </select>
                     </div>
-                    <div class="config-field" style="grid-column: 1 / -1;">
-                      <label class="config-field-label" for="voiceClonePromptTextInput">参考录音台词 (Prompt Text，录音所说文字)</label>
-                      <input type="text" id="voiceClonePromptTextInput" placeholder="例如：你好，这是我的声音样本。" class="config-input">
-                    </div>
-                    <div class="config-field" style="grid-column: 1 / -1;">
+                    <div class="config-field">
                       <label class="config-field-label" for="voiceCloneApiKeyInput">API Key (可选密钥，无密码留空)</label>
                       <input type="password" id="voiceCloneApiKeyInput" placeholder="若无密码可留空" class="config-input">
                     </div>
+                    <div class="config-field" style="grid-column: 1 / -1;">
+                      <label class="config-field-label" for="voiceClonePromptTextInput">参考录音台词 (Prompt Text，录音所说文字)</label>
+                      <input type="text" id="voiceClonePromptTextInput" placeholder="例如：哼，今天就勉强允许你牵我的手好了，下不为例哦。" class="config-input">
+                    </div>
+
+                    <!-- 高级采样调优折叠区 -->
+                    <div class="config-field" style="grid-column: 1 / -1; margin-top: 4px; padding: 12px; background: color-mix(in srgb, var(--surface-2) 40%, transparent); border-radius: 8px; border: 1px solid var(--border);">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <strong style="font-size: 12px;">GPT-SoVITS 深度采样调优</strong>
+                        <span style="font-size: 11px; color: var(--text-soft);">降低温度可减少杂音、电音与吞字</span>
+                      </div>
+                      <div class="config-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <div class="config-field">
+                          <label class="config-field-label" for="voiceCloneTempSlider">采样温度 (Temperature): <strong id="voiceCloneTempLabel">0.80</strong></label>
+                          <input type="range" id="voiceCloneTempSlider" min="0.30" max="1.20" step="0.05" value="0.80">
+                        </div>
+                        <div class="config-field">
+                          <label class="config-field-label" for="voiceCloneTopKSlider">候选范围 (Top-K): <strong id="voiceCloneTopKLabel">5</strong></label>
+                          <input type="range" id="voiceCloneTopKSlider" min="1" max="20" step="1" value="5">
+                        </div>
+                        <div class="config-field">
+                          <label class="config-field-label" for="voiceCloneRepPenaltySlider">重复惩罚 (Repetition Penalty): <strong id="voiceCloneRepPenaltyLabel">1.35</strong></label>
+                          <input type="range" id="voiceCloneRepPenaltySlider" min="1.00" max="1.80" step="0.05" value="1.35">
+                        </div>
+                        <div class="config-field">
+                          <label class="config-field-label" for="voiceCloneRateSlider">语速调节 (Speed Factor): <strong id="voiceCloneRateLabel">+0%</strong></label>
+                          <input type="range" id="voiceCloneRateSlider" min="-40" max="60" step="5" value="0">
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div style="display: flex; justify-content: flex-end; padding-top: 4px;">
+                  <div style="display: flex; justify-content: flex-end; padding-top: 8px;">
                     <button class="primary-button compact-button" id="voiceCloneTestButton" type="button">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
-                      试听克隆发音
+                      试听发音
                     </button>
                   </div>
                 </div>
@@ -695,7 +715,6 @@
                   </div>
                   <div style="display: flex; justify-content: flex-end; padding-top: 4px;">
                     <button class="primary-button compact-button" id="voiceCustomTestButton" type="button">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span>
                       测试接口
                     </button>
                   </div>
@@ -715,11 +734,9 @@
                   <div style="display: flex; gap: 8px; align-items: center;">
                     <input id="voiceFileInput" type="file" accept=".mp3,.wav,.ogg,.flac,.m4a,.aac,.opus,.wma,audio/*" hidden style="display: none !important; position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;">
                     <button class="primary-button compact-button" id="uploadVoiceFileButton" type="button">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
-                      选择文件
+                      上传音频
                     </button>
                     <button class="compact-button" id="refreshVoiceFilesButton" type="button" title="重新扫描 voices/ 目录">
-                      <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></span>
                       刷新
                     </button>
                   </div>
@@ -728,7 +745,6 @@
                   <div id="voiceFileDropZone" class="voice-drop-zone" title="点击或拖拽音频文件到此处上传">
                     <div class="voice-drop-zone-content">
                       <button class="secondary-button compact-button" id="browseVoiceFileButton" type="button">
-                        <span class="icon-slot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span>
                         选择文件
                       </button>
                       <span>或将音频文件拖拽至此处（推荐 3~8 秒清晰人声 WAV/MP3）</span>
@@ -815,21 +831,6 @@
                <div class="qq-history-output" id="qqHistoryOutput" hidden></div>
               </section>
               </section>
-            <section class="settings-section settings-panel" data-settings-panel="logs" hidden>
-            <div class="settings-section-heading">
-              <div>
-                <h2>运行日志 (Runtime Logs)</h2>
-                <p class="settings-description" style="margin: 2px 0 0;">查看 Natria 核心后台实时运行日志、API 调用记录与调试信息</p>
-              </div>
-              <button class="primary-button compact-button" id="jumpToLogsPanelButton" type="button">
-                <span class="icon-slot" data-icon="terminal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></span>
-                切换至全屏日志终端
-              </button>
-            </div>
-            <div class="config-group" style="padding: 16px;">
-              <p style="color: var(--text-soft); font-size: 13px; line-height: 1.6; margin: 0 0 12px;">系统已开启全天候运行时日志记录。你可点击上方按钮或在控制台左侧侧栏直接点击「运行日志」进入沉浸式日志终端，支持实时监听、多级别过滤（ERROR/WARN/INFO/DEBUG）、关键词搜索与日志导出。</p>
-            </div>
-            </section>
             <section class="settings-section settings-panel" data-settings-panel="advanced" hidden>
             <h2>完整配置</h2>
             <p class="settings-description">这里包含结构化表单未单独展示的所有配置项。应用到草稿后仍需保存。</p>

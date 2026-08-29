@@ -379,9 +379,12 @@ where
             .unwrap_or_default()
             .to_string();
         let raw_name = block.get("name").and_then(Value::as_str).unwrap_or("tool");
-        // MCP 前缀剥掉:Miyu 工具按本名显示(readable_tool_name 才认识),
+        // MCP 前缀剥掉:Natria 工具按本名显示(readable_tool_name 才认识),
         // claude 原生工具保持原名。
-        let name = raw_name.strip_prefix("mcp__miyu__").unwrap_or(raw_name);
+        let name = raw_name
+            .strip_prefix("mcp__natria__")
+            .or_else(|| raw_name.strip_prefix("mcp__miyu__"))
+            .unwrap_or(raw_name);
         remote_tools.insert(id.clone(), name.to_string());
         let input = block.get("input").cloned().unwrap_or(json!({}));
         on_chunk(ChatStreamChunk {

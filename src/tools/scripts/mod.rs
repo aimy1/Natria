@@ -4,7 +4,7 @@ pub(crate) use index::*;
 use super::registry::UnregisteredScript;
 use super::{ToolRegistry, ToolSpec};
 use crate::i18n::is_zh;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::tools::tool_descriptions::LoadPolicy;
 use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
@@ -17,7 +17,7 @@ use tokio::process::Command;
 const SCRIPT_TIMEOUT_SECS: u64 = 120;
 const MAX_SCRIPT_OUTPUT_CHARS: usize = 20_000;
 
-pub fn register(registry: &mut ToolRegistry, paths: &MiyuPaths) {
+pub fn register(registry: &mut ToolRegistry, paths: &NatriaPaths) {
     let dirs = [
         paths.system_scripts_dir.as_path(),
         paths.scripts_dir.as_path(),

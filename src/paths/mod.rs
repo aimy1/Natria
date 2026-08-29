@@ -5,8 +5,8 @@ pub(crate) use resource_migration::*;
 
 /// Miyu 自己这个可执行文件的路径，**在它可能被替换之前**记下来。
 ///
-/// 好几处功能靠再执行一遍自己来干活：daemon 是 `miyu __daemon`，长图渲染器是
-/// `miyu __render_worker`，闹钟和知识库索引也是。它们原本各自调
+/// 好几处功能靠再执行一遍自己来干活：daemon 是 `natria __daemon`，长图渲染器是
+/// `natria __render_worker`，闹钟和知识库索引也是。它们原本各自调
 /// `std::env::current_exe()`，而那在 Linux 上读的是 `/proc/self/exe`——**一旦
 /// 磁盘上的文件被换掉（升级安装包、开发时重新编译），这个符号链接就变成
 /// `/path/to/miyu (deleted)`，拿它去 spawn 必然 ENOENT。**
@@ -16,7 +16,7 @@ pub(crate) use resource_migration::*;
 ///
 /// 所以：第一次调用就把结果缓存下来（daemon 启动时立刻预热，那时文件还在），
 /// 并且把 `(deleted)` 后缀剥掉——路径本身通常仍指向新装上的那个二进制。
-pub fn miyu_executable() -> Result<PathBuf> {
+pub fn natria_executable() -> Result<PathBuf> {
     static EXECUTABLE: std::sync::OnceLock<PathBuf> = std::sync::OnceLock::new();
     if let Some(path) = EXECUTABLE.get() {
         return Ok(path.clone());
@@ -26,17 +26,17 @@ pub fn miyu_executable() -> Result<PathBuf> {
     Ok(EXECUTABLE.get_or_init(|| resolved).clone())
 }
 
-pub fn natria_executable() -> Result<PathBuf> {
-    miyu_executable()
+pub fn miyu_executable() -> Result<PathBuf> {
+    natria_executable()
 }
 
 /// 进程启动早期预热一次，趁二进制还没被换掉。
-pub fn prime_miyu_executable() {
-    let _ = miyu_executable();
+pub fn prime_natria_executable() {
+    let _ = natria_executable();
 }
 
-pub fn prime_natria_executable() {
-    prime_miyu_executable();
+pub fn prime_miyu_executable() {
+    prime_natria_executable();
 }
 
 /// `/proc/self/exe` 在文件被替换后会读出 `".../miyu (deleted)"`。
@@ -65,9 +65,9 @@ use std::os::windows::fs::symlink_file as symlink;
 use std::path::{Component, Path, PathBuf};
 
 #[derive(Debug, Clone)]
-pub struct MiyuPaths {
-    /// Everything below lives under this root (`~/.miyu`, or `MIYU_HOME`).
-    /// Kept as its own field because the model is told where Miyu's files are
+pub struct NatriaPaths {
+    /// Everything below lives under this root (`~/.natria`, or `NATRIA_HOME`).
+    /// Kept as its own field because the model is told where Natria's files are
     /// and guessing it back from a child directory would silently break the
     /// day the layout changes.
     pub root_dir: PathBuf,
@@ -85,9 +85,9 @@ pub struct MiyuPaths {
     pub system_scripts_dir: PathBuf,
 }
 
-pub type NatriaPaths = MiyuPaths;
+pub type MiyuPaths = NatriaPaths;
 
-impl MiyuPaths {
+impl NatriaPaths {
     pub fn new() -> Result<Self> {
         let base = BaseDirs::new().context(t(
             "could not determine XDG base directories",
@@ -191,7 +191,15 @@ impl MiyuPaths {
         } else {
             data_dir.join("pictures")
         };
-        let fish_hook_file = base.config_dir().join("fish/conf.d/miyu.fish");
+        let fish_hook_file = {
+            let natria_fish = base.config_dir().join("fish/conf.d/natria.fish");
+            let miyu_fish = base.config_dir().join("fish/conf.d/miyu.fish");
+            if natria_fish.exists() || !miyu_fish.exists() {
+                natria_fish
+            } else {
+                miyu_fish
+            }
+        };
         let bash_hook_file = config_dir.join("shell/bash-hook.sh");
         let zsh_hook_file = config_dir.join("shell/zsh-hook.zsh");
         let resource_config_dir = if use_legacy_temporarily || resource_migration_deferred {
@@ -200,7 +208,15 @@ impl MiyuPaths {
             data_dir.clone()
         };
         let scripts_dir = resource_config_dir.join("scripts");
-        let system_scripts_dir = PathBuf::from("/usr/share/miyu/scripts");
+        let system_scripts_dir = {
+            let natria_scripts = PathBuf::from("/usr/share/natria/scripts");
+            let miyu_scripts = PathBuf::from("/usr/share/miyu/scripts");
+            if natria_scripts.exists() || !miyu_scripts.exists() {
+                natria_scripts
+            } else {
+                miyu_scripts
+            }
+        };
 
         Ok(Self {
             // The canonical home even inside the transient legacy window: that

@@ -1,6 +1,6 @@
 use super::{ToolRegistry, ToolSpec};
 use crate::config::AppConfig;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::skills::{self, SkillEntry, SkillScope};
 use anyhow::{Context, Result};
 use serde_json::{json, Value};
@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 pub fn register_skills(
     registry: &mut ToolRegistry,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
 ) -> Result<()> {
     let (entries, fingerprint) = stable_catalog(config, paths)?;
     register_load_skill(registry, config.clone(), paths.clone(), &entries);
@@ -19,7 +19,7 @@ pub fn register_skills(
 pub fn refresh_skills(
     registry: &mut ToolRegistry,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
 ) -> Result<bool> {
     if !registry.contains("load_skill") {
         return Ok(false);
@@ -41,7 +41,7 @@ pub(crate) struct SkillCatalogSnapshot {
 pub(crate) fn prepare_skill_refresh(
     current: Option<[u8; 32]>,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
 ) -> Result<Option<SkillCatalogSnapshot>> {
     let fingerprint = skills::catalog_fingerprint(config, paths)?;
     if current == Some(fingerprint) {
@@ -57,14 +57,14 @@ pub(crate) fn prepare_skill_refresh(
 pub(crate) fn apply_skill_refresh(
     registry: &mut ToolRegistry,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     snapshot: SkillCatalogSnapshot,
 ) {
     register_load_skill(registry, config.clone(), paths.clone(), &snapshot.entries);
     registry.set_skill_catalog_fingerprint(snapshot.fingerprint);
 }
 
-fn stable_catalog(config: &AppConfig, paths: &MiyuPaths) -> Result<(Vec<SkillEntry>, [u8; 32])> {
+fn stable_catalog(config: &AppConfig, paths: &NatriaPaths) -> Result<(Vec<SkillEntry>, [u8; 32])> {
     for _ in 0..3 {
         let before = skills::catalog_fingerprint(config, paths)?;
         let entries = skills::discover(config, paths)?;
@@ -78,7 +78,7 @@ fn stable_catalog(config: &AppConfig, paths: &MiyuPaths) -> Result<(Vec<SkillEnt
 
 /// 五件 Skill 创作工具合并成 `manage_skill`(08-17):create/update/delete/
 /// publish/list_drafts 是同一条创作流水线上的五个动作。
-pub fn register_authoring(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths) {
+pub fn register_authoring(registry: &mut ToolRegistry, config: AppConfig, paths: NatriaPaths) {
     registry.register(
         ToolSpec::new(
             "manage_skill",
@@ -144,7 +144,7 @@ pub fn register_authoring(registry: &mut ToolRegistry, config: AppConfig, paths:
 fn register_load_skill(
     registry: &mut ToolRegistry,
     config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     entries: &[SkillEntry],
 ) {
     // 第一行必须自洽:stub 模式只保留它,原来那句"必须匹配下方列出的可用
@@ -187,7 +187,7 @@ fn register_load_skill(
 
 
 
-fn load_skill(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<String> {
+fn load_skill(args: Value, config: &AppConfig, paths: &NatriaPaths) -> Result<String> {
     let name = required_string(&args, "name")?;
     let loaded = skills::load(&name, config, paths)?;
     let base_dir = loaded
@@ -250,7 +250,7 @@ fn skill_metadata_xml(metadata: &crate::skills::SkillMetadata) -> String {
     format!("<skill_metadata>\n{}\n</skill_metadata>", fields.join("\n"))
 }
 
-fn create_skill(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<String> {
+fn create_skill(args: Value, config: &AppConfig, paths: &NatriaPaths) -> Result<String> {
     let name = required_string(&args, "name")?;
     let description = required_string(&args, "description")?;
     let scope = SkillScope::parse(args.get("scope").and_then(Value::as_str))?;
@@ -263,7 +263,7 @@ fn create_skill(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<St
     }))?)
 }
 
-fn update_skill(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<String> {
+fn update_skill(args: Value, config: &AppConfig, paths: &NatriaPaths) -> Result<String> {
     let name = required_string(&args, "name")?;
     let scope_value = required_string(&args, "scope")?;
     let scope = SkillScope::parse(Some(&scope_value))?;
@@ -276,7 +276,7 @@ fn update_skill(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<St
     }))?)
 }
 
-fn publish_skill(args: Value, paths: &MiyuPaths) -> Result<String> {
+fn publish_skill(args: Value, paths: &NatriaPaths) -> Result<String> {
     let draft_id = required_string(&args, "draft_id")?;
     let published = skills::publish_draft(paths, &draft_id)?;
     Ok(serde_json::to_string_pretty(&json!({
@@ -287,7 +287,7 @@ fn publish_skill(args: Value, paths: &MiyuPaths) -> Result<String> {
     }))?)
 }
 
-fn delete_skill(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<String> {
+fn delete_skill(args: Value, config: &AppConfig, paths: &NatriaPaths) -> Result<String> {
     let name = required_string(&args, "name")?;
     let scope_value = required_string(&args, "scope")?;
     let scope = SkillScope::parse(Some(&scope_value))?;
@@ -341,8 +341,8 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
-    fn test_paths(root: &std::path::Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &std::path::Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),

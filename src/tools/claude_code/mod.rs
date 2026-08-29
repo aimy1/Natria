@@ -8,13 +8,13 @@
 mod runner;
 
 use crate::config::ClaudeCodePluginConfig;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::tools::{ToolRegistry, ToolSpec};
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
-pub fn register(registry: &mut ToolRegistry, plugin: ClaudeCodePluginConfig, paths: MiyuPaths) {
+pub fn register(registry: &mut ToolRegistry, plugin: ClaudeCodePluginConfig, paths: NatriaPaths) {
     registry.register(
         ToolSpec::new(
             "claude_code",
@@ -40,7 +40,7 @@ pub fn register(registry: &mut ToolRegistry, plugin: ClaudeCodePluginConfig, pat
 async fn run_claude_code(
     args: Value,
     plugin: ClaudeCodePluginConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
 ) -> Result<String> {
     let prompt = args
         .get("prompt")
@@ -103,7 +103,7 @@ mod tests {
         session: &str,
         args: Value,
         plugin: ClaudeCodePluginConfig,
-        paths: MiyuPaths,
+        paths: NatriaPaths,
     ) -> Result<String> {
         // 每个测试各占一个会话键:并发互斥名单是进程级的,测试并行跑时
         // 共用 "local" 会互相顶掉。

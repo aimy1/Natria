@@ -66,7 +66,7 @@ pub(crate) struct ScriptDisplayNames {
     pub(crate) en: Option<String>,
 }
 
-pub fn rescan_scripts(registry: &mut ToolRegistry, paths: &MiyuPaths) {
+pub fn rescan_scripts(registry: &mut ToolRegistry, paths: &NatriaPaths) {
     let dirs = [
         paths.system_scripts_dir.as_path(),
         paths.scripts_dir.as_path(),

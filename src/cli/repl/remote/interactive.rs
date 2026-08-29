@@ -11,10 +11,10 @@ use crate::cli::repl::input::*;
 use crate::cli::repl::tail::*;
 use crate::cli::*;
 
-pub(in crate::cli) async fn run_remote_repl(paths: &MiyuPaths, mut mode: AgentMode) -> Result<()> {
+pub(in crate::cli) async fn run_remote_repl(paths: &NatriaPaths, mut mode: AgentMode) -> Result<()> {
     let _cursor_restore = ReplCursorRestore;
     ipc::ensure_daemon(paths, None).await?;
-    let refreshed = MiyuPaths::new()?;
+    let refreshed = NatriaPaths::new()?;
     let paths = &refreshed;
     initialize_models_cache(paths);
     let mut config = AppConfig::load_or_default(paths)?;
@@ -988,7 +988,7 @@ pub(in crate::cli) async fn run_remote_repl(paths: &MiyuPaths, mut mode: AgentMo
                         &mut live_repl,
                         &format!(
                             "\x1b[2m{}\x1b[0m\n",
-                            t("voice control is configured via `miyu normal` direct mode or web config", "语音控制可在 direct REPL 模式或 WebUI 设置面板中配置")
+                            t("voice control is configured via `natria normal` direct mode or web config", "语音控制可在 direct REPL 模式或 WebUI 设置面板中配置")
                         ),
                     )?;
                 }
@@ -1038,8 +1038,8 @@ pub(in crate::cli) async fn run_remote_repl(paths: &MiyuPaths, mut mode: AgentMo
             Ok(None) => bail!(
                 "{}",
                 t(
-                    "the Miyu Web core stopped; start the REPL again to use direct mode",
-                    "Miyu Web 核心已停止；请重新启动 REPL 以使用直连模式"
+                    "the Natria Web core stopped; start the REPL again to use direct mode",
+                    "Natria Web 核心已停止；请重新启动 REPL 以使用直连模式"
                 )
             ),
             Err(err) if is_remote_turn_detached(&err) => {

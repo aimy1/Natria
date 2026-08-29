@@ -103,6 +103,26 @@ pub struct VoiceConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text_lang: Option<String>,
 
+    /// Sampling temperature for GPT-SoVITS / neural cloning (e.g. 0.8)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f64>,
+
+    /// Top-K sampling candidates count for GPT-SoVITS (e.g. 5)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_k: Option<u32>,
+
+    /// Top-P nucleus sampling probability (e.g. 1.0)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub top_p: Option<f64>,
+
+    /// Repetition penalty for autoregressive text-to-semantic model (e.g. 1.35)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repetition_penalty: Option<f64>,
+
+    /// Text segmentation method in TTS engine (e.g. "cut0", "cut5")
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub text_split_method: Option<String>,
+
     /// Whether to read code blocks (```...```) out loud. Defaults to false.
     #[serde(default)]
     pub read_code_blocks: bool,
@@ -140,6 +160,11 @@ impl Default for VoiceConfig {
             prompt_text: None,
             prompt_lang: None,
             text_lang: None,
+            temperature: None,
+            top_k: None,
+            top_p: None,
+            repetition_penalty: None,
+            text_split_method: None,
             read_code_blocks: false,
         };
         VoicePreset::MiyuChinese.apply_to(&mut config);
@@ -156,6 +181,8 @@ impl VoiceConfig {
             && self.api_key.is_none()
             && self.prompt_audio.is_none()
             && self.prompt_text.is_none()
+            && self.temperature.is_none()
+            && self.top_k.is_none()
             && !self.read_code_blocks
     }
 }

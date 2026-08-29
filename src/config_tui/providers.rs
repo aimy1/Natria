@@ -9,7 +9,7 @@
 use crate::config_tui::*;
 
 pub(in crate::config_tui) struct ProviderBrowser<'a> {
-    pub(in crate::config_tui) paths: &'a MiyuPaths,
+    pub(in crate::config_tui) paths: &'a NatriaPaths,
     pub(in crate::config_tui) config: &'a mut AppConfig,
     pub(in crate::config_tui) thinking_variants: &'a mut ThinkingVariantPreferences,
     pub(in crate::config_tui) active_col: usize,
@@ -94,7 +94,7 @@ pub(in crate::config_tui) fn fetch_models(provider: &ProviderConfig) -> Result<V
 }
 
 pub(in crate::config_tui) fn auto_configure_model_tags(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     provider: &mut ProviderConfig,
     model: &str,
 ) {

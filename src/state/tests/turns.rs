@@ -6,7 +6,7 @@ use crate::state::*;
 #[test]
 fn turn_lifecycle() {
     let temp = tempfile::tempdir().unwrap();
-    let store = StateStore::new(&MiyuPaths {
+    let store = StateStore::new(&NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -41,7 +41,7 @@ fn turn_lifecycle() {
 #[test]
 fn question_exchange_persists_with_user_role_history() {
     let temp = tempfile::tempdir().unwrap();
-    let store = StateStore::new(&MiyuPaths {
+    let store = StateStore::new(&NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -86,7 +86,7 @@ fn question_exchange_persists_with_user_role_history() {
 #[test]
 fn interrupt_turn() {
     let temp = tempfile::tempdir().unwrap();
-    let store = StateStore::new(&MiyuPaths {
+    let store = StateStore::new(&NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -184,7 +184,7 @@ fn overlapping_turns_reorder_to_completion_order() {
 #[test]
 fn interrupted_turn_materializes_persisted_journal_output() {
     let temp = tempfile::tempdir().unwrap();
-    let store = StateStore::new(&MiyuPaths {
+    let store = StateStore::new(&NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -307,7 +307,7 @@ fn superseded_journal_keeps_completed_tool_events_without_partial_text() {
 #[test]
 fn recover_stale_running() {
     let temp = tempfile::tempdir().unwrap();
-    let store = StateStore::new(&MiyuPaths {
+    let store = StateStore::new(&NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -492,7 +492,7 @@ fn cancelled_turn_cleanup_deletes_queued_prompts_without_folding() {
 #[test]
 fn undo_removes_last_turn() {
     let temp = tempfile::tempdir().unwrap();
-    let store = StateStore::new(&MiyuPaths {
+    let store = StateStore::new(&NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -727,7 +727,7 @@ fn tool_report_write_amplification() {
 /// 量尺：`cargo test --lib state::tests::turns::history_limit_scaling -- --ignored --nocapture`
 ///
 /// `history(limit)` 把整个会话的所有回合（含每个回合的子表挂载）全读出来，
-/// 再取尾部 limit 条。会话越长，`miyu history -n 10` 越慢。
+/// 再取尾部 limit 条。会话越长，`natria history -n 10` 越慢。
 #[test]
 #[ignore]
 fn history_limit_scaling() {

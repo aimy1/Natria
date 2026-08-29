@@ -1,5 +1,5 @@
 use super::{html_conversion, http_response, ToolRegistry, ToolSpec};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Result};
 use serde_json::{json, Value};
 
@@ -8,7 +8,7 @@ const ARCH_STATUS_PAGE_ID: &str = "vmM5ruWEAB";
 const ARCH_NEWS_FEED_URL: &str = "https://archlinux.org/feeds/news/";
 const ARCH_NEWS_CACHE_FILE: &str = "arch_news_last_seen.json";
 
-pub fn register(registry: &mut ToolRegistry, paths: &MiyuPaths) {
+pub fn register(registry: &mut ToolRegistry, paths: &NatriaPaths) {
     // 三件 AUR 查询工具合并成 `aur`(08-17):search/info/status 都走官方 RPC,
     // 拆开只是让 tools 数组多背两份外壳。
     registry.register(ToolSpec::new(

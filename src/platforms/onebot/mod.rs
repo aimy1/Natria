@@ -64,7 +64,7 @@ use crate::config::{
 use crate::i18n::text as t;
 use crate::ipc::ImageAttachment;
 use crate::llm::{ChatMessage, OpenAiCompatibleClient};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::runtime::{
     clear_platform_session_content, enqueue_turn_update, random_id, reset_platform_persona_state,
     safe_error_message, DaemonState, PlatformPersonaResetError, PlatformSessionResetError,

@@ -22,7 +22,7 @@ const COLLECTOR_QUEUE_CAPACITY: usize = 32;
 
 struct CollectionJob {
     config: crate::config::AppConfig,
-    paths: crate::paths::MiyuPaths,
+    paths: crate::paths::NatriaPaths,
     state: crate::state::StateStore,
     conversation: crate::platforms::PlatformConversation,
     message_id: String,

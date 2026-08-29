@@ -345,7 +345,7 @@ pub(super) fn register_tools(registry: &mut ToolRegistry, context: Arc<PlatformT
 mod tests {
     use super::*;
     use crate::config::AppConfig;
-    use crate::paths::MiyuPaths;
+    use crate::paths::NatriaPaths;
     use crate::platforms::access_control::{global_grant_key, AccessPermission};
     use crate::platforms::plugins::PlatformPluginRegistry;
     use crate::platforms::{
@@ -380,8 +380,8 @@ mod tests {
         }
     }
 
-    fn test_paths(root: &std::path::Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &std::path::Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),
@@ -399,7 +399,7 @@ mod tests {
     }
 
     fn test_context(
-        paths: &MiyuPaths,
+        paths: &NatriaPaths,
         state: StateStore,
         adapter: Arc<RecordingAdapter>,
         static_admin: bool,

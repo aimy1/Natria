@@ -50,7 +50,7 @@ fn daemon_log_formatter_parses_targets_and_preserves_multiline_content() {
 fn daemon_log_formatter_supports_legacy_lines_and_tty_colors() {
     let legacy = "2026-07-29T12:34:56.789Z  WARN OneBot connection closed reason=timeout";
     let parsed = parse_daemon_log_line(legacy).unwrap();
-    assert_eq!(parsed.module, "miyu");
+    assert_eq!(parsed.module, "natria");
     assert_eq!(parsed.message, "OneBot connection closed reason=timeout");
 
     let rendered = format_daemon_log_line(legacy, true);

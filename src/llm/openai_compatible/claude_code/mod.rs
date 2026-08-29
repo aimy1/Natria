@@ -2,7 +2,7 @@
 //!
 //! 传输层不是 HTTP,是本机 `claude` 子进程的 stream-json 双向流:CLI 用用户
 //! 既有的订阅登录态,Miyu 不经手任何凭据。工具循环的所有权在 claude 侧——
-//! Miyu 的工具经 `miyu mcp-serve` 桥挂进去(内层调用照走 daemon 的 guard 管
+//! Miyu 的工具经 `natria mcp-serve` 桥挂进去(内层调用照走 daemon 的 guard 管
 //! 线),所以这条线对 Miyu 的回合循环呈现为「一次请求、纯文本(+思考)回来、
 //! 永远没有 tool_calls」。
 //!
@@ -266,14 +266,14 @@ impl OpenAiCompatibleClient {
     }
 }
 
-/// Miyu 工具经 MCP stdio 桥挂给 claude:`miyu mcp-serve` 打回 daemon,与
-/// `miyu tool-call` 同一条会话→模式→registry 解析链。没有会话作用域(测试
+/// Miyu 工具经 MCP stdio 桥挂给 claude:`natria mcp-serve` 打回 daemon,与
+/// `natria tool-call` 同一条会话→模式→registry 解析链。没有会话作用域(测试
 /// /直连辅助请求)就不挂桥。
 /// 中转环境事实(声明式,不写指令;常量字节保证前缀稳定)。
 const RELAY_ENVIRONMENT_NOTE: &str = "\n\n<relay-environment>\nThis session runs inside Miyu's relay: each turn is a fresh CLI process that exits when the turn ends. Work backgrounded through the built-in tools (Bash run_in_background, background Task) dies with the process, and its completion notifications never arrive.\n</relay-environment>";
 
 /// miyu 工具桥在场时的补充事实。
-const RELAY_MIYU_TOOLS_NOTE: &str = "\n<relay-environment-tools>\nThe mcp__miyu__ tools live in the persistent Miyu daemon and survive across turns: mcp__miyu__task runs a background subagent that wakes a follow-up turn when it finishes, mcp__miyu__job inspects or stops those, and mcp__miyu__alarm schedules timed reminders.\n</relay-environment-tools>";
+const RELAY_MIYU_TOOLS_NOTE: &str = "\n<relay-environment-tools>\nThe mcp__miyu__ tools live in the persistent Natria daemon and survive across turns: mcp__miyu__task runs a background subagent that wakes a follow-up turn when it finishes, mcp__miyu__job inspects or stops those, and mcp__miyu__alarm schedules timed reminders.\n</relay-environment-tools>";
 
 /// 两套工具同开时从桥里剔除的 Miyu 工具(与 claude 原生功能重复,原生
 /// 在训练分布内、优先)。task **不剔**:与原生 Task 语义不同——Miyu 子代理
@@ -294,25 +294,26 @@ const BRIDGE_DUPLICATE_TOOLS: &[&str] = &[
 
 fn mcp_bridge_config(exclude_duplicates: bool) -> Option<String> {
     let session = crate::tools::workspace::try_session()?;
-    let exe = crate::paths::miyu_executable().ok()?;
+    let exe = crate::paths::natria_executable().ok()?;
     let origin =
         serde_json::to_string(&crate::tools::workspace::current_turn_origin()).ok()?;
     let mut env = serde_json::Map::new();
+    env.insert("NATRIA_SESSION".into(), json!(&*session));
     env.insert("MIYU_SESSION".into(), json!(&*session));
+    env.insert("NATRIA_TURN_ORIGIN".into(), json!(&origin));
     env.insert("MIYU_TURN_ORIGIN".into(), json!(origin));
     if exclude_duplicates {
-        env.insert(
-            "MIYU_MCP_EXCLUDE".into(),
-            json!(BRIDGE_DUPLICATE_TOOLS.join(",")),
-        );
+        let duplicates = json!(BRIDGE_DUPLICATE_TOOLS.join(","));
+        env.insert("NATRIA_MCP_EXCLUDE".into(), duplicates.clone());
+        env.insert("MIYU_MCP_EXCLUDE".into(), duplicates);
     }
     // claude 给 MCP server 的是洁净环境,home/runtime 识别变量要显式带——
     // 但必须**如实透传**(daemon 自己有什么才给什么):runtime 目录推导对
-    // "显式设了 MIYU_HOME"与"没设"给出不同路径(默认 home 显式设也会变
-    // 成哈希子目录),无条件塞 MIYU_HOME 会让 mcp-serve 连不上正常启动的
+    // "显式设了 NATRIA_HOME/MIYU_HOME"与"没设"给出不同路径(默认 home 显式设也会变
+    // 成哈希子目录),无条件塞 NATRIA_HOME 会让 mcp-serve 连不上正常启动的
     // daemon,静默滑进直连兜底(实测:目录缺 WebUI 工具、图片打进
     // mcp-serve 自己的 stdout、资产全无)。
-    for key in ["MIYU_HOME", "XDG_RUNTIME_DIR"] {
+    for key in ["NATRIA_HOME", "MIYU_HOME", "XDG_RUNTIME_DIR"] {
         if let Some(value) = std::env::var_os(key) {
             env.insert(key.into(), json!(value.to_string_lossy()));
         }
@@ -320,7 +321,7 @@ fn mcp_bridge_config(exclude_duplicates: bool) -> Option<String> {
     Some(
         json!({
             "mcpServers": {
-                "miyu": {
+                "natria": {
                     "command": exe,
                     "args": ["mcp-serve"],
                     "env": env,

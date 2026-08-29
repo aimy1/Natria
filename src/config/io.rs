@@ -10,7 +10,7 @@
 use crate::config::*;
 
 impl AppConfig {
-    pub fn display_language_hint(paths: &MiyuPaths) -> Option<String> {
+    pub fn display_language_hint(paths: &NatriaPaths) -> Option<String> {
         let raw = std::fs::read_to_string(&paths.config_file).ok()?;
         let stripped = json_comments::StripComments::new(raw.as_bytes());
         let value: serde_json::Value = serde_json::from_reader(stripped).ok()?;
@@ -29,7 +29,7 @@ impl AppConfig {
         }
     }
 
-    pub fn load(paths: &MiyuPaths) -> Result<Self> {
+    pub fn load(paths: &NatriaPaths) -> Result<Self> {
         // Platform multimodal routes may rely on cached models.dev
         // capabilities. Load the full cache before validation; callers can
         // compact it to their active configuration afterwards.
@@ -49,7 +49,7 @@ impl AppConfig {
         Ok(config)
     }
 
-    pub fn load_or_default(paths: &MiyuPaths) -> Result<Self> {
+    pub fn load_or_default(paths: &NatriaPaths) -> Result<Self> {
         if paths.config_file.exists() {
             Self::load(paths)
         } else {
@@ -57,7 +57,7 @@ impl AppConfig {
         }
     }
 
-    pub fn init_files(paths: &MiyuPaths) -> Result<()> {
+    pub fn init_files(paths: &NatriaPaths) -> Result<()> {
         paths.create_dirs()?;
         if !paths.config_file.exists() {
             Self::default().save(paths)?;
@@ -71,7 +71,7 @@ impl AppConfig {
         Ok(())
     }
 
-    pub fn save(&self, paths: &MiyuPaths) -> Result<()> {
+    pub fn save(&self, paths: &NatriaPaths) -> Result<()> {
         let mut config = self.clone();
         config.migrate()?;
         config.normalize_api_quota_accounts();
@@ -227,7 +227,7 @@ impl AppConfig {
         normalize_api_quota_provider(&mut self.plugins.api_quota.openrouter);
     }
 
-    pub(crate) fn normalize_managed_output_paths(&mut self, paths: &MiyuPaths) {
+    pub(crate) fn normalize_managed_output_paths(&mut self, paths: &NatriaPaths) {
         let Some(base) = directories::BaseDirs::new() else {
             return;
         };

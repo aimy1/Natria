@@ -258,7 +258,7 @@ pub(in crate::platforms::onebot) fn parse_group_join_decision(text: &str) -> Res
 
 pub(in crate::platforms::onebot) async fn ai_review_group_join(
     mut config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     settings: QqGroupJoinApprovalPluginSettings,
     condition: String,
     request: GroupJoinRequest,
@@ -351,7 +351,7 @@ pub(in crate::platforms::onebot) async fn handle_group_add_request_with_llm<F, F
 ) where
     F: FnOnce(
         AppConfig,
-        MiyuPaths,
+        NatriaPaths,
         QqGroupJoinApprovalPluginSettings,
         String,
         GroupJoinRequest,

@@ -9,7 +9,7 @@ use super::store::{GroupKey, HistoryStore, RecentQuery};
 use crate::config::{AppConfig, RealContextPluginSettings, REAL_CONTEXT_PLUGIN_ID};
 use crate::i18n::{text_for, Locale};
 use crate::llm::{ChatMessage, OpenAiCompatibleClient};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::platforms::{ConversationKind, PlatformTurnContext};
 use crate::state::{PlatformPluginScopeKey, StateStore};
 use crate::tools::{ToolRegistry, ToolSpec};
@@ -175,7 +175,7 @@ impl AffectionUpdateQueue {
 
 pub(super) struct AffectionUpdateJob {
     config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     state_store: StateStore,
     /// 用量历史来源标签(平台 id,如 "qq")。
     platform: String,

@@ -7,7 +7,7 @@
 
 use crate::web::*;
 
-pub async fn run(paths: MiyuPaths, args: WebArgs) -> Result<()> {
+pub async fn run(paths: NatriaPaths, args: WebArgs) -> Result<()> {
     let _logging_guard = crate::logging::init(&paths, false).ok();
     tracing::info!(
         version = env!("CARGO_PKG_VERSION"),

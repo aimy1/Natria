@@ -32,12 +32,69 @@ impl GptSovitsEngine {
         }
     }
 
+    /// 根据参考音频文件名自动检索已收录的精准台词，防止空台词或错字导致合成效果劣化。
+    fn resolve_known_prompt_text(audio_name_or_path: &str) -> Option<&'static str> {
+        let leaf = Path::new(audio_name_or_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(audio_name_or_path)
+            .trim();
+
+        match leaf {
+            // 傲娇经典（小盐核心声线）
+            "4-03.wav" | "xiaoyan_tsundere_403.wav" => {
+                Some("哼，今天就勉强允许你牵我的手好了，下不为例哦。")
+            }
+            // 温柔依偎
+            "3-02.wav" | "xiaoyan_studio_clean.wav" | "xiaoyan_playful_302.wav" => {
+                Some("靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。")
+            }
+            // 调皮撩人
+            "2-04（Y）.wav" | "2-04(Y).wav" | "xiaoyan_clear_204.wav" => {
+                Some("别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。")
+            }
+            // 元气自信
+            "4-02.wav" | "xiaoyan_clear_402.wav" => {
+                Some("我才没有特地打扮给你看呢，你千万别自作多情哦。")
+            }
+            // 独占女王
+            "5-01.wav" | "xiaoyan_clear_501.wav" => {
+                Some("你的眼睛里只能看着我一个人，听懂了吗？")
+            }
+            // 慵懒撒娇
+            "3-06.wav" | "xiaoyan_gentle_306.wav" => {
+                Some("嗯，好舒服，再陪我待五分钟，就五分钟，好不好？")
+            }
+            // 害羞脸红
+            "2-01（n）.wav" | "2-01(n).wav" | "xiaoyan_clear_201.wav" => {
+                Some("怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？")
+            }
+            // 甜美宠溺
+            "2-02（Y）.wav" | "2-02(Y).wav" | "xiaoyan_sweet.wav" | "xiaoyan_ref.wav" | "sample_sweet.wav" => {
+                Some("乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。")
+            }
+            "4-01.wav" => Some("谁、谁让你看我这么近的，笨蛋，快把头转过去啊！"),
+            "5-02.wav" => Some("躲去哪里都没有用的哦，你整个人早就是我的啦。"),
+            "5-04.wav" => Some("为什么要看着别人呢？明明只要看着我，就足够了呀。"),
+            "3-01.wav" => Some("嗯，好困啊，过来给我抱一下，不然今天不准你走。"),
+            "3-03.wav" => Some("真是拿你没办法，过来，让我靠一会啊。"),
+            "3-04.wav" => Some("话说得有点多了，头好晕啊，你要负责扶好我哦。"),
+            "3-05.wav" => Some("别总看手机啊，我难道还没有屏幕好看吗？"),
+            "2-03（Y）.wav" | "2-03(Y).wav" => Some("嘴上说着不要，身体倒是挺诚实的嘛，嗯？"),
+            "2-05（Y-ns）.wav" | "2-05(Y-ns).wav" => Some("表现得这么乖，是想向我讨什么奖励吗？"),
+            "2-06（Y-Y）.wav" | "2-06(Y-Y).wav" => Some("真是个不让人省心的小家伙，过来，坐到我身边来。"),
+            "T-01.wav" => Some("真是败给你了。"),
+            "T-02.wav" => Some("喂，你手往哪里放呢？"),
+            "T-03.wav" => Some("怎么，不认得我了？"),
+            "T-04.wav" => Some("今晚留下来陪我吧。"),
+            "T-05.wav" => Some("嘘，别说话，吻我。"),
+            _ => None,
+        }
+    }
+
     /// 解析参考音频的本地完整绝对路径，供 GPT-SoVITS 本地进程读取。
     fn resolve_ref_audio_path(&self, raw: Option<&str>) -> String {
         let clean = raw.map(|p| p.trim().trim_start_matches("local:")).unwrap_or("");
-        if clean.is_empty() {
-            return String::new();
-        }
 
         let normalize_str = |p: &Path| -> String {
             let s = p.to_string_lossy().to_string();
@@ -50,34 +107,66 @@ impl GptSovitsEngine {
             }
         };
 
-        let raw_path = Path::new(clean);
-        if raw_path.is_absolute() && raw_path.exists() {
-            if let Ok(canon) = std::fs::canonicalize(raw_path) {
-                return normalize_str(&canon);
+        if !clean.is_empty() {
+            let raw_path = Path::new(clean);
+            if raw_path.is_absolute() && raw_path.exists() {
+                if let Ok(canon) = std::fs::canonicalize(raw_path) {
+                    return normalize_str(&canon);
+                }
+                return normalize_str(raw_path);
             }
-            return normalize_str(raw_path);
+
+            // 尝试从多个常见候选目录查找指定音频文件
+            let candidate_dirs = [
+                PathBuf::from("voices"),
+                PathBuf::from("../voices"),
+                PathBuf::from("GPT-SoVITS-v2pro-20250604-nvidia50/audio_dataset"),
+                PathBuf::from("../GPT-SoVITS-v2pro-20250604-nvidia50/audio_dataset"),
+                PathBuf::from("audio_dataset"),
+            ];
+
+            for dir in &candidate_dirs {
+                let cand = dir.join(clean);
+                if cand.exists() {
+                    if let Ok(abs) = std::fs::canonicalize(&cand) {
+                        return normalize_str(&abs);
+                    }
+                    return normalize_str(&cand);
+                }
+            }
         }
 
-        // 尝试从多个常见候选目录查找指定音频文件
-        let candidate_dirs = [
-            PathBuf::from("voices"),
-            PathBuf::from("../voices"),
-            PathBuf::from("GPT-SoVITS-v2pro-20250604-nvidia50/audio_dataset"),
-            PathBuf::from("../GPT-SoVITS-v2pro-20250604-nvidia50/audio_dataset"),
-            PathBuf::from("audio_dataset"),
+        // 默认按高品质声线优先级查找可用音频（优先匹配优质傲娇/温柔小盐录音）
+        let preferred_defaults = [
+            "4-03.wav",
+            "xiaoyan_tsundere_403.wav",
+            "3-02.wav",
+            "xiaoyan_studio_clean.wav",
+            "2-04（Y）.wav",
+            "xiaoyan_clear_204.wav",
+            "4-02.wav",
+            "5-01.wav",
         ];
 
-        for dir in &candidate_dirs {
-            let cand = dir.join(clean);
-            if cand.exists() {
-                if let Ok(abs) = std::fs::canonicalize(&cand) {
-                    return normalize_str(&abs);
+        for pref in &preferred_defaults {
+            let candidate_dirs = [
+                PathBuf::from("voices"),
+                PathBuf::from("../voices"),
+                PathBuf::from("../GPT-SoVITS-v2pro-20250604-nvidia50/audio_dataset"),
+                PathBuf::from("GPT-SoVITS-v2pro-20250604-nvidia50/audio_dataset"),
+            ];
+            for dir in &candidate_dirs {
+                let cand = dir.join(pref);
+                if cand.exists() {
+                    if let Ok(abs) = std::fs::canonicalize(&cand) {
+                        return normalize_str(&abs);
+                    }
+                    return normalize_str(&cand);
                 }
-                return normalize_str(&cand);
             }
         }
 
-        // 查找 voices/ 目录下第一个有效音频作为后备
+        // 兜底：查找 voices/ 目录下第一个有效音频
         if let Ok(entries) = std::fs::read_dir("voices") {
             for entry in entries.flatten() {
                 let p = entry.path();
@@ -126,9 +215,17 @@ impl GptSovitsEngine {
                 .or_else(|| Some(config.voice.as_str()).filter(|v| v.starts_with("local:"))),
         );
 
-        let text_lang = config.text_lang.as_deref().unwrap_or("zh");
+        // 语言优先默认采用 auto（智能识别中英混合），避免中文模式下读到英文单词破音
+        let text_lang = config.text_lang.as_deref().unwrap_or("auto");
         let prompt_lang = config.prompt_lang.as_deref().unwrap_or("zh");
-        let prompt_text = config.prompt_text.as_deref().unwrap_or("");
+
+        // 自动补齐已知音频的高精度台词，避免空 Prompt Text 导致音质断崖式下降
+        let effective_prompt_text = match config.prompt_text.as_deref() {
+            Some(t) if !t.trim().is_empty() => t.trim().to_string(),
+            _ => Self::resolve_known_prompt_text(&ref_audio)
+                .unwrap_or("哼，今天就勉强允许你牵我的手好了，下不为例哦。")
+                .to_string(),
+        };
 
         let speed_factor: f64 = {
             let clean = config.rate.trim().trim_end_matches('%');
@@ -136,6 +233,23 @@ impl GptSovitsEngine {
         }
         .unwrap_or(1.0)
         .clamp(0.6, 1.8);
+
+        // 采样参数调优（默认 temperature 0.80, top_k 5，显著提升音色稳定性，消除发飘与电音）
+        let temperature = config.temperature.unwrap_or(0.80).clamp(0.3, 1.3);
+        let top_k = config.top_k.unwrap_or(5).clamp(1, 30);
+        let top_p = config.top_p.unwrap_or(1.0).clamp(0.5, 1.0);
+        let repetition_penalty = config.repetition_penalty.unwrap_or(1.35).clamp(1.0, 2.0);
+
+        let text_split_method = config
+            .text_split_method
+            .as_deref()
+            .unwrap_or_else(|| {
+                if clean_text.chars().count() > 50 {
+                    "cut5"
+                } else {
+                    "cut0"
+                }
+            });
 
         let mut text_to_send = clean_text.to_string();
         if !text_to_send.ends_with(|c| "。！？!?.,;；…~".contains(c)) {
@@ -146,15 +260,19 @@ impl GptSovitsEngine {
             "text": text_to_send,
             "text_lang": text_lang,
             "ref_audio_path": ref_audio,
-            "prompt_text": prompt_text,
+            "prompt_text": effective_prompt_text,
             "prompt_lang": prompt_lang,
-            "text_split_method": "cut0",
-            "top_k": 15,
-            "top_p": 1.0,
-            "temperature": 1.0,
+            "text_split_method": text_split_method,
+            "top_k": top_k,
+            "top_p": top_p,
+            "temperature": temperature,
             "speed_factor": speed_factor,
-            "repetition_penalty": 1.35,
+            "speed": speed_factor,
+            "repetition_penalty": repetition_penalty,
             "sample_steps": 32,
+            "fragment_interval": 0.25,
+            "split_bucket": true,
+            "parallel_infer": true,
             "media_type": "wav"
         });
 

@@ -23,7 +23,7 @@ pub(in crate::config_tui) fn platforms_label(config: &AppConfig) -> String {
 
 pub(in crate::config_tui) fn select_platforms(
     stdout: &mut io::Stdout,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     config: &mut AppConfig,
 ) -> Result<()> {
     let mut selected = 0usize;
@@ -232,7 +232,7 @@ pub(in crate::config_tui) fn enabled_label(value: bool) -> &'static str {
 
 pub(in crate::config_tui) fn edit_qq(
     stdout: &mut io::Stdout,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     config: &mut AppConfig,
 ) -> Result<()> {
     let mut selected = 0usize;

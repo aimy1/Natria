@@ -111,15 +111,15 @@ pub(super) fn record_session(
     });
 }
 
-/// 清空 Miyu 会话时联动:丢弃它名下的全部映射,返回对应的 claude 会话 id
+/// 清空 Natria 会话时联动:丢弃它名下的全部映射,返回对应的 claude 会话 id
 /// (调用方拿去做 claude 侧转录的尽力删除)。
-pub(in crate::llm::openai_compatible) fn forget_miyu_session(miyu_session: &str) -> Vec<String> {
+pub(in crate::llm::openai_compatible) fn forget_natria_session(natria_session: &str) -> Vec<String> {
     let Ok(mut sessions) = SESSIONS.lock() else {
         return Vec::new();
     };
     let mut removed = Vec::new();
     sessions.retain(|entry| {
-        if entry.miyu_session.as_deref() == Some(miyu_session) {
+        if entry.miyu_session.as_deref() == Some(natria_session) {
             removed.push(entry.claude_session.clone());
             false
         } else {
@@ -127,6 +127,11 @@ pub(in crate::llm::openai_compatible) fn forget_miyu_session(miyu_session: &str)
         }
     });
     removed
+}
+
+#[inline]
+pub(in crate::llm::openai_compatible) fn forget_miyu_session(miyu_session: &str) -> Vec<String> {
+    forget_natria_session(miyu_session)
 }
 
 pub(super) fn forget_session(claude_session: &str) {

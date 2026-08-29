@@ -115,7 +115,7 @@ fn display_language_hint_reads_jsonc_without_loading_full_config() {
         "{\n  // UI preference\n  \"display\": { \"language\": \"en\" }\n}\n",
     )
     .unwrap();
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().to_path_buf(),
         config_file,

@@ -154,7 +154,7 @@ pub fn current_turn_origin() -> TurnOrigin {
 }
 
 tokio::task_local! {
-    /// 工具桥递归深度:回合内 run_command 起的脚本经 `miyu tool-call` 打回
+    /// 工具桥递归深度:回合内 run_command 起的脚本经 `natria tool-call` 打回
     /// daemon 再执行工具,若那个工具又是 run_command……深度护栏防无限套娃。
     static BRIDGE_DEPTH: u32;
 }

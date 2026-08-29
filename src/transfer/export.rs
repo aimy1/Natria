@@ -1,9 +1,9 @@
-//! `miyu export`: pack a portable copy of this installation.
+//! `natria export`: pack a portable copy of this installation.
 
 use super::manifest::{Entry, Manifest, Scope, MANIFEST_FORMAT_VERSION, MANIFEST_NAME};
 use super::registry::{is_backup_name, unit_for, DataUnit, UnitKind, IGNORED_SUFFIXES, UNITS};
 use crate::i18n::text as t;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Context, Result};
 use flate2::write::GzEncoder;
 use flate2::Compression;
@@ -50,7 +50,7 @@ pub struct ExportReport {
     pub by_unit: Vec<(&'static str, u64)>,
 }
 
-pub fn export(paths: &MiyuPaths, output: &Path, options: &ExportOptions) -> Result<ExportReport> {
+pub fn export(paths: &NatriaPaths, output: &Path, options: &ExportOptions) -> Result<ExportReport> {
     let root = miyu_home(paths)?;
     if !options.dry_run && output.exists() && !options.force {
         bail!(
@@ -144,7 +144,7 @@ pub fn export(paths: &MiyuPaths, output: &Path, options: &ExportOptions) -> Resu
 }
 
 /// `MIYU_HOME` — the common ancestor of the config/data/state/cache roots.
-pub fn miyu_home(paths: &MiyuPaths) -> Result<PathBuf> {
+pub fn miyu_home(paths: &NatriaPaths) -> Result<PathBuf> {
     paths
         .config_dir
         .parent()

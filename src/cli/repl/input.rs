@@ -10,7 +10,7 @@ use crate::cli::*;
 
 pub(in crate::cli) fn read_live_repl_input(
     live: &mut LiveReplTail,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     jobs_feed: &JobsFeed,
     // 这个 REPL 的会话：唤醒回合按它认领，输入历史也按它刷新。
     repl_session: Option<&str>,
@@ -165,7 +165,7 @@ pub(in crate::cli) fn read_live_repl_input(
 }
 
 pub(in crate::cli) fn read_repl_input(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     mode: AgentMode,
     prefill: Option<String>,
     history: &[String],

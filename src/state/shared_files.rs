@@ -205,7 +205,7 @@ mod tests {
     use super::*;
 
     fn test_store(temp: &tempfile::TempDir) -> StateStore {
-        StateStore::new(&crate::paths::MiyuPaths {
+        StateStore::new(&crate::paths::NatriaPaths {
             root_dir: temp.path().to_path_buf(),
             config_dir: temp.path().join("config"),
             config_file: temp.path().join("config/config.jsonc"),

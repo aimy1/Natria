@@ -1,4 +1,4 @@
-# Miyu 代码审查报告（2026-08-16）
+# Natria 代码审查报告（2026-08-16）
 
 两轮只读深度审查的合并报告。
 
@@ -190,7 +190,7 @@ section 来自模型 JSON，`"节"` 等中文首字符非 char boundary。改 `s
 
 # 第三轮：动态验证（2026-08-16）
 
-方法：运行项目测试套件 + rustc 探针程序（release 语义，逐字复刻涉事代码）+ 真实 release 二进制沙箱黑盒触发（`MIYU_HOME` 指向临时目录）。全部中间产物已清理。
+方法：运行项目测试套件 + rustc 探针程序（release 语义，逐字复刻涉事代码）+ 真实 release 二进制沙箱黑盒触发（`NATRIA_HOME` 指向临时目录）。全部中间产物已清理。
 
 ## 基线
 
@@ -233,7 +233,7 @@ panic 类结论不受影响——全部精确命中。
 
 ## 环境影响披露
 
-首次黑盒探测（`alarm --help`）因未设置 `MIYU_HOME`，被 REPL 当作用户消息路由到了正在运行的生产 daemon，产生了**一轮真实对话**及少量 usage 记录（`~/.miyu/state/conversation.db-wal`、`usage-history.jsonl` 有对应写入）。未删除任何数据（删除用户数据风险大于收益）；如需清理可在 WebUI 中删除该条 `alarm --help` 会话。此后全部动态测试均在 `/tmp` 沙箱内进行。中间产物（探针程序、沙箱目录、核心转储）已全部删除；`target/` 内测试编译产物属正常运行缓存。
+首次黑盒探测（`alarm --help`）因未设置 `NATRIA_HOME`，被 REPL 当作用户消息路由到了正在运行的生产 daemon，产生了**一轮真实对话**及少量 usage 记录（`~/.natria/state/conversation.db-wal`、`usage-history.jsonl` 有对应写入）。未删除任何数据（删除用户数据风险大于收益）；如需清理可在 WebUI 中删除该条 `alarm --help` 会话。此后全部动态测试均在 `/tmp` 沙箱内进行。中间产物（探针程序、沙箱目录、核心转储）已全部删除；`target/` 内测试编译产物属正常运行缓存。
 
 ---
 
@@ -251,7 +251,7 @@ panic 类结论不受影响——全部精确命中。
 4. **`src/config_tui.rs:389`** — `edit_plugin_detail` 检查 `index == 13` 但 `plugin_names()` 恰好 13 项（下标最大 12）：**api_quota 账号管理界面不可达**，整组编辑函数成死代码，只能手改 JSON。[已验证]
 5. **`src/config.rs:348-477`** — qq_group_join_approval 的 `text_models` 不参与 provider/model 引用维护：删除/重命名被引用的 provider 后引用残留 → 保存时 validate 失败 → **整个 TUI 崩出，本次全部修改丢失**，不手改 JSON 无法恢复。顶层 `embedding` 同源遗漏（悬空引用静默失效记忆召回）。
 6. **`src/cli.rs:4176`** — 多选模糊菜单（`/models`）的 **Esc 提交修改而非取消**（返回 `Ok(Some(active))`），与所有姊妹选择器语义相反；:4283 单选版搜索后回车选不中高亮项（`marked` 恒为 initial，fallback 分支不可达）。
-7. **`src/cli.rs:436`** — `extract_debug_flag` 扫描 `--` 之前的全部参数：`miyu 你好 --debug` 的消息正文被截成"你好"并意外开 debug。
+7. **`src/cli.rs:436`** — `extract_debug_flag` 扫描 `--` 之前的全部参数：`natria 你好 --debug` 的消息正文被截成"你好"并意外开 debug。
 8. **`src/platforms/onebot.rs:6219`** — `upload_file_source` 用构造期快照 `self.conn` 而非 `self.connection()`：NapCat 重连换代后所有文件上传报 writer closed 失败，直到新消息重建 context。
 9. **`src/platforms/onebot.rs:2629`** — 入群审批的 `filtered` 标记只写日志不参与分支：被过滤标记的请求照常走 LLM 审批，白耗并发额度与模型调用（意图显然是跳过，未接上）。
 10. **`src/render/mod.rs:4180`** — 模型正文路径完全不过转义状态机（`normalize_stream_text` 只归一换行）：输出含 `\x1b[2J`/OSC 8 等时直接生效——清屏、藏光标、伪造 UI（命令输出有 sanitize，正文没有）。[已验证]

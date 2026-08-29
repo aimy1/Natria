@@ -1,15 +1,15 @@
 //! daemon 日志的读取、格式化与跟随。
 //!
-//! `miyu daemon logs` 要处理几件不太直观的事：日志会轮转（跟随时得跨文件接
+//! `natria daemon logs` 要处理几件不太直观的事：日志会轮转（跟随时得跨文件接
 //! 上）、可能被截断（要认出来重新定位）、行可能跨多行（结构化日志的多行正文
 //! 不能被拆散）、还有 daemon 自己 stdout 的非结构化输出要按时间穿插进去。
 //!
-//! 格式化那半边负责上色与对齐——`miyu daemon logs` 是排查问题时最常用的入口，
+//! 格式化那半边负责上色与对齐——`natria daemon logs` 是排查问题时最常用的入口，
 //! 所以「活跃回复决策」这类关键行整行上色，一眼能扫到。
 
 use crate::cli::*;
 
-pub(in crate::cli) async fn run_daemon_logs(paths: &MiyuPaths, args: DaemonLogsArgs) -> Result<()> {
+pub(in crate::cli) async fn run_daemon_logs(paths: &NatriaPaths, args: DaemonLogsArgs) -> Result<()> {
     match args.topic.as_deref().map(str::trim) {
         None => {}
         Some("request" | "requests") => return run_request_monitor(paths).await,
@@ -44,7 +44,7 @@ pub(in crate::cli) async fn run_daemon_logs(paths: &MiyuPaths, args: DaemonLogsA
     // runs are therefore consumed by follow instead of being skipped.
     let cursor = snapshot.cursor;
     let Some(daemon) = ipc::daemon_info(paths).await else {
-        bail!("{}", t("Miyu daemon is not running", "Miyu daemon 未运行"));
+        bail!("{}", t("Natria daemon is not running", "Natria daemon 未运行"));
     };
     follow_daemon_log(paths, ansi, cursor, daemon.pid).await
 }
@@ -73,7 +73,7 @@ pub(crate) fn parse_daemon_log_line(line: &str) -> Option<ParsedDaemonLogLine<'_
     let (module, message) = remainder
         .split_once(": ")
         .filter(|(candidate, _)| is_miyu_log_target(candidate))
-        .unwrap_or(("miyu", remainder));
+        .unwrap_or(("natria", remainder));
     Some(ParsedDaemonLogLine {
         timestamp,
         level,
@@ -241,7 +241,7 @@ pub(in crate::cli) fn write_daemon_log_line_bytes(
     )
 }
 
-pub(crate) fn daemon_log_files(paths: &MiyuPaths) -> Result<Vec<PathBuf>> {
+pub(crate) fn daemon_log_files(paths: &NatriaPaths) -> Result<Vec<PathBuf>> {
     let mut files = match std::fs::read_dir(paths.logs_dir()) {
         Ok(entries) => entries
             .filter_map(|entry| entry.ok())
@@ -249,7 +249,10 @@ pub(crate) fn daemon_log_files(paths: &MiyuPaths) -> Result<Vec<PathBuf>> {
             .filter(|path| {
                 path.file_name()
                     .and_then(|name| name.to_str())
-                    .is_some_and(|name| name.starts_with("miyu.") && name.ends_with(".log"))
+                    .is_some_and(|name| {
+                        (name.starts_with("natria.") || name.starts_with("miyu."))
+                            && name.ends_with(".log")
+                    })
             })
             .collect::<Vec<_>>(),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Vec::new(),
@@ -322,7 +325,7 @@ pub(in crate::cli) fn daemon_log_follow_cursor_for_files(
 }
 
 pub(in crate::cli) fn recent_daemon_log_snapshot(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     limit: usize,
 ) -> Result<DaemonLogSnapshot> {
     let files = daemon_log_files(paths)?;
@@ -365,7 +368,7 @@ pub(in crate::cli) fn recent_daemon_log_snapshot(
 }
 
 pub(crate) fn recent_daemon_log_lines(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     limit: usize,
 ) -> Result<Vec<String>> {
     Ok(recent_daemon_log_snapshot(paths, limit)?.lines)
@@ -437,7 +440,7 @@ pub(in crate::cli) fn finish_daemon_log_formatters(
 }
 
 pub(in crate::cli) async fn follow_daemon_log(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     ansi: bool,
     cursor: DaemonLogFollowCursor,
     initial_pid: u32,

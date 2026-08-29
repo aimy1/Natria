@@ -1,11 +1,11 @@
-//! `miyu tool` 与 `miyu tool-call`：在命令行里直接调工具。
+//! `natria tool` 与 `natria tool-call`：在命令行里直接调工具。
 //!
 //! 调试与脚本化用的入口。工具的产出（图片、artifact）在终端里要能看见，所以
 //! 这里有一小段远端图片预览的处理。
 
 use crate::cli::*;
 
-pub(in crate::cli) async fn run_tool(paths: &MiyuPaths, mode: AgentMode, args: ToolArgs) -> Result<()> {
+pub(in crate::cli) async fn run_tool(paths: &NatriaPaths, mode: AgentMode, args: ToolArgs) -> Result<()> {
     let config = AppConfig::load_or_default(paths)?;
     let registry = build_tool_registry(&config, paths, mode, false)?;
     let output = registry
@@ -19,7 +19,7 @@ pub(in crate::cli) async fn run_tool(paths: &MiyuPaths, mode: AgentMode, args: T
 /// 工具,中间数据本地流动、不经模型上下文往返;每次内层调用都以本回合的
 /// 会话身份与来源在 daemon 侧过 guard/超时管线。daemon 不在(直连调试
 /// 形态)则本地执行,语义一致但 jobs 等 daemon 态不可见。
-pub(in crate::cli) async fn run_tool_call(paths: &MiyuPaths, args: ToolCallArgs) -> Result<()> {
+pub(in crate::cli) async fn run_tool_call(paths: &NatriaPaths, args: ToolCallArgs) -> Result<()> {
     let config = AppConfig::load_or_default(paths)?;
     let env_mode = std::env::var("NATRIA_TURN_MODE")
         .or_else(|_| std::env::var("MIYU_TURN_MODE"))
@@ -132,7 +132,7 @@ pub(in crate::cli) async fn run_tool_call(paths: &MiyuPaths, args: ToolCallArgs)
         return Ok(());
     }
     let Some(name) = args.name.clone() else {
-        // 裸 `miyu tool-call` 是来问路的,给完整帮助而不是一行报错。
+        // 裸 `natria tool-call` 是来问路的,给完整帮助而不是一行报错。
         localized_command()
             .find_subcommand_mut("tool-call")
             .expect("tool-call subcommand exists")

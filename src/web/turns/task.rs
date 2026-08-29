@@ -41,7 +41,7 @@ pub(in crate::web) fn into_pasted_images(
 #[allow(clippy::too_many_arguments)]
 pub(in crate::web) async fn run_turn_task(
     config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     store: StateStore,
     base_store: StateStore,
     manager: Arc<Mutex<ManagerState>>,
@@ -94,7 +94,7 @@ pub(in crate::web) async fn run_turn_task(
 
 async fn run_turn_task_inner(
     mut config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     store: StateStore,
     base_store: StateStore,
     manager: Arc<Mutex<ManagerState>>,
@@ -658,7 +658,7 @@ async fn run_turn_task_inner(
 /// session-scoped operations hit the turn's own session.
 pub(in crate::web) fn finish_turn_task(
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     store: &StateStore,
     title_seed: &str,
     events: &EventHub,

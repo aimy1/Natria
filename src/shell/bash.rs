@@ -1,5 +1,5 @@
 use crate::i18n::text as t;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::Result;
 use std::path::Path;
 
@@ -20,7 +20,7 @@ pub fn hook() -> &'static str {
 "#
 }
 
-pub fn install(paths: &MiyuPaths) -> Result<()> {
+pub fn install(paths: &NatriaPaths) -> Result<()> {
     if let Some(parent) = paths.bash_hook_file.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -37,7 +37,7 @@ pub fn install(paths: &MiyuPaths) -> Result<()> {
     Ok(())
 }
 
-pub fn uninstall(paths: &MiyuPaths) -> Result<bool> {
+pub fn uninstall(paths: &NatriaPaths) -> Result<bool> {
     let removed_file = remove_file_if_exists(&paths.bash_hook_file)?;
     let rc_path = home_file(".bashrc");
     let removed_block = remove_source_block(&rc_path, BEGIN_MARKER, END_MARKER)?;
@@ -45,7 +45,7 @@ pub fn uninstall(paths: &MiyuPaths) -> Result<bool> {
     if removed {
         println!(
             "{}: bash",
-            t("removed Miyu shell hook", "已移除 Miyu shell hook")
+            t("removed Natria shell hook", "已移除 Natria shell hook")
         );
     }
     Ok(removed)

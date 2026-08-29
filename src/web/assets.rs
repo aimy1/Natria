@@ -322,7 +322,7 @@ pub(in crate::web) fn finish_asset_response(mut response: Response, content_type
 }
 
 pub(in crate::web) fn cleanup_persona_assets(
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     previous: &PromptDocuments,
     current: &PromptDocuments,
 ) {
@@ -497,7 +497,7 @@ pub(in crate::web) async fn artifact_asset(
     Ok(response)
 }
 
-pub(in crate::web) fn resolve_persona_asset_path(paths: &MiyuPaths, value: &str) -> Option<PathBuf> {
+pub(in crate::web) fn resolve_persona_asset_path(paths: &NatriaPaths, value: &str) -> Option<PathBuf> {
     let value = value.trim();
     if persona_asset_uses_managed_namespace(value) {
         return managed_persona_asset_path(paths, value);
@@ -513,7 +513,7 @@ pub(in crate::web) fn resolve_persona_asset_path(paths: &MiyuPaths, value: &str)
     })
 }
 
-pub(in crate::web) fn managed_persona_asset_path(paths: &MiyuPaths, value: &str) -> Option<PathBuf> {
+pub(in crate::web) fn managed_persona_asset_path(paths: &NatriaPaths, value: &str) -> Option<PathBuf> {
     let value = value.trim();
     if value.contains('\\') || value.chars().any(char::is_control) {
         return None;
@@ -551,7 +551,7 @@ pub(in crate::web) fn persona_asset_uses_managed_namespace(value: &str) -> bool 
         })
 }
 
-pub(in crate::web) fn validate_managed_persona_asset_file(paths: &MiyuPaths, path: &FilePath) -> Result<()> {
+pub(in crate::web) fn validate_managed_persona_asset_file(paths: &NatriaPaths, path: &FilePath) -> Result<()> {
     let root_path = paths.persona_avatars_dir();
     let root_metadata = std::fs::symlink_metadata(&root_path)?;
     if root_metadata.file_type().is_symlink() || !root_metadata.is_dir() {

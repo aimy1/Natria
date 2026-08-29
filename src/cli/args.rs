@@ -6,7 +6,7 @@
 use crate::cli::*;
 
 #[derive(Debug, Parser)]
-#[command(name = "miyu", version, about = "Miyu CLI AI Agent")]
+#[command(name = "natria", version, about = "Natria CLI AI Agent")]
 pub struct Cli {
     #[arg(long, global = true)]
     pub debug: bool,
@@ -81,8 +81,8 @@ pub enum Command {
     AlarmWorker(AlarmWorkerArgs),
     #[command(name = "__tool", hide = true)]
     Tool(ToolArgs),
-    /// Internal: run as the Miyu daemon (spawned by the CLI via
-    /// `current_exe`, replacing the former separate `miyud` binary).
+    /// Internal: run as the Natria daemon (spawned by the CLI via
+    /// `current_exe`).
     #[command(name = "__daemon", hide = true)]
     DaemonWorker(WebArgs),
     Ask(MessageArgs),

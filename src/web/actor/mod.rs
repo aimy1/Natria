@@ -14,7 +14,7 @@ use crate::web::*;
 #[allow(clippy::too_many_arguments)]
 pub(in crate::web) async fn actor_loop(
     mut config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     state_store: StateStore,
     manager: Arc<Mutex<ManagerState>>,
     events: EventHub,
@@ -424,7 +424,7 @@ pub(in crate::web) async fn actor_loop(
 pub(in crate::web) fn switch_actor_session(
     agent: Option<&Agent>,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state_store: &StateStore,
     manager: &Arc<Mutex<ManagerState>>,
     events: &EventHub,
@@ -459,7 +459,7 @@ pub(in crate::web) fn switch_actor_session(
 pub(in crate::web) fn reset_actor_conversation(
     agent: &mut Option<Agent>,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state_store: &StateStore,
     manager: &Arc<Mutex<ManagerState>>,
     events: &EventHub,
@@ -470,7 +470,7 @@ pub(in crate::web) fn reset_actor_conversation(
     // sense against that history. This used to be gated on a flag that was
     // really asking "did the caller address the session as `Current`?" — an
     // implementation detail of each frontend, which left `/reset` and the
-    // WebUI clearing strictly less than `miyu reset`. Platform sessions never
+    // WebUI clearing strictly less than `natria reset`. Platform sessions never
     // reach this command (both entry points reject them) and clear themselves
     // through `ClearSessionContent`, so there is nothing left for a flag to
     // protect.
@@ -516,7 +516,7 @@ pub(in crate::web) fn reset_actor_persona_state(
     agent: &mut Option<Agent>,
     daemon_config: &AppConfig,
     reset_config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state_store: &StateStore,
     manager: &Arc<Mutex<ManagerState>>,
     events: &EventHub,
@@ -553,7 +553,7 @@ pub(in crate::web) fn reset_actor_persona_state(
 pub(in crate::web) fn clear_actor_session_content(
     agent: &mut Option<Agent>,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state_store: &StateStore,
     manager: &Arc<Mutex<ManagerState>>,
     session_id: &str,
@@ -587,7 +587,7 @@ pub(in crate::web) fn clear_actor_session_content(
 
 pub(in crate::web) fn build_actor_agent(
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state: &StateStore,
 ) -> Result<Agent> {
     let mut agent = build_session_agent(config, paths, state, AgentMode::Normal)?;
@@ -598,7 +598,7 @@ pub(in crate::web) fn build_actor_agent(
 pub(in crate::web) fn ensure_actor_agent<'a>(
     agent: &'a mut Option<Agent>,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state: &StateStore,
     turn_engine: &TurnEngineState,
 ) -> std::result::Result<&'a mut Agent, AdminFailure> {
@@ -621,7 +621,7 @@ pub(in crate::web) fn ensure_actor_agent<'a>(
 pub(in crate::web) fn actor_context(
     agent: &Option<Agent>,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     state: &StateStore,
 ) -> Result<ContextSnapshot> {
     agent
@@ -632,7 +632,7 @@ pub(in crate::web) fn actor_context(
 #[allow(clippy::too_many_arguments)]
 pub(in crate::web) fn spawn_actor(
     config: AppConfig,
-    paths: MiyuPaths,
+    paths: NatriaPaths,
     state_store: StateStore,
     manager: Arc<Mutex<ManagerState>>,
     events: EventHub,

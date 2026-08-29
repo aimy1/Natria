@@ -2,10 +2,10 @@
 
 use crate::memory::*;
 use crate::config::AppConfig;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 
-pub(super) fn test_paths(temp: &tempfile::TempDir) -> MiyuPaths {
-    MiyuPaths {
+pub(super) fn test_paths(temp: &tempfile::TempDir) -> NatriaPaths {
+    NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -48,7 +48,7 @@ pub(super) fn platform_origin(user_id: &str, display_name: &str) -> MemoryOrigin
 
 pub(super) fn scoped_store(
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     origin: &MemoryOrigin,
     privileged: bool,
 ) -> MemoryStore {

@@ -3,14 +3,14 @@
 ## 1. 现状与本机事实
 
 - 本机安装 Claude Code `2.1.220`（`claude --version` 已验证），并已有 OAuth 订阅登录（`~/.claude.json` 存在 `oauthAccount`）。
-- Miyu 当前只有自己的 provider/LLM 客户端，没有任何调用本地 `claude` CLI 的工具。
+- Natria 当前只有自己的 provider/LLM 客户端，没有任何调用本地 `claude` CLI 的工具。
 - Claude Code 提供稳定的 headless 入口：`claude -p --output-format json`；该模式使用用户既有 Claude 登录/订阅，非交互目录跳过 workspace trust 提示。
 
 ## 2. 推荐形态（D10）
 
 新增一个独立工具 **`claude_code`**，而不是塞进 `task` tier：
 
-- `task` 是 Miyu 自己的子代理循环，tier 语义是“模型档位”；Claude Code 是外部 agent runtime，输入输出、权限、会话续跑、成本模型都不同，混在一起会让两者都难维护。
+- `task` 是 Natria 自己的子代理循环，tier 语义是“模型档位”；Claude Code 是外部 agent runtime，输入输出、权限、会话续跑、成本模型都不同，混在一起会让两者都难维护。
 - 只在本机 owner 面注册：终端/WebUI 本地会话（`platform_context.is_none()`），QQ 等通讯平台**不注册**，避免把订阅和本机权限暴露给群聊。
 - 工具不在子代理中递归开放（加入 `SUBAGENT_EXCLUDED` 同族排除表）。
 
@@ -25,7 +25,7 @@
   "parameters": {
     "type": "object",
     "properties": {
-      "prompt": {"type": "string", "description": "Complete task prompt for Claude Code. Include required context; the CLI does not see Miyu's conversation unless explicitly included."},
+      "prompt": {"type": "string", "description": "Complete task prompt for Claude Code. Include required context; the CLI does not see Natria's conversation unless explicitly included."},
       "cwd": {"type": "string", "description": "Optional working directory. Defaults to the current session workspace."},
       "model": {"type": "string", "description": "Optional Claude model alias or full name. Omit to use the user's default subscription model."},
       "append_system_prompt": {"type": "string", "description": "Optional extra system prompt appended to Claude Code's default."}
@@ -39,7 +39,7 @@
 ### 3.2 执行语义
 
 1. 用 `tokio::process::Command` 调 `claude`（从 PATH 解析；允许配置 `plugins.claude_code.binary` 覆盖）。
-2. 参数：`-p --output-format json --permission-mode <configured>`；`cwd` 为会话 workspace；环境继承当前 Miyu daemon（含 HOME，才能读到订阅登录态）。
+2. 参数：`-p --output-format json --permission-mode <configured>`；`cwd` 为会话 workspace；环境继承当前 Natria daemon（含 HOME，才能读到订阅登录态）。
 3. 超时：配置 `timeout_seconds` 默认 600，tool 层用 `tokio::time::timeout` 包裹，超时 kill 进程组。
 4. 输出限制：stdout 上限（默认 512 KiB）；超限截断并注明，不把无限 CLI 输出灌进上下文。
 5. 进程内互斥/并发：同一 session 同时最多 1 个 `claude_code`（默认），防止多个订阅会话并发抢额度；配置可调。
@@ -64,7 +64,7 @@
 
 ### 3.4 记账与审计
 
-- 不把 Claude 用量塞进 Miyu `Usage`（那是 OpenAI 兼容 usage 口径）。新增独立统计：`claude_code` 调用写入隐藏审计会话（类似 subagent），字段含 `cost_usd`、`duration_ms`、模型、session id、prompt 长度。
+- 不把 Claude 用量塞进 Natria `Usage`（那是 OpenAI 兼容 usage 口径）。新增独立统计：`claude_code` 调用写入隐藏审计会话（类似 subagent），字段含 `cost_usd`、`duration_ms`、模型、session id、prompt 长度。
 - REPL/WebUI 显示 Claude Code 成本时明确标注 `$`，不与 token Σ 混加。
 
 ## 4. 配置
@@ -99,7 +99,7 @@
 
 ## 7. 验收
 
-1. PATH 放一个假 `claude` 脚本（fixture），断言 Miyu 调用参数、cwd、env、超时 kill、JSON 解析与截断。
+1. PATH 放一个假 `claude` 脚本（fixture），断言 Natria 调用参数、cwd、env、超时 kill、JSON 解析与截断。
 2. QQ 群/私聊会话的工具目录不含 `claude_code`；终端/WebUI 本地会话包含。
 3. 真实环境手动 1 次最小调用由用户验证订阅可用（**测试不自动跑真实订阅**）。
 4. 审计记录成本与模型，不污染 token Σ。
@@ -135,11 +135,11 @@
      `--no-session-persistence` 一次性会话,不挂桥。
    - 平台门禁：`with_platform_delivery` 在平台回合拒绝该协议端点（订阅条款）。
    - 校验豁免：该协议 `base_url` 可为空（io.rs）。
-2. **`miyu mcp-serve`**（隐藏子命令，`src/cli/mcp_serve.rs`）：MCP stdio server,
-   与 `miyu tool-call` 同源——daemon 存活走 IPC ToolCatalog/ToolCall（会话→模式
+2. **`natria mcp-serve`**（隐藏子命令，`src/cli/mcp_serve.rs`）：MCP stdio server,
+   与 `natria tool-call` 同源——daemon 存活走 IPC ToolCatalog/ToolCall（会话→模式
    →registry,guard 管线齐备）,直连本地兜底。`ToolCatalog` 新增 `full` 位一次拿
-   全量合同。供应商自动以 `--mcp-config` 挂桥（env 显式带 MIYU_SESSION/
-   MIYU_TURN_ORIGIN/MIYU_HOME/XDG_RUNTIME_DIR）。
+   全量合同。供应商自动以 `--mcp-config` 挂桥（env 显式带 NATRIA_SESSION/
+   MIYU_TURN_ORIGIN/NATRIA_HOME/XDG_RUNTIME_DIR）。
 3. **`claude_code` 委托工具**：按本文 §3 落地,偏离两处经用户同意——审计走
    JSONL（`logs/claude-code-usage.jsonl`）不建 DB 表；新增 `resume` 参数。
    D17=acceptEdits、D18=默认启用、D19=允许。
@@ -190,7 +190,7 @@
 
 ## 11. 工具面双四档(2026-08-20 第三轮讨论定稿)
 
-用户实测发现经桥的 Miyu 工具在 claude 侧执行、本就不走 Miyu 渲染管线,"保
+用户实测发现经桥的 Natria 工具在 claude 侧执行、本就不走 Natria 渲染管线,"保
 渲染"不成立;裁定原生工具转正。定稿:
 
 - **两个独立四档作用域**(off/dev/normal/all,按会话模式裁决,专用表单可改):
@@ -211,14 +211,14 @@ TUI 探针含新字段复测全过。
 
 ## 12. 第四轮验收整改(2026-08-20,用户实测六问题)
 
-1. **清空联动**:续传映射织入 Miyu 会话 id(不同会话显式隔离,字节级撞链也
+1. **清空联动**:续传映射织入 Natria 会话 id(不同会话显式隔离,字节级撞链也
    不共用);/reset、平台清空、/wipe、删除会话六个入口全部联动
    `llm::forget_claude_code_session`——丢映射 + 尽力删除
    `~/.claude/projects/*/<会话id>.jsonl` 转录。真机:reset 后转录零残留。
    顺手修:**会话标题生成的 LLM 调用 scope 误标 "chat"**(08-10 调研 P2 旧
    账)改为 "session-title",在中转下不再产生游离的持久 claude 会话。
 2. **上下文限制**:窗口不钉值(第五轮用户裁定:回猜测默认 168k,要改自己在模型菜单设);
-   Miyu 的压缩管自己的账本,claude 侧真实上下文由其 autocompact 自管,Miyu
+   Natria 的压缩管自己的账本,claude 侧真实上下文由其 autocompact 自管,Natria
    压缩→链断→重开会话间接同步。
 3. **桥工具图片**:新增 web/bridge_progress——桥内层调用改走带 progress 的
    执行,图片落 image asset(挂到该会话正在跑的 turn)并以 tool.image 事件直
@@ -228,12 +228,12 @@ TUI 探针含新字段复测全过。
 4. **WebUI 工具过桥**:桥的 ToolCatalog/ToolCall 与回合装配同源补注册
    artifact 四件 + share_file(attach_owner_turn_tools,normal 表)。
 5. 表单标签去掉档位括号。
-6. **会话隔离**:见 1,映射按 (provider, model, miyu 会话) 三元隔离。
+6. **会话隔离**:见 1,映射按 (provider, model, natria 会话) 三元隔离。
 
-另:双四档默认改 native=all + miyu=normal;供应商列表 Claude Code 置顶
+另:双四档默认改 native=all + natria=normal;供应商列表 Claude Code 置顶
 (default_templates + normalize 搬移,四个位置式引用测试改按 id 定位)。
 
-**已知未修**(桥语义,与中转正交):经桥调用 Miyu `task` 的子代理工具集为空
+**已知未修**(桥语义,与中转正交):经桥调用 Natria `task` 的子代理工具集为空
 (用户实测);ask_question 未过桥。`task` 已进去重剔除表,中转路径不受影响。
 **排查铁律**:隔离测试 home 的配置文件会钉住旧默认(permission_mode/
 miyu_tools 两次踩坑)——"默认没生效"先查配置残值。
@@ -267,7 +267,7 @@ miyu_tools 两次踩坑)——"默认没生效"先查配置残值。
   落 running turn);claude 侧 MCP 客户端超时经 MCP_TOOL_TIMEOUT 放宽 30 分
   钟。真机:claude 提问→REPL 弹窗→Closed 回传→claude 正确反应。
 - **后台任务跟进**:claude 自己的后台/通知活在单次进程里,轮末即杀跟不了
-  进;job/alarm 从去重表**请回**(Miyu 的 daemon 常驻+完成唤醒才是这套架构
+  进;job/alarm 从去重表**请回**(Natria 的 daemon 常驻+完成唤醒才是这套架构
   的后台);glob/grep/todowrite 按用户裁定入表。miyu_tools 默认改 **all**
   (dev 也挂,ask_question 尤其)。
 - share_file 的 txt/md/log/json kind 改 "text";runtime 时间戳带时区(%:z,
@@ -281,12 +281,12 @@ miyu_tools 两次踩坑)——"默认没生效"先查配置残值。
 ## 15. 第八轮(2026-08-20 傍晚)
 
 - **task 经中转的子代理"空工具集"真相**:中转按设计丢弃外层工具定义
-  (工具循环不外交),SubagentRunner 的 Miyu 工具对内层 claude 不可见;此前
+  (工具循环不外交),SubagentRunner 的 Natria 工具对内层 claude 不可见;此前
   ephemeral 判定又把 subagent 作用域的原生工具/桥一并关掉,子代理彻底徒手。
   修=subagent 作用域按同一双四档给原生工具+MCP 桥,子代理成为"嵌套 claude
   代理"由内层自闭环(会话不持久保持)。真机:嵌套子代理经桥调
   scientific_calculator,不可心算表达式逐位吻合。
-- **task 从去重表请回**:与 claude 原生 Task 语义不同——Miyu 子代理在
+- **task 从去重表请回**:与 claude 原生 Task 语义不同——Natria 子代理在
   daemon 里作为后台任务运行、完成唤醒跟进;claude 的 Task 活在单次进程里。
   task(发射)/job(查询停止)成对,不改名。
 - WebUI 删除最后一个可见会话双生新会话:前端兜底守卫只防并发不防先后
@@ -311,8 +311,8 @@ miyu_tools 两次踩坑)——"默认没生效"先查配置残值。
   WebFetch 安全 URL/Task 描述/ToolSearch query);原生 Bash 的结果以命令输
   出块渲染(与 run_command 同路),不再只有一行 ok。
 - 上下文表读数第 2 处对齐;流式思考本就已接(thinking_delta→思考通道)。
-- MCP 对外接入达成度:`miyu mcp-serve` 是标准 stdio server,任何 MCP 客户
-  端可挂(env: MIYU_SESSION 指会话;MIYU_HOME/XDG_RUNTIME_DIR 必须与
+- MCP 对外接入达成度:`natria mcp-serve` 是标准 stdio server,任何 MCP 客户
+  端可挂(env: NATRIA_SESSION 指会话;NATRIA_HOME/XDG_RUNTIME_DIR 必须与
   daemon 环境一致地传或不传)。
 
 ## 17. 第十轮(2026-08-20 下午)

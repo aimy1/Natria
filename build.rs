@@ -6,15 +6,15 @@ use std::path::PathBuf;
 
 use base64::{engine::general_purpose, Engine as _};
 
-const PROMPT_MASK: &[u8] = b"MiyuPromptMask";
+const PROMPT_MASK: &[u8] = b"NatriaPromptMask";
 
 fn main() {
-    println!("cargo:rerun-if-changed=src/prompts/miyu.md");
-    println!("cargo:rerun-if-changed=src/prompts/miyu.hint.md");
-    println!("cargo:rerun-if-changed=src/prompts/miyu-dialogs.md");
+    println!("cargo:rerun-if-changed=src/prompts/natria.md");
+    println!("cargo:rerun-if-changed=src/prompts/natria.hint.md");
+    println!("cargo:rerun-if-changed=src/prompts/natria-dialogs.md");
     println!("cargo:rerun-if-changed=assets/o200k_base.tiktoken");
     println!("cargo:rerun-if-changed=assets/jieba/dict.txt");
-    // Rerun on any source or frontend change so MIYU_BUILD_ID uniquely
+    // Rerun on any source or frontend change so NATRIA_BUILD_ID uniquely
     // identifies a build; the CLI uses it to detect (and restart) a daemon
     // left running from an older build.
     println!("cargo:rerun-if-changed=src");
@@ -38,18 +38,18 @@ fn main() {
             .collect::<Vec<_>>();
         base64_encode(&encoded)
     };
-    let prompt = obfuscate("src/prompts/miyu.md");
-    let hint = obfuscate("src/prompts/miyu.hint.md");
-    let dialogs = obfuscate("src/prompts/miyu-dialogs.md");
+    let prompt = obfuscate("src/prompts/natria.md");
+    let hint = obfuscate("src/prompts/natria.hint.md");
+    let dialogs = obfuscate("src/prompts/natria-dialogs.md");
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR is set by cargo");
-    let dest = Path::new(&out_dir).join("default_miyu_prompt.rs");
+    let dest = Path::new(&out_dir).join("default_natria_prompt.rs");
     fs::write(
         dest,
         format!(
-            "const PROMPT_MASK: &[u8] = b\"MiyuPromptMask\";\n\
+            "const PROMPT_MASK: &[u8] = b\"NatriaPromptMask\";\n\
              const OBFUSCATED_DEFAULT_SYSTEM_PROMPT: &str = \"{prompt}\";\n\
-             const OBFUSCATED_DEFAULT_MIYU_HINT: &str = \"{hint}\";\n\
-             const OBFUSCATED_DEFAULT_MIYU_DIALOGS: &str = \"{dialogs}\";\n"
+             const OBFUSCATED_DEFAULT_NATRIA_HINT: &str = \"{hint}\";\n\
+             const OBFUSCATED_DEFAULT_NATRIA_DIALOGS: &str = \"{dialogs}\";\n"
         ),
     )
     .expect("write generated prompt asset");

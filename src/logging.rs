@@ -1,5 +1,5 @@
 use crate::i18n::text as t;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{Context, Result};
 use tracing::level_filters::LevelFilter;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -17,7 +17,7 @@ pub struct LoggingGuard {
     _worker: Option<WorkerGuard>,
 }
 
-pub fn init(paths: &MiyuPaths, cli_debug: bool) -> Result<LoggingGuard> {
+pub fn init(paths: &NatriaPaths, cli_debug: bool) -> Result<LoggingGuard> {
     let env_value = std::env::var("NATRIA_LOG")
         .or_else(|_| std::env::var("MIYU_LOG"))
         .ok();
@@ -33,7 +33,7 @@ pub fn init(paths: &MiyuPaths, cli_debug: bool) -> Result<LoggingGuard> {
 
     let appender = RollingFileAppender::builder()
         .rotation(Rotation::DAILY)
-        .filename_prefix("miyu")
+        .filename_prefix("natria")
         .filename_suffix("log")
         .max_log_files(LOG_FILE_LIMIT)
         .build(&logs_dir)

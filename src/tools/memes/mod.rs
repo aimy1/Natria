@@ -7,7 +7,7 @@ pub(crate) use validate::*;
 
 use super::{vision, ToolRegistry, ToolSpec};
 use crate::config::{AppConfig, MemesPluginConfig};
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::prompts::MEME_DESCRIPTION_PROMPT;
 use anyhow::{bail, Context, Result};
 use image::AnimationDecoder;
@@ -80,7 +80,7 @@ pub(crate) fn auto_meme_reminder(
 /// 两个上下文都注册这两个工具：群聊里也要能加表情。`manage_meme` 是写工具，
 /// 但它只写人格自己的表情库目录，和 `generate_image` 同类——平台注册表那条
 /// 「全员 ReadOnly」的断言把它们俩列为明示例外。
-pub fn register(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths) {
+pub fn register(registry: &mut ToolRegistry, config: AppConfig, paths: NatriaPaths) {
     if !config.plugins.memes.enabled {
         return;
     }
@@ -89,11 +89,11 @@ pub fn register(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths
 }
 
 /// 平台/群聊上下文：读写都给。
-pub fn register_chat(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths) {
+pub fn register_chat(registry: &mut ToolRegistry, config: AppConfig, paths: NatriaPaths) {
     register(registry, config, paths);
 }
 
-fn register_use(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths) {
+fn register_use(registry: &mut ToolRegistry, config: AppConfig, paths: NatriaPaths) {
     // 参数与描述都来自 descriptions/use_meme.json（注册后被整体覆盖），
     // 这里给的只是占位。
     registry.register(ToolSpec::new_with_progress(
@@ -123,7 +123,7 @@ fn register_use(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths
     ));
 }
 
-fn register_manage(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPaths) {
+fn register_manage(registry: &mut ToolRegistry, config: AppConfig, paths: NatriaPaths) {
     registry.register(
         ToolSpec::new(
             "manage_meme",
@@ -157,7 +157,7 @@ fn register_manage(registry: &mut ToolRegistry, config: AppConfig, paths: MiyuPa
     );
 }
 
-async fn search_meme(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Result<String> {
+async fn search_meme(args: Value, config: &AppConfig, paths: &NatriaPaths) -> Result<String> {
     let library = selected_library(&args, config);
     let query = args
         .get("query")
@@ -211,7 +211,7 @@ async fn search_meme(args: Value, config: &AppConfig, paths: &MiyuPaths) -> Resu
 async fn show_meme(
     args: Value,
     config: &AppConfig,
-    paths: &MiyuPaths,
+    paths: &NatriaPaths,
     progress: crate::tools::ToolProgress,
 ) -> Result<String> {
     let library = selected_library(&args, config);
@@ -317,7 +317,7 @@ mod tests {
     #[test]
     fn current_library_follows_persona_mapping() {
         let mut config = AppConfig::default();
-        assert_eq!(current_persona_library(&config), "miyu");
+        assert_eq!(current_persona_library(&config), "natria");
         config.prompt.active_persona = "Custom Persona.md".to_string();
         config.plugins.memes.persona_libraries.insert(
             config.active_persona_scope(),
@@ -394,7 +394,7 @@ mod tests {
         let config_dir = PathBuf::from(std::env::var("MIYU_E2E_CONFIG_DIR").unwrap());
         let image = PathBuf::from(std::env::var("MIYU_E2E_IMAGE").unwrap());
         let temp = tempfile::tempdir().unwrap();
-        let paths = MiyuPaths {
+        let paths = NatriaPaths {
             root_dir: config_dir.clone(),
             config_dir: config_dir.clone(),
             config_file: config_dir.join("config.jsonc"),
@@ -709,10 +709,10 @@ mod tests {
 #[cfg(test)]
 mod register_tests {
     use super::*;
-    use crate::paths::MiyuPaths;
+    use crate::paths::NatriaPaths;
 
-    fn test_paths(root: &std::path::Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &std::path::Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),

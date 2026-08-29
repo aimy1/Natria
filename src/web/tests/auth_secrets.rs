@@ -37,7 +37,7 @@ fn config_response_never_serializes_secret_values() {
     config.plugins.api_quota.deepseek.api_key = "deepseek-secret".to_string();
     config.plugins.api_quota.openrouter.api_key = "openrouter-secret".to_string();
     let paths = tempfile::tempdir().unwrap();
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: paths.path().to_path_buf(),
         config_dir: paths.path().join("config"),
         config_file: paths.path().join("config/config.jsonc"),

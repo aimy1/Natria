@@ -1,6 +1,6 @@
 use super::PlatformTurnContext;
 use crate::config::AppConfig;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use crate::platform_types::{
     OutboundMessage, OutboundOrigin, PlatformContextFileRef, PlatformContextImageRef,
     PlatformConversation, PlatformInboundEvent, SendReceipt, TriggerDecision,
@@ -75,7 +75,7 @@ pub(crate) struct PlatformTurnInput {
 
 pub(crate) struct PlatformPersonaResetContext<'a> {
     pub(crate) config: &'a AppConfig,
-    pub(crate) paths: &'a MiyuPaths,
+    pub(crate) paths: &'a NatriaPaths,
     pub(crate) bindings: &'a [PlatformSessionBinding],
 }
 
@@ -263,7 +263,7 @@ pub(crate) trait PlatformPlugin: Send + Sync {
     /// reply-queue limits. Implementations must keep this hook lightweight.
     fn observe_ingress<'a>(
         &'a self,
-        _paths: &'a MiyuPaths,
+        _paths: &'a NatriaPaths,
         _config: &'a AppConfig,
         _event: &'a PlatformInboundEvent,
     ) -> BoxFuture<'a, Result<()>> {
@@ -461,7 +461,7 @@ impl PlatformPluginRegistry {
 
     pub(crate) async fn observe_ingress(
         &self,
-        paths: &MiyuPaths,
+        paths: &NatriaPaths,
         config: &AppConfig,
         event: &PlatformInboundEvent,
     ) {

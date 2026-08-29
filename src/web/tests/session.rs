@@ -526,8 +526,8 @@ fn web_persona_renames_use_the_original_reference_snapshot() {
 fn web_rejects_persona_names_with_colliding_persistent_scopes() {
     let prompts: PromptDocuments = serde_json::from_value(json!({
         "personas": [
-            {"name": "A B.md", "content": "first"},
-            {"name": "A@B.md", "content": "second"}
+            {"name": "A-B.md", "content": "first"},
+            {"name": "a-b.md", "content": "second"}
         ],
         "identities": []
     }))

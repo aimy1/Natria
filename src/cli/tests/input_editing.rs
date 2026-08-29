@@ -74,7 +74,7 @@ fn models_is_the_cli_model_selector() {
 async fn one_shot_turns_default_to_a_throwaway_session() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path();
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: root.to_path_buf(),
         config_dir: root.join("config"),
         config_file: root.join("config/config.jsonc"),
@@ -90,7 +90,7 @@ async fn one_shot_turns_default_to_a_throwaway_session() {
         system_scripts_dir: root.join("system-scripts"),
     };
 
-    // Neither flag: `miyu ask` / `miyu '<message>'` must not touch a real
+    // Neither flag: `natria ask` / `natria '<message>'` must not touch a real
     // conversation. `--continue` opts back into the terminal session.
     // Both resolve without contacting the daemon.
     assert_eq!(
@@ -732,8 +732,8 @@ fn strips_terminal_control_sequences_from_repl_text() {
 }
 
 /// 只需要 state_dir 的 fixture：历史文件、状态库都落在它下面。
-fn state_only_paths(root: &std::path::Path) -> MiyuPaths {
-    MiyuPaths {
+fn state_only_paths(root: &std::path::Path) -> NatriaPaths {
+    NatriaPaths {
         root_dir: PathBuf::new(),
         config_dir: PathBuf::new(),
         config_file: PathBuf::new(),

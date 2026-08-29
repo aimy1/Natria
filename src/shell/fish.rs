@@ -1,5 +1,5 @@
 use crate::i18n::text as t;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::Result;
 
 fn completion_entries() -> [(&'static str, &'static str); 16] {
@@ -222,7 +222,7 @@ function __miyu_accept_line
         return
     end
 
-    printf '%s' "$buffer" | miyu --shell-classify --shell fish --stdin 2>/dev/null
+    printf '%s' "$buffer" | natria --shell-classify --shell fish --stdin 2>/dev/null; or printf '%s' "$buffer" | miyu --shell-classify --shell fish --stdin 2>/dev/null
     set -l classify_status $status
     if test $classify_status -eq 0
         __miyu_execute_or_continue
@@ -257,7 +257,7 @@ function fish_command_not_found
         set -l top_command (__miyu_first_command "$current_line")
         if test -z "$top_command"; or not type -q -- "$top_command"
             printf '\n'
-            printf '%s' "$current_line" | miyu --shell-intercept --shell fish --stdin 2>/dev/null
+            printf '%s' "$current_line" | natria --shell-intercept --shell fish --stdin 2>/dev/null; or printf '%s' "$current_line" | miyu --shell-intercept --shell fish --stdin 2>/dev/null
             return 127
         end
     end
@@ -270,7 +270,7 @@ function fish_command_not_found
     set -l text (string join ' ' -- $command)
     string match -qr '[\n\r]' -- $text; and return 127
 
-    miyu --shell-intercept --shell fish -- $command 2>/dev/null
+    natria --shell-intercept --shell fish -- $command 2>/dev/null; or miyu --shell-intercept --shell fish -- $command 2>/dev/null
     return 127
 end
 "#,
@@ -278,7 +278,7 @@ end
     output
 }
 
-pub fn install(paths: &MiyuPaths) -> Result<()> {
+pub fn install(paths: &NatriaPaths) -> Result<()> {
     if let Some(parent) = paths.fish_hook_file.parent() {
         std::fs::create_dir_all(parent)?;
     }
@@ -292,7 +292,7 @@ pub fn install(paths: &MiyuPaths) -> Result<()> {
     Ok(())
 }
 
-pub fn uninstall(paths: &MiyuPaths) -> Result<bool> {
+pub fn uninstall(paths: &NatriaPaths) -> Result<bool> {
     let removed = match std::fs::remove_file(&paths.fish_hook_file) {
         Ok(()) => true,
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => false,
@@ -301,7 +301,7 @@ pub fn uninstall(paths: &MiyuPaths) -> Result<bool> {
     if removed {
         println!(
             "{}: fish",
-            t("removed Miyu shell hook", "已移除 Miyu shell hook")
+            t("removed Natria shell hook", "已移除 Natria shell hook")
         );
     }
     Ok(removed)
@@ -411,7 +411,7 @@ mod tests {
     #[test]
     fn uninstall_reports_only_existing_hook() {
         let temp = tempfile::tempdir().unwrap();
-        let paths = MiyuPaths {
+        let paths = NatriaPaths {
             root_dir: temp.path().to_path_buf(),
             config_dir: temp.path().to_path_buf(),
             config_file: temp.path().join("config.json"),

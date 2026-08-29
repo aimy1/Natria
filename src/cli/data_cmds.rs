@@ -139,7 +139,7 @@ pub struct KbEmbedReindexArgs {
     pub quiet: bool,
 }
 
-pub(in crate::cli) async fn run_kb(paths: &MiyuPaths, args: KbArgs) -> Result<()> {
+pub(in crate::cli) async fn run_kb(paths: &NatriaPaths, args: KbArgs) -> Result<()> {
     let config = AppConfig::load(paths)?;
     let kb = tools::knowledge_base::KnowledgeBase::new(config, paths.clone())?;
     match args.command {
@@ -201,7 +201,7 @@ pub(in crate::cli) async fn run_kb(paths: &MiyuPaths, args: KbArgs) -> Result<()
     Ok(())
 }
 
-pub(in crate::cli) async fn run_update_default_kb(paths: &MiyuPaths) -> Result<()> {
+pub(in crate::cli) async fn run_update_default_kb(paths: &NatriaPaths) -> Result<()> {
     let config = AppConfig::load_or_default(paths)?;
     let state = crate::default_kb::update(paths, &config, |stage| {
         let mut stderr = io::stderr().lock();
@@ -223,7 +223,7 @@ pub(in crate::cli) fn write_default_kb_update_progress(
     output.flush()
 }
 
-pub(in crate::cli) fn run_memory(paths: &MiyuPaths, args: MemoryArgs) -> Result<()> {
+pub(in crate::cli) fn run_memory(paths: &NatriaPaths, args: MemoryArgs) -> Result<()> {
     let config = AppConfig::load_or_default(paths)?;
     let store = MemoryStore::new(&config, paths);
     match args.command {
@@ -246,7 +246,7 @@ pub(in crate::cli) fn run_memory(paths: &MiyuPaths, args: MemoryArgs) -> Result<
     Ok(())
 }
 
-pub(in crate::cli) fn run_skills(paths: &MiyuPaths, args: SkillsArgs) -> Result<()> {
+pub(in crate::cli) fn run_skills(paths: &NatriaPaths, args: SkillsArgs) -> Result<()> {
     std::fs::create_dir_all(&paths.skills_dir)?;
     match args.command {
         SkillsCommand::List => {
@@ -317,7 +317,7 @@ pub(in crate::cli) fn run_skills(paths: &MiyuPaths, args: SkillsArgs) -> Result<
     Ok(())
 }
 
-pub(in crate::cli) fn skill_names(paths: &MiyuPaths) -> Result<Vec<String>> {
+pub(in crate::cli) fn skill_names(paths: &NatriaPaths) -> Result<Vec<String>> {
     let mut names = Vec::new();
     if !paths.skills_dir.exists() {
         return Ok(names);
@@ -332,7 +332,7 @@ pub(in crate::cli) fn skill_names(paths: &MiyuPaths) -> Result<Vec<String>> {
     Ok(names)
 }
 
-pub(in crate::cli) fn skill_dir(paths: &MiyuPaths, name: &str) -> Result<PathBuf> {
+pub(in crate::cli) fn skill_dir(paths: &NatriaPaths, name: &str) -> Result<PathBuf> {
     let clean = name.trim();
     if clean.is_empty()
         || clean.contains('/')

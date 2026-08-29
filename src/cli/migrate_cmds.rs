@@ -39,10 +39,10 @@ pub(in crate::cli) fn default_export_name() -> String {
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| "miyu".to_string());
     let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    format!("miyu-export-{host}-{stamp}.tar.gz")
+    format!("natria-export-{host}-{stamp}.tar.gz")
 }
 
-pub(in crate::cli) fn run_export(paths: &MiyuPaths, args: ExportArgs) -> Result<()> {
+pub(in crate::cli) fn run_export(paths: &NatriaPaths, args: ExportArgs) -> Result<()> {
     let output = args
         .output
         .unwrap_or_else(|| PathBuf::from(default_export_name()));
@@ -96,23 +96,23 @@ pub(in crate::cli) fn run_export(paths: &MiyuPaths, args: ExportArgs) -> Result<
         println!(
             "{}",
             t(
-                "The knowledge-base vector index was left out; run `miyu kb embed` after importing (or re-export with --index).",
-                "未包含知识库向量索引；导入后请运行 miyu kb embed（或改用 --index 重新导出）。",
+                "The knowledge-base vector index was left out; run `natria kb embed` after importing (or re-export with --index).",
+                "未包含知识库向量索引；导入后请运行 natria kb embed（或改用 --index 重新导出）。",
             )
         );
     }
     Ok(())
 }
 
-pub(in crate::cli) async fn run_import(paths: &MiyuPaths, args: ImportArgs) -> Result<()> {
+pub(in crate::cli) async fn run_import(paths: &NatriaPaths, args: ImportArgs) -> Result<()> {
     // The daemon holds conversation.db's WAL open; replacing the file under it
     // would leave both the old process and the new database inconsistent.
     if crate::ipc::daemon_info(paths).await.is_some() {
         anyhow::bail!(
             "{}",
             t(
-                "the Miyu daemon is running and holds the database open; stop it first with `miyu daemon stop`",
-                "Miyu daemon 正在运行并占用数据库；请先执行 miyu daemon stop",
+                "the Natria daemon is running and holds the database open; stop it first with `natria daemon stop`",
+                "Natria daemon 正在运行并占用数据库；请先执行 natria daemon stop",
             )
         );
     }

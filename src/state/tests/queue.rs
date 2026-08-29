@@ -125,7 +125,7 @@ fn queued_prompts_survive_prompt_changes_but_not_a_new_store_session() {
     assert_eq!(store.load_queued_prompts().unwrap().len(), 1);
     drop(store);
 
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),

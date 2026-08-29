@@ -599,7 +599,7 @@ async fn download_avatar(
 mod tests {
     use super::*;
     use crate::config::AppConfig;
-    use crate::paths::MiyuPaths;
+    use crate::paths::NatriaPaths;
     use crate::platforms::plugins::PlatformPluginRegistry;
     use crate::platforms::{OutboundMessage, PlatformAdapter, PlatformConversation, SendReceipt};
     use crate::state::StateStore;
@@ -618,8 +618,8 @@ mod tests {
         }
     }
 
-    fn test_paths(root: &std::path::Path) -> MiyuPaths {
-        MiyuPaths {
+    fn test_paths(root: &std::path::Path) -> NatriaPaths {
+        NatriaPaths {
             root_dir: root.to_path_buf(),
             config_dir: root.join("config"),
             config_file: root.join("config/config.jsonc"),

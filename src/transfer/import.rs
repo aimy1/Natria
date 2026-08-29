@@ -1,10 +1,10 @@
-//! `miyu import`: restore an exported installation onto this machine.
+//! `natria import`: restore an exported installation onto this machine.
 
 use super::export::miyu_home;
 use super::manifest::{Manifest, MANIFEST_NAME};
 use super::registry::unit_for;
 use crate::i18n::text as t;
-use crate::paths::MiyuPaths;
+use crate::paths::NatriaPaths;
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use std::collections::BTreeSet;
@@ -28,7 +28,7 @@ pub struct ImportReport {
     pub cleared_workspaces: usize,
 }
 
-pub fn import(paths: &MiyuPaths, archive: &Path, options: &ImportOptions) -> Result<ImportReport> {
+pub fn import(paths: &NatriaPaths, archive: &Path, options: &ImportOptions) -> Result<ImportReport> {
     let root = miyu_home(paths)?;
     let manifest = read_manifest(archive)?;
     check_versions(&manifest)?;
@@ -84,7 +84,7 @@ pub fn import(paths: &MiyuPaths, archive: &Path, options: &ImportOptions) -> Res
 
 /// Why importing here would destroy something, or `None` when the target is
 /// effectively empty.
-fn occupied(paths: &MiyuPaths) -> Option<String> {
+fn occupied(paths: &NatriaPaths) -> Option<String> {
     if paths.config_file.exists() {
         return Some(format!(
             "{}: {}",
@@ -210,7 +210,7 @@ fn install(staged: &Path, root: &Path) -> Result<usize> {
 }
 
 /// Marks the restored tree as already using the current layout, so
-/// `MiyuPaths::new` does not try to migrate it from a legacy one.
+/// `NatriaPaths::new` does not try to migrate it from a legacy one.
 fn stamp_layout_markers(root: &Path) -> Result<()> {
     for marker in [".layout-v1", ".resource-layout-v1"] {
         let path = root.join(marker);
@@ -221,7 +221,7 @@ fn stamp_layout_markers(root: &Path) -> Result<()> {
     Ok(())
 }
 
-fn backup_current(paths: &MiyuPaths, archive: &Path) -> Result<PathBuf> {
+fn backup_current(paths: &NatriaPaths, archive: &Path) -> Result<PathBuf> {
     let directory = archive.parent().unwrap_or(Path::new("."));
     let stamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
     let destination = directory.join(format!("miyu-backup-{stamp}.tar.gz"));

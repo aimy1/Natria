@@ -2,8 +2,8 @@
 
 use crate::state::*;
 
-pub(super) fn test_paths(root: &Path) -> MiyuPaths {
-    MiyuPaths {
+pub(super) fn test_paths(root: &Path) -> NatriaPaths {
+    NatriaPaths {
         root_dir: root.to_path_buf(),
         config_dir: root.join("config"),
         config_file: root.join("config/config.jsonc"),

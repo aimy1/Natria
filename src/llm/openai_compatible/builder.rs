@@ -40,7 +40,7 @@ impl OpenAiCompatibleClient {
         }
     }
 
-    pub fn from_config(config: &AppConfig, paths: &MiyuPaths) -> Result<Self> {
+    pub fn from_config(config: &AppConfig, paths: &NatriaPaths) -> Result<Self> {
         crate::llm::cache_log::configure(paths, &config.cache);
         let endpoints = llm_endpoints(config, paths)?;
         let first = endpoints
@@ -73,7 +73,7 @@ impl OpenAiCompatibleClient {
     /// the shared endpoint scheduler, exactly like the main model pool.
     pub fn from_choices(
         config: &AppConfig,
-        paths: &MiyuPaths,
+        paths: &NatriaPaths,
         choices: &[crate::config::ProviderModelChoice],
     ) -> Result<Self> {
         crate::llm::cache_log::configure(paths, &config.cache);
@@ -157,7 +157,7 @@ impl OpenAiCompatibleClient {
         Ok(client)
     }
 
-    pub fn new(provider: &ProviderConfig, config: &AppConfig, paths: &MiyuPaths) -> Result<Self> {
+    pub fn new(provider: &ProviderConfig, config: &AppConfig, paths: &NatriaPaths) -> Result<Self> {
         if !provider.enabled {
             bail!(
                 "{}: {}",
@@ -373,7 +373,7 @@ impl OpenAiCompatibleClient {
 pub(in crate::llm::openai_compatible) fn claude_code_runtime(
     endpoints: &[LlmEndpoint],
     config: &AppConfig,
-    _paths: &MiyuPaths,
+    _paths: &NatriaPaths,
 ) -> Option<Arc<ClaudeCodeRuntime>> {
     if !endpoints
         .iter()

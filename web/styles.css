@@ -8685,9 +8685,9 @@ body[data-theme="linen"] .u-type-pill.t-aux { color: var(--md-sys-color-on-secon
 body.natria-paused *,
 body.natria-paused *::before,
 body.natria-paused *::after,
-body.miyu-paused *,
-body.miyu-paused *::before,
-body.miyu-paused *::after {
+body.natria-paused *,
+body.natria-paused *::before,
+body.natria-paused *::after {
   animation-play-state: paused !important;
 }
 
@@ -9243,3 +9243,68 @@ body.miyu-paused *::after {
   color: var(--text-faint);
   font-size: 13px;
 }
+
+/* ==========================================================================
+   Voice Settings & Layout Styles
+   ========================================================================== */
+
+#voiceModeSegmented button {
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Status Badge with breathing dot */
+.voice-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+}
+
+.voice-status-badge::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.voice-status-badge.is-online {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.voice-status-badge.is-online::before {
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: pulse-dot 2s infinite;
+}
+
+.voice-status-badge.is-offline {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+@keyframes pulse-dot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+
+

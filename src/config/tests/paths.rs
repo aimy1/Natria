@@ -54,7 +54,7 @@ fn a_path_outside_every_legacy_root_is_left_alone() {
 #[test]
 fn default_prompt_resources_follow_the_data_resource_layout() {
     let temp = tempfile::tempdir().unwrap();
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),
@@ -222,7 +222,7 @@ fn default_prompt_resources_follow_the_data_resource_layout() {
 #[test]
 fn reserved_system_prompt_file_is_not_a_persona() {
     let temp = tempfile::tempdir().unwrap();
-    let paths = MiyuPaths {
+    let paths = NatriaPaths {
         root_dir: temp.path().to_path_buf(),
         config_dir: temp.path().join("config"),
         config_file: temp.path().join("config/config.jsonc"),

@@ -516,7 +516,7 @@ mod tests {
             "这样写可以吗？假设我们输入一个字母`x`"
         ));
         assert!(looks_like_natural_language(
-            "我好像在输入里加一个左斜杠就会导致输入不被传给miyu/对吗？"
+            "我好像在输入里加一个左斜杠就会导致输入不被传给natria/对吗？"
         ));
         assert!(looks_like_natural_language(
             "软件需要适配 Wayland 的 `text-input` 协议，输入法要支持 $GTK_IM_MODULE 吗？"
@@ -525,7 +525,7 @@ mod tests {
             "GTK_IM_MODULE=fcitx 是什么意思？"
         ));
         assert!(looks_like_natural_language(
-            "./target/release/miyu 查询为什么失败？"
+            "./target/release/natria 查询为什么失败？"
         ));
     }
 
@@ -537,12 +537,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn classifies_commands_as_shell() {
         assert!(is_shell_command("echo hi", "fish"));
         assert!(is_shell_command("cd /tmp", "fish"));
         assert!(is_shell_command("FOO=bar cargo check", "fish"));
         assert!(is_shell_command("# comment\nls", "fish"));
-        assert!(is_shell_command("./target/release/miyu hi", "fish"));
+        assert!(is_shell_command("./target/release/natria hi", "fish"));
         assert!(is_shell_command("for item in a b", "fish"));
         assert!(is_shell_command("time cargo check", "fish"));
         assert!(is_shell_command(
@@ -552,7 +553,8 @@ mod tests {
     }
 
     #[test]
-    fn classifies_messages_as_miyu() {
+    #[cfg(unix)]
+    fn classifies_messages_as_natria() {
         assert!(!is_shell_command("你觉得 a;b 是什么意思", "fish"));
         assert!(!is_shell_command("解释 <tag> 是什么", "fish"));
         assert!(!is_shell_command("第一行\n第二行", "fish"));
