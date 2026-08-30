@@ -195,6 +195,12 @@
     matugenThemeLink: document.getElementById("matugenThemeLink"),
     reasoningExpandToggle: document.getElementById("reasoningExpandToggle"),
     toolExpandToggle: document.getElementById("toolExpandToggle"),
+    multiBubbleToggle: document.getElementById("multiBubbleToggle"),
+    multiBubbleSegmentsRow: document.getElementById("multiBubbleSegmentsRow"),
+    multiBubbleSegmentsSeg: document.getElementById("multiBubbleSegmentsSeg"),
+    multiBubbleDelayRow: document.getElementById("multiBubbleDelayRow"),
+    multiBubbleDelayLabel: document.getElementById("multiBubbleDelayLabel"),
+    multiBubbleDelaySlider: document.getElementById("multiBubbleDelaySlider"),
     sessionList: document.getElementById("sessionList"),
     sessionItems: document.getElementById("sessionItems"),
     contextNumbers: document.getElementById("contextNumbers"),
@@ -722,6 +728,125 @@
       block.open = state.reasoningExpanded;
     });
     if (persist) safeStorageSet("natria.web.reasoningExpanded", String(state.reasoningExpanded));
+  }
+
+    function splitMessageIntoBubbles(text, maxSegments = 3) {
+    if (!text || typeof text !== "string") return [];
+    const trimmed = text.trim();
+    if (!trimmed) return [];
+    if (maxSegments === 1) return [trimmed];
+
+    // 1. 保护代码块与数学公式块
+    const preservedBlocks = [];
+    const placeholderText = trimmed
+      .replace(/```[\s\S]*?```/g, (match) => {
+        const id = `__PRESERVED_BLOCK_${preservedBlocks.length}__`;
+        preservedBlocks.push(match);
+        return id;
+      })
+      .replace(/\$\$[\s\S]*?\$\$/g, (match) => {
+        const id = `__PRESERVED_BLOCK_${preservedBlocks.length}__`;
+        preservedBlocks.push(match);
+        return id;
+      });
+
+    // 2. 提取开头的动作/内心独白描写（如 （歪头看着你） 或 *叹了口气*）作为独立起首气泡
+    let actionPrefix = null;
+    let remainingText = placeholderText;
+    const actionMatch = remainingText.match(/^([（(][^）)\n]{2,30}[）)]|\*[^*\n]{2,30}\*)\s*(?:\n+|(?=[^\s]))/);
+    if (actionMatch && remainingText.length > actionMatch[0].length + 8) {
+      actionPrefix = actionMatch[1].trim();
+      remainingText = remainingText.slice(actionMatch[0].length).trim();
+    }
+
+    // 3. 段落级分割（双换行）
+    let rawParagraphs = remainingText
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    // 4. 句级智能切分（短段落但多句对话）
+    if (rawParagraphs.length === 1 && (maxSegments <= 0 || maxSegments >= 2) && remainingText.length > 40) {
+      const bySentence = remainingText.split(/(?<=[。！？!?\n])\s*(?=[^\s])/).map((s) => s.trim()).filter(Boolean);
+      if (bySentence.length >= 2) {
+        rawParagraphs = bySentence;
+      }
+    }
+
+    if (actionPrefix) {
+      rawParagraphs.unshift(actionPrefix);
+    }
+
+    // 5. 按最大分段限制聚合
+    const segments = [];
+    if (maxSegments <= 0 || rawParagraphs.length <= maxSegments) {
+      for (const p of rawParagraphs) {
+        segments.push(p);
+      }
+    } else {
+      const targetCount = maxSegments;
+      const totalLen = rawParagraphs.reduce((acc, p) => acc + p.length, 0);
+      const targetChunkSize = Math.ceil(totalLen / targetCount);
+      let currentChunk = [];
+      let currentLen = 0;
+      for (let i = 0; i < rawParagraphs.length; i++) {
+        const p = rawParagraphs[i];
+        currentChunk.push(p);
+        currentLen += p.length;
+        const remainingParagraphs = rawParagraphs.length - 1 - i;
+        const remainingSlots = targetCount - segments.length - 1;
+        if (
+          (currentLen >= targetChunkSize || remainingParagraphs <= remainingSlots) &&
+          segments.length < targetCount - 1
+        ) {
+          segments.push(currentChunk.join("\n\n"));
+          currentChunk = [];
+          currentLen = 0;
+        }
+      }
+      if (currentChunk.length) {
+        segments.push(currentChunk.join("\n\n"));
+      }
+    }
+
+    // 6. 还原保护块
+    return segments
+      .map((seg) => seg.replace(/__PRESERVED_BLOCK_(\d+)__/g, (_, idx) => preservedBlocks[Number(idx)] || ""))
+      .filter((s) => s.trim().length > 0);
+  }
+
+  function setMultiBubbleEnabled(value, persist = true) {
+    state.multiBubbleEnabled = Boolean(value);
+    if (state.display) state.display.multi_bubble_enabled = state.multiBubbleEnabled;
+    elements.multiBubbleToggle?.setAttribute("aria-checked", String(state.multiBubbleEnabled));
+    elements.multiBubbleToggle?.classList.toggle("on", state.multiBubbleEnabled);
+    if (elements.multiBubbleSegmentsRow) elements.multiBubbleSegmentsRow.style.display = state.multiBubbleEnabled ? "" : "none";
+    if (elements.multiBubbleDelayRow) elements.multiBubbleDelayRow.style.display = state.multiBubbleEnabled ? "" : "none";
+    if (persist) safeStorageSet("natria.web.multiBubbleEnabled", state.multiBubbleEnabled ? "1" : "0");
+  }
+
+  function setMultiBubbleMaxSegments(value, persist = true) {
+    const parsed = parseInt(value, 10);
+    state.multiBubbleMaxSegments = isNaN(parsed) ? 3 : parsed;
+    if (state.display) state.display.multi_bubble_max_segments = state.multiBubbleMaxSegments;
+    elements.multiBubbleSegmentsSeg?.querySelectorAll("[data-segments]").forEach((button) => {
+      const active = parseInt(button.dataset.segments, 10) === state.multiBubbleMaxSegments;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    if (persist) safeStorageSet("natria.web.multiBubbleMaxSegments", String(state.multiBubbleMaxSegments));
+  }
+
+  function setMultiBubbleDelayMs(value, persist = true) {
+    const parsed = parseInt(value, 10);
+    state.multiBubbleDelayMs = isNaN(parsed) ? 300 : Math.max(50, Math.min(2000, parsed));
+    if (state.display) state.display.multi_bubble_delay_ms = state.multiBubbleDelayMs;
+    if (elements.multiBubbleDelaySlider) elements.multiBubbleDelaySlider.value = state.multiBubbleDelayMs;
+    if (elements.multiBubbleDelayLabel) {
+      const desc = state.multiBubbleDelayMs <= 150 ? "疾速发送" : state.multiBubbleDelayMs <= 400 ? "自然微顿" : "沉浸慢发";
+      elements.multiBubbleDelayLabel.textContent = `${state.multiBubbleDelayMs}ms (${desc})`;
+    }
+    if (persist) safeStorageSet("natria.web.multiBubbleDelayMs", String(state.multiBubbleDelayMs));
   }
 
   function setToolExpanded(value, persist = true) {
@@ -6532,12 +6657,10 @@
     return block;
   }
 
-  function createAssistantMessage({
+  function createAssistantMessages({
     content = "",
     reasoning = "",
     reasoningTitle = "已思考",
-    // 工具轮次（持久化回合用）。实时那份由事件流按到达顺序往 blocks 里插，
-    // 推理、正文、工具卡是交错的；这里从 turn.tool_flow 重建同样的顺序。
     toolRounds = [],
     assets = [],
     timestamp = null,
@@ -6551,37 +6674,139 @@
     turnId = null,
     muted = false,
     segmentKind = "final",
-    redoTarget = null
+    redoTarget = null,
+    allowMultiBubble = true
+  } = {}) {
+    const multiBubble = allowMultiBubble && state.multiBubbleEnabled && state.display?.multi_bubble_enabled !== false;
+    const textSegments = multiBubble ? splitMessageIntoBubbles(content, state.multiBubbleMaxSegments) : (content ? [content] : []);
+
+    if (textSegments.length <= 1) {
+      const singleContent = textSegments[0] || content || "";
+      const article = createSingleAssistantArticle({
+        content: singleContent,
+        reasoning,
+        reasoningTitle,
+        toolRounds,
+        assets,
+        timestamp,
+        tokenTotal,
+        tokenPrompt,
+        tokenCached,
+        tokenEstimated,
+        providerId,
+        model,
+        activeContext,
+        turnId,
+        muted,
+        segmentKind,
+        redoTarget,
+        isContinuation: false,
+        segmentBadge: null
+      });
+      return [article];
+    }
+
+    const articles = [];
+    const totalSegments = textSegments.length;
+
+    // 气泡 1: 承载思考卡、工具卡、首段内容以及元数据
+    const firstArticle = createSingleAssistantArticle({
+      content: textSegments[0],
+      reasoning,
+      reasoningTitle,
+      toolRounds,
+      assets: [],
+      timestamp,
+      tokenTotal,
+      tokenPrompt,
+      tokenCached,
+      tokenEstimated,
+      providerId,
+      model,
+      activeContext,
+      turnId,
+      muted,
+      segmentKind,
+      redoTarget: null,
+      isContinuation: false,
+      segmentBadge: `1/${totalSegments}`
+    });
+    articles.push(firstArticle);
+
+    // 气泡 2..N: 紧凑连续子气泡
+    for (let i = 1; i < textSegments.length; i++) {
+      const isLast = i === textSegments.length - 1;
+      const continuationArticle = createSingleAssistantArticle({
+        content: textSegments[i],
+        reasoning: "",
+        toolRounds: [],
+        assets: isLast ? assets : [],
+        timestamp: null,
+        providerId: "",
+        model: "",
+        activeContext,
+        turnId,
+        muted,
+        segmentKind,
+        redoTarget: isLast ? redoTarget : null,
+        isContinuation: true,
+        segmentBadge: `${i + 1}/${totalSegments}`
+      });
+      articles.push(continuationArticle);
+    }
+    return articles;
+  }
+
+  function createSingleAssistantArticle({
+    content = "",
+    reasoning = "",
+    reasoningTitle = "已思考",
+    toolRounds = [],
+    assets = [],
+    timestamp = null,
+    tokenTotal = 0,
+    tokenPrompt = 0,
+    tokenCached = 0,
+    tokenEstimated = false,
+    providerId = "",
+    model = "",
+    activeContext = true,
+    turnId = null,
+    muted = false,
+    segmentKind = "final",
+    redoTarget = null,
+    isContinuation = false,
+    segmentBadge = null
   } = {}) {
     const article = document.createElement("article");
-    article.className = `message assistant-message${muted ? " is-muted" : ""}`;
+    article.className = `message assistant-message${isContinuation ? " is-continuation" : ""}${muted ? " is-muted" : ""}`;
     article.dataset.role = "assistant";
     if (turnId) article.dataset.turnId = turnId;
     article.dataset.segmentKind = segmentKind;
-    const header = document.createElement("header");
-    header.className = "assistant-label";
-    const avatar = document.createElement("img");
-    avatar.alt = "";
-    avatar.setAttribute("aria-hidden", "true");
-    setPersonaAvatar(avatar);
-    const identity = document.createElement("div");
-    const name = document.createElement("strong");
-    name.textContent = state.persona.name;
-    const time = document.createElement("span");
-    time.textContent = formatTime(timestamp) || "";
-    time.title = formatDateTime(timestamp);
-    identity.append(name, time);
-    header.append(avatar, identity);
+
+    if (!isContinuation) {
+      const header = document.createElement("header");
+      header.className = "assistant-label";
+      const avatar = document.createElement("img");
+      avatar.alt = "";
+      avatar.setAttribute("aria-hidden", "true");
+      setPersonaAvatar(avatar);
+      const identity = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = state.persona.name;
+      const time = document.createElement("span");
+      time.textContent = formatTime(timestamp) || "";
+      time.title = formatDateTime(timestamp);
+      identity.append(name, time);
+      header.append(avatar, identity);
+      article.appendChild(header);
+    }
+
     const assistantContent = document.createElement("div");
     assistantContent.className = "assistant-content";
     const blocks = document.createElement("div");
     blocks.className = "assistant-blocks";
-    // 逐轮重建:每一轮是「思考 → 正文 → 这轮调的工具」,轮次之间按顺序排,
-    // 最后才是本回合的最终思考与回答。把所有工具堆到最前面是错的——那样
-    // 一个十轮的回合会先甩出二十个工具卡,中间说了什么全看不见了。
-    //
-    // 卡片必须挂在 blocks 里:样式表是 `.assistant-blocks > .tool-card`,
-    // 挂在外面选择器不命中,会退化成一行裸文本。
+
     for (const round of Array.isArray(toolRounds) ? toolRounds : []) {
       const roundReasoning = String(round?.assistant_reasoning || "");
       if (roundReasoning.trim() && !reasoningHidden()) {
@@ -6597,8 +6822,6 @@
       }
       for (const call of Array.isArray(round?.calls) ? round.calls : []) {
         blocks.appendChild(createPersistedToolCard(call));
-        // share_file 的富预览(播放器/图片/下载条)重建:实时靠 tool.finished
-        // 的输出渲染,刷新/切换后从落库的 tool_flow 输出里复原同一份。
         const sharedModule = window.NatriaShared || window.MiyuShared;
         if (sharedModule?.isShareTool(String(call?.name || ""))) {
           const shared = sharedModule.renderCard(String(call?.output || ""));
@@ -6606,45 +6829,59 @@
         }
       }
     }
+
     if (String(reasoning || "").trim() && !reasoningHidden()) {
       const parsed = splitReasoningText(reasoning);
       blocks.appendChild(createReasoningBlock(parsed.body, "已思考", false).element);
     }
+
     if (String(content || "").trim()) {
       const markdown = document.createElement("div");
       markdown.className = "markdown-body";
       renderMarkdown(markdown, content);
       blocks.appendChild(markdown);
     }
+
     for (const asset of Array.isArray(assets) ? assets : []) blocks.appendChild(createConversationMedia(asset));
     assistantContent.appendChild(blocks);
     assistantContent.classList.toggle("is-slim", !blocks.querySelector(WIDE_BLOCK_SELECTOR));
-    article.append(header, assistantContent);
+    article.appendChild(assistantContent);
 
     const meta = document.createElement("div");
     meta.className = "assistant-meta";
-    if (state.display?.show_mixed_model_endpoint && (String(providerId || "").trim() || String(model || "").trim())) {
+
+    if (segmentBadge) {
+      const badge = document.createElement("span");
+      badge.className = "bubble-segment-badge";
+      badge.textContent = segmentBadge;
+      badge.title = `第 ${segmentBadge} 条连续气泡`;
+      meta.appendChild(badge);
+    }
+
+    if (!isContinuation && state.display?.show_mixed_model_endpoint && (String(providerId || "").trim() || String(model || "").trim())) {
       const endpoint = document.createElement("span");
       endpoint.className = "assistant-endpoint";
       endpoint.textContent = [providerId, model].map((value) => String(value || "").trim()).filter(Boolean).join(" / ");
       meta.appendChild(endpoint);
     }
-    const usageText = formatUsageMeta({
-      turnTotal: tokenTotal,
-      turnPrompt: tokenPrompt,
-      turnCached: tokenCached,
-      estimated: tokenEstimated
-    });
-    if (usageText) {
-      const token = document.createElement("span");
-      token.textContent = usageText;
-      meta.appendChild(token);
-    }
-    if (!activeContext) {
-      const contextBadge = document.createElement("span");
-      contextBadge.className = "context-state-badge";
-      contextBadge.textContent = "已移出当前上下文";
-      meta.appendChild(contextBadge);
+    if (!isContinuation) {
+      const usageText = formatUsageMeta({
+        turnTotal: tokenTotal,
+        turnPrompt: tokenPrompt,
+        turnCached: tokenCached,
+        estimated: tokenEstimated
+      });
+      if (usageText) {
+        const token = document.createElement("span");
+        token.textContent = usageText;
+        meta.appendChild(token);
+      }
+      if (!activeContext) {
+        const contextBadge = document.createElement("span");
+        contextBadge.className = "context-state-badge";
+        contextBadge.textContent = "已移出当前上下文";
+        meta.appendChild(contextBadge);
+      }
     }
     const copyValue = String(content || "").trim() || String(reasoning || "");
     if (copyValue || redoTarget) {
@@ -6667,6 +6904,11 @@
     }
     if (meta.childNodes.length) article.appendChild(meta);
     return article;
+  }
+
+  function createAssistantMessage(options) {
+    const list = createAssistantMessages(options);
+    return list[0] || document.createElement("article");
   }
 
   function setAssistantRedoAction(article, candidate) {
@@ -9641,6 +9883,17 @@
     state.models = Array.isArray(snapshot?.models) ? snapshot.models : [];
     applyPersona(snapshot?.persona);
     state.display = snapshot?.display && typeof snapshot.display === "object" ? snapshot.display : state.display;
+    if (snapshot?.display) {
+      if (typeof snapshot.display.multi_bubble_enabled === "boolean" && safeStorageGet("natria.web.multiBubbleEnabled") === null) {
+        setMultiBubbleEnabled(snapshot.display.multi_bubble_enabled, false);
+      }
+      if (typeof snapshot.display.multi_bubble_max_segments === "number" && safeStorageGet("natria.web.multiBubbleMaxSegments") === null) {
+        setMultiBubbleMaxSegments(snapshot.display.multi_bubble_max_segments, false);
+      }
+      if (typeof snapshot.display.multi_bubble_delay_ms === "number" && safeStorageGet("natria.web.multiBubbleDelayMs") === null) {
+        setMultiBubbleDelayMs(snapshot.display.multi_bubble_delay_ms, false);
+      }
+    }
     if (snapshot?.display?.voice && typeof snapshot.display.voice === "object") {
       if (snapshot.display.voice.voice) state.voiceConfig.voice = snapshot.display.voice.voice;
       if (snapshot.display.voice.pitch) state.voiceConfig.pitch = snapshot.display.voice.pitch;
@@ -11393,6 +11646,13 @@
     document.querySelectorAll("[data-chat-font]").forEach((button) => button.addEventListener("click", () => setChatFontSize(button.dataset.chatFont)));
     elements.reasoningExpandToggle?.addEventListener("click", () => setReasoningExpanded(!state.reasoningExpanded));
     elements.toolExpandToggle?.addEventListener("click", () => setToolExpanded(!state.toolExpanded));
+    elements.multiBubbleToggle?.addEventListener("click", () => setMultiBubbleEnabled(!state.multiBubbleEnabled));
+    elements.multiBubbleSegmentsSeg?.querySelectorAll("[data-segments]").forEach((button) => {
+      button.addEventListener("click", () => setMultiBubbleMaxSegments(button.dataset.segments));
+    });
+    elements.multiBubbleDelaySlider?.addEventListener("input", () => {
+      setMultiBubbleDelayMs(elements.multiBubbleDelaySlider.value);
+    });
     elements.modelButton.addEventListener("click", (event) => {
       event.stopPropagation();
       if (elements.modelMenu.hidden) openModelMenu();
@@ -13671,6 +13931,9 @@
     setChatFontSize(safeStorageGet("natria.web.chatFontSize") || "15px", false);
     setReasoningExpanded(safeStorageGet("natria.web.reasoningExpanded") === "true", false);
     setToolExpanded(safeStorageGet("natria.web.toolExpanded") === "true", false);
+    setMultiBubbleEnabled((safeStorageGet("natria.web.multiBubbleEnabled") ?? "1") !== "0", false);
+    setMultiBubbleMaxSegments(safeStorageGet("natria.web.multiBubbleMaxSegments") || 3, false);
+    setMultiBubbleDelayMs(safeStorageGet("natria.web.multiBubbleDelayMs") || 300, false);
     const artifactRatio = Number(safeStorageGet("natria.web.artifactWidthRatio.v2"));
     if (Number.isFinite(artifactRatio) && artifactRatio >= 0.25 && artifactRatio <= 0.9) {
       state.artifactWidthRatio = artifactRatio;

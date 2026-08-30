@@ -169,6 +169,15 @@ pub struct DisplayConfig {
     /// How many finished turns a reopened REPL redraws; 0 disables replay.
     #[serde(default = "default_repl_replay_turns")]
     pub repl_replay_turns: usize,
+    /// 连续多气泡回复（一问多答 / 拟真聊天模式）
+    #[serde(default = "default_multi_bubble_enabled")]
+    pub multi_bubble_enabled: bool,
+    /// 最大拆分连续气泡数（默认 3）
+    #[serde(default = "default_multi_bubble_max_segments")]
+    pub multi_bubble_max_segments: usize,
+    /// 发送连续气泡微停顿延迟（毫秒，默认 300）
+    #[serde(default = "default_multi_bubble_delay_ms")]
+    pub multi_bubble_delay_ms: u64,
 }
 
 /// Desktop notifications. Both kinds are suppressed while the REPL window has
@@ -223,6 +232,12 @@ struct RawDisplayConfig {
     command_output_lines: Option<usize>,
     #[serde(default)]
     repl_replay_turns: Option<usize>,
+    #[serde(default)]
+    multi_bubble_enabled: Option<bool>,
+    #[serde(default)]
+    multi_bubble_max_segments: Option<usize>,
+    #[serde(default)]
+    multi_bubble_delay_ms: Option<u64>,
 }
 
 impl<'de> Deserialize<'de> for DisplayConfig {
@@ -264,6 +279,15 @@ impl<'de> Deserialize<'de> for DisplayConfig {
             repl_replay_turns: raw
                 .repl_replay_turns
                 .unwrap_or_else(default_repl_replay_turns),
+            multi_bubble_enabled: raw
+                .multi_bubble_enabled
+                .unwrap_or_else(default_multi_bubble_enabled),
+            multi_bubble_max_segments: raw
+                .multi_bubble_max_segments
+                .unwrap_or_else(default_multi_bubble_max_segments),
+            multi_bubble_delay_ms: raw
+                .multi_bubble_delay_ms
+                .unwrap_or_else(default_multi_bubble_delay_ms),
         })
     }
 }
@@ -535,6 +559,9 @@ impl Default for DisplayConfig {
             mixed_model_endpoint_display: default_mixed_model_endpoint_display(),
             command_output_lines: default_command_output_lines(),
             repl_replay_turns: default_repl_replay_turns(),
+            multi_bubble_enabled: default_multi_bubble_enabled(),
+            multi_bubble_max_segments: default_multi_bubble_max_segments(),
+            multi_bubble_delay_ms: default_multi_bubble_delay_ms(),
         }
     }
 }

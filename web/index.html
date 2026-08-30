@@ -463,6 +463,43 @@
               </div>
             </div>
             </section>
+            <section class="settings-section settings-panel" data-settings-panel="interface">
+            <h2>
+              <span>测试功能 · 连续多气泡 (一问多答)</span>
+              <span class="feature-tag tag-experimental">Beta 测试</span>
+            </h2>
+            <div class="settings-card">
+              <div class="settings-row">
+                <div class="lbl">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <strong>启用连续多气泡回复</strong>
+                    <span class="feature-tag tag-experimental" style="font-size: 10px; padding: 1px 6px;">测试功能</span>
+                  </div>
+                  <small>【测试功能】一次长回复按语义自然拆解为多条短气泡连续发送（拟真聊天模式）</small>
+                </div>
+                <button class="toggle on" id="multiBubbleToggle" type="button" role="switch" aria-checked="true" aria-label="启用连续多气泡回复"></button>
+              </div>
+              <div class="settings-row" id="multiBubbleSegmentsRow">
+                <div class="lbl">
+                  <strong>最多拆分气泡数</strong>
+                  <small>单次回合最多分成的独立短消息气泡数量</small>
+                </div>
+                <div class="segmented" id="multiBubbleSegmentsSeg" role="group" aria-label="最多拆分气泡数">
+                  <button type="button" data-segments="2">2 条</button>
+                  <button type="button" data-segments="3" class="active">3 条</button>
+                  <button type="button" data-segments="4">4 条</button>
+                  <button type="button" data-segments="0">无限制</button>
+                </div>
+              </div>
+              <div class="settings-row" id="multiBubbleDelayRow">
+                <div class="lbl">
+                  <strong>发送停顿节奏 (延时)</strong>
+                  <small id="multiBubbleDelayLabel">300ms (自然微顿)</small>
+                </div>
+                <input type="range" id="multiBubbleDelaySlider" min="100" max="800" step="50" value="300" style="width: 160px;" aria-label="发送停顿节奏">
+              </div>
+            </div>
+            </section>
             <section class="settings-section settings-panel" data-settings-panel="voice" hidden>
             <h2>语音播报</h2>
             <!-- 主配置卡片：发音引擎与参数 -->

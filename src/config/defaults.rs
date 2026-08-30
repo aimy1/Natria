@@ -136,6 +136,18 @@ pub(crate) fn default_mixed_model_endpoint_display() -> String {
     "interactive".to_string()
 }
 
+pub(crate) fn default_multi_bubble_enabled() -> bool {
+    true
+}
+
+pub(crate) fn default_multi_bubble_max_segments() -> usize {
+    3
+}
+
+pub(crate) fn default_multi_bubble_delay_ms() -> u64 {
+    300
+}
+
 pub(crate) fn default_memory_association_facts() -> usize {
     2
 }

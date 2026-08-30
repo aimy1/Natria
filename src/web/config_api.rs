@@ -41,6 +41,9 @@ pub(in crate::web) struct WebDisplayConfig {
     pub(in crate::web) mixed_model_endpoint_display: String,
     pub(in crate::web) show_mixed_model_endpoint: bool,
     pub(in crate::web) voice: crate::voice::types::VoiceConfig,
+    pub(in crate::web) multi_bubble_enabled: bool,
+    pub(in crate::web) multi_bubble_max_segments: usize,
+    pub(in crate::web) multi_bubble_delay_ms: u64,
 }
 
 pub(in crate::web) async fn get_config(
@@ -787,5 +790,8 @@ pub(in crate::web) fn web_display_config(config: &AppConfig) -> WebDisplayConfig
             && matches!(mixed_model_endpoint_display.as_str(), "interactive" | "all"),
         mixed_model_endpoint_display,
         voice: config.voice.clone(),
+        multi_bubble_enabled: config.display.multi_bubble_enabled,
+        multi_bubble_max_segments: config.display.multi_bubble_max_segments,
+        multi_bubble_delay_ms: config.display.multi_bubble_delay_ms,
     }
 }
