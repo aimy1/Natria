@@ -12,6 +12,120 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 static INFER_MUTEX: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+static SOVITS_CHILD: std::sync::Mutex<Option<std::process::Child>> = std::sync::Mutex::new(None);
+
+/// 探测本地是否存在 GPT-SoVITS 整合包目录
+pub fn find_gpt_sovits_dir() -> Option<PathBuf> {
+    let candidates = [
+        PathBuf::from("GPT-SoVITS-v2pro-20250604-nvidia50"),
+        PathBuf::from("../GPT-SoVITS-v2pro-20250604-nvidia50"),
+        PathBuf::from("GPT-SoVITS"),
+        PathBuf::from("../GPT-SoVITS"),
+        PathBuf::from("gpt-sovits"),
+        PathBuf::from("../gpt-sovits"),
+    ];
+    for dir in &candidates {
+        let py = dir.join("runtime").join(if cfg!(windows) { "python.exe" } else { "bin/python3" });
+        let api = dir.join("api_v2.py");
+        if py.exists() && api.exists() {
+            if let Ok(canon) = std::fs::canonicalize(dir) {
+                return Some(canon);
+            }
+            return Some(dir.clone());
+        }
+    }
+    None
+}
+
+/// 检查并在必要时自动在后台拉起 GPT-SoVITS 服务 (Sidecar 模式)
+pub async fn ensure_gpt_sovits_running() -> bool {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(500))
+        .build()
+        .unwrap_or_default();
+
+    // 先探测 9880 端口是否已有运行中的实例
+    if let Ok(resp) = client.get("http://127.0.0.1:9880/control").send().await {
+        let code = resp.status().as_u16();
+        if code == 200 || code == 404 || code == 405 {
+            return true;
+        }
+    }
+    if let Ok(resp) = client.get("http://127.0.0.1:9880/").send().await {
+        let code = resp.status().as_u16();
+        if code == 200 || code == 404 || code == 405 {
+            return true;
+        }
+    }
+
+    let Some(gpt_dir) = find_gpt_sovits_dir() else {
+        return false;
+    };
+
+    let py_path = gpt_dir.join("runtime").join(if cfg!(windows) { "python.exe" } else { "bin/python3" });
+
+    tracing::info!(dir = ?gpt_dir, "Starting GPT-SoVITS sidecar process...");
+
+    let mut cmd = std::process::Command::new(&py_path);
+    cmd.current_dir(&gpt_dir);
+    cmd.arg("-I")
+        .arg("api_v2.py")
+        .arg("-a")
+        .arg("127.0.0.1")
+        .arg("-p")
+        .arg("9880")
+        .arg("-c")
+        .arg("GPT_SoVITS/configs/tts_infer.yaml");
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // CREATE_NO_WINDOW = 0x08000000
+        cmd.creation_flags(0x08000000);
+    }
+
+    match cmd.spawn() {
+        Ok(child) => {
+            if let Ok(mut lock) = SOVITS_CHILD.lock() {
+                *lock = Some(child);
+            }
+            tracing::info!("GPT-SoVITS sidecar process spawned, waiting for endpoint ready...");
+
+            for _ in 0..25 {
+                tokio::time::sleep(Duration::from_millis(600)).await;
+                if let Ok(resp) = client.get("http://127.0.0.1:9880/control").send().await {
+                    let code = resp.status().as_u16();
+                    if code == 200 || code == 404 || code == 405 {
+                        tracing::info!("GPT-SoVITS sidecar is now READY on 127.0.0.1:9880");
+                        return true;
+                    }
+                }
+                if let Ok(resp) = client.get("http://127.0.0.1:9880/").send().await {
+                    let code = resp.status().as_u16();
+                    if code == 200 || code == 404 || code == 405 {
+                        tracing::info!("GPT-SoVITS sidecar is now READY on 127.0.0.1:9880");
+                        return true;
+                    }
+                }
+            }
+            true
+        }
+        Err(e) => {
+            tracing::error!("Failed to spawn GPT-SoVITS sidecar: {e}");
+            false
+        }
+    }
+}
+
+/// 优雅停止由 Natria 启动的 GPT-SoVITS 进程
+pub fn stop_gpt_sovits_if_running() {
+    if let Ok(mut lock) = SOVITS_CHILD.lock() {
+        if let Some(mut child) = lock.take() {
+            tracing::info!("Stopping GPT-SoVITS sidecar process...");
+            let _ = child.kill();
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct GptSovitsEngine {
@@ -74,7 +188,9 @@ impl GptSovitsEngine {
                 Some("乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。")
             }
             "4-01.wav" => Some("谁、谁让你看我这么近的，笨蛋，快把头转过去啊！"),
+            "4-04.wav" => Some("对，盯着我看干嘛，我脸上有东西吗？真是的。"),
             "5-02.wav" => Some("躲去哪里都没有用的哦，你整个人早就是我的啦。"),
+            "5-03.wav" => Some("这么听话的你，真想把你永远困在这里呢。"),
             "5-04.wav" => Some("为什么要看着别人呢？明明只要看着我，就足够了呀。"),
             "3-01.wav" => Some("嗯，好困啊，过来给我抱一下，不然今天不准你走。"),
             "3-03.wav" => Some("真是拿你没办法，过来，让我靠一会啊。"),
@@ -83,6 +199,8 @@ impl GptSovitsEngine {
             "2-03（Y）.wav" | "2-03(Y).wav" => Some("嘴上说着不要，身体倒是挺诚实的嘛，嗯？"),
             "2-05（Y-ns）.wav" | "2-05(Y-ns).wav" => Some("表现得这么乖，是想向我讨什么奖励吗？"),
             "2-06（Y-Y）.wav" | "2-06(Y-Y).wav" => Some("真是个不让人省心的小家伙，过来，坐到我身边来。"),
+            "sample_flirty.wav" => Some("别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。"),
+            "sample_tsundere.wav" => Some("哼，今天就勉强允许你牵我的手好了，下不为例哦。"),
             "T-01.wav" => Some("真是败给你了。"),
             "T-02.wav" => Some("喂，你手往哪里放呢？"),
             "T-03.wav" => Some("怎么，不认得我了？"),
@@ -201,6 +319,11 @@ impl GptSovitsEngine {
             .unwrap_or("http://127.0.0.1:9880");
         let base_url = endpoint_raw.trim_end_matches('/');
 
+        // 若请求指向本地 9880 端口，且服务尚未就绪，自动唤醒/拉起后台 Sidecar 服务
+        if base_url.contains("127.0.0.1:9880") || base_url.contains("localhost:9880") {
+            ensure_gpt_sovits_running().await;
+        }
+
         // 自动探测 /tts 或 / 根路径
         let url = if base_url.ends_with("/tts") {
             base_url.to_string()
@@ -234,18 +357,20 @@ impl GptSovitsEngine {
         .unwrap_or(1.0)
         .clamp(0.6, 1.8);
 
-        // 采样参数调优（默认 temperature 0.80, top_k 5，显著提升音色稳定性，消除发飘与电音）
-        let temperature = config.temperature.unwrap_or(0.80).clamp(0.3, 1.3);
-        let top_k = config.top_k.unwrap_or(5).clamp(1, 30);
+        // 采样参数调优（默认 temperature 0.72, top_k 15，显著提升音色自然度与语流流畅度，消除顿挫、吞字与机械感）
+        let temperature = config.temperature.unwrap_or(0.72).clamp(0.3, 1.3);
+        let top_k = config.top_k.unwrap_or(15).clamp(1, 30);
         let top_p = config.top_p.unwrap_or(1.0).clamp(0.5, 1.0);
         let repetition_penalty = config.repetition_penalty.unwrap_or(1.35).clamp(1.0, 2.0);
 
+        // 智能切分：短句与中长句（<= 70 字）坚决采用 cut0（不切分），完整保留连贯呼吸起伏与起承转合；
+        // 仅在超长文本（> 70 字）时采用 cut2（凑50字一切，在完整句末切分），绝不在句内逗号处硬生生截断导致语气破裂
         let text_split_method = config
             .text_split_method
             .as_deref()
             .unwrap_or_else(|| {
-                if clean_text.chars().count() > 50 {
-                    "cut5"
+                if clean_text.chars().count() > 85 {
+                    "cut2"
                 } else {
                     "cut0"
                 }
@@ -270,7 +395,7 @@ impl GptSovitsEngine {
             "speed": speed_factor,
             "repetition_penalty": repetition_penalty,
             "sample_steps": 32,
-            "fragment_interval": 0.25,
+            "fragment_interval": 0.01,
             "split_bucket": true,
             "parallel_infer": true,
             "media_type": "wav"

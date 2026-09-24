@@ -126,8 +126,8 @@ fn find_next_sentence_cut(text: &str, is_final: bool) -> Option<(usize, usize)> 
             return Some((next_byte, next_byte));
         }
 
-        // 如果句子已经累积了一定长度（如 18 个字符以上），遇到弱标点也可以切分，提升首包流式感
-        if is_weak && i >= 18 {
+        // 如果单句过于冗长且迟迟没有句号（如 45 个字符以上），在弱标点处安全切分，避免合成延迟过大；正常长度句子完整保留
+        if is_weak && i >= 45 {
             let next_byte = if i + 1 < char_count {
                 chars[i + 1].0
             } else {

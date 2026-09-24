@@ -415,8 +415,12 @@
       promptText: localStorage.getItem("natria.voice.promptText") || "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
       promptLang: localStorage.getItem("natria.voice.promptLang") || "zh",
       textLang: (localStorage.getItem("natria.voice.textLang") === "ko" ? "auto" : (localStorage.getItem("natria.voice.textLang") || "auto")),
-      temperature: parseFloat(localStorage.getItem("natria.voice.temperature") || "0.80"),
-      topK: parseInt(localStorage.getItem("natria.voice.topK") || "5", 10),
+      temperature: parseFloat(localStorage.getItem("natria.voice.temperature") || "0.72"),
+      topK: (() => {
+        const stored = localStorage.getItem("natria.voice.topK");
+        if (!stored || stored === "5") return 15;
+        return parseInt(stored, 10) || 15;
+      })(),
       topP: parseFloat(localStorage.getItem("natria.voice.topP") || "1.0"),
       repetitionPenalty: parseFloat(localStorage.getItem("natria.voice.repetitionPenalty") || "1.35"),
       characterPreset: localStorage.getItem("natria.voice.characterPreset") || "tsundere",
@@ -11854,7 +11858,7 @@
 
       // 剥离圆括号内的纯舞台动作描写，保留正文说明（如 （例如包含 3 个章节））
       text = text.replace(/[（(]([^（）()]{1,30})[）)]/g, (match, inner) => {
-        return isTheatricalAction(inner) ? "" : `，${inner}，`;
+        return isTheatricalAction(inner) ? "" : ` ${inner} `;
       });
     }
 
@@ -11869,7 +11873,7 @@
     text = text.replace(/\|/g, " ");
 
     // 6. 规整省略号、破折号与多重标点为自然呼吸停顿
-    text = text.replace(/[…\.]{2,}/g, "，");
+    text = text.replace(/[…\.]{2,}/g, "…");
     text = text.replace(/[—\-]{2,}/g, "，");
 
     // 7. 技术专有名词与大写字母归一化（防止模型遇到英文词表音素丢包）
@@ -11888,15 +11892,17 @@
 
     // 8. 将书名号《》、标签号【】、括号() 等转为自然语流停顿，不读出符号本体
     text = text.replace(/[\\`*~^{}[\]【】［］<>《》〔〕〈〉@#%+=/|_]/g, " ");
-    text = text.replace(/[()（）]/g, "，");
+    text = text.replace(/[()（）]/g, " ");
 
     // 9. 换行与空白规整
     text = text.replace(/\r?\n\s*\r?\n/g, "。").replace(/\r?\n/g, "，");
     text = text.replace(/\s+/g, " ");
+    text = text.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, "$1$2");
+    text = text.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, "$1$2");
     text = text.replace(/\s+([，。！？；：、])/g, "$1");
     text = text.replace(/，([。！？；])/g, "$1");
     text = text.replace(/([。！？；])，/g, "$1");
-    text = text.replace(/([，。！？；])\1+/g, "$1");
+    text = text.replace(/([，。！？；、…])\1+/g, "$1");
     text = text.replace(/^[，、；：\s]+|[，、；：\s]+$/g, "");
 
     return text.trim();
@@ -11987,6 +11993,9 @@
     if (!text) return [];
     const clean = cleanTextForVoice(text);
     if (!clean) return [];
+    if (clean.length <= 85) {
+      return [clean];
+    }
 
     // 第一步：先按主要句子结束符（句号、感叹号、问号、分号、换行）切分
     const rawParts = clean.split(/([。！？!?\n;；…]+)/);
@@ -11998,7 +12007,7 @@
       const combined = (seg + punc).trim();
       if (!combined) continue;
       // 避免单句过碎，若当前积累不足 18 字且未到结尾，则继续合并
-      if (cur.length + combined.length < 20 && i + 2 < rawParts.length) {
+      if (cur.length + combined.length < 35 && i + 2 < rawParts.length) {
         cur += (cur ? "" : "") + combined;
       } else {
         primarySentences.push((cur ? cur : "") + combined);
@@ -12010,7 +12019,7 @@
     // 第二步：对于超过 36 字的长难句，在逗号/冒号/顿号处按 18~35 字自然切分
     const refinedSentences = [];
     for (const s of primarySentences) {
-      if (s.length <= 36) {
+      if (s.length <= 65) {
         refinedSentences.push(s);
       } else {
         const subParts = s.split(/([，,、：:——]+)/);
@@ -12020,7 +12029,7 @@
           const subPunc = subParts[j + 1] || "";
           const subCombined = (subSeg + subPunc).trim();
           if (!subCombined) continue;
-          if (subCur.length + subCombined.length < 22 && j + 2 < subParts.length) {
+          if (subCur.length + subCombined.length < 40 && j + 2 < subParts.length) {
             subCur += subCombined;
           } else {
             refinedSentences.push((subCur + subCombined).trim());
@@ -12074,8 +12083,8 @@
       prompt_text: options.promptText || state.voiceConfig.promptText || undefined,
       prompt_lang: options.promptLang || state.voiceConfig.promptLang || undefined,
       text_lang: options.textLang || state.voiceConfig.textLang || "auto",
-      temperature: options.temperature ?? state.voiceConfig.temperature ?? 0.80,
-      top_k: options.topK ?? state.voiceConfig.topK ?? 5,
+      temperature: options.temperature ?? state.voiceConfig.temperature ?? 0.72,
+      top_k: options.topK ?? state.voiceConfig.topK ?? 15,
       top_p: options.topP ?? state.voiceConfig.topP ?? 1.0,
       repetition_penalty: options.repetitionPenalty ?? state.voiceConfig.repetitionPenalty ?? 1.35,
       voice: voiceId,
@@ -12167,6 +12176,7 @@
       this.ended = false;
       this.consumerRunning = false;
       this.hasStartedPlaying = false;
+      this.sentencesDispatchedCount = 0;
     }
 
     feed(delta) {
@@ -12263,9 +12273,13 @@
         }
 
         if (strongPunct.test(char)) {
-          return i + 1;
+          const minLen = this.sentencesDispatchedCount === 0 ? 6 : 8;
+          if (i >= minLen - 1) {
+            return i + 1;
+          }
         }
-        if (weakPunct.test(char) && i >= 18) {
+        const weakThreshold = 55;
+        if (weakPunct.test(char) && i >= weakThreshold) {
           return i + 1;
         }
       }
@@ -12279,6 +12293,7 @@
       if (!rawText) return;
       const cleaned = cleanTextForVoice(rawText);
       if (cleaned && /\p{L}|\p{N}/u.test(cleaned)) {
+        this.sentencesDispatchedCount++;
         this.enqueueSentence(cleaned);
       }
     }
@@ -12404,7 +12419,7 @@
 
         // 句与句之间的拟真自然呼吸微停顿 (100ms)
         if (this.queue.length > 0 && !this.abortController.signal.aborted && this.token === voicePlaybackToken) {
-          await new Promise((r) => setTimeout(r, 100));
+          // 零缝隙即时起播，消除额外等待
         }
       }
 
@@ -12912,12 +12927,12 @@
       elements.voiceCloneTextLangSelect.value = state.voiceConfig.textLang || "auto";
     }
     if (elements.voiceCloneTempSlider && elements.voiceCloneTempLabel) {
-      const tempVal = state.voiceConfig.temperature ?? 0.80;
+      const tempVal = state.voiceConfig.temperature ?? 0.72;
       elements.voiceCloneTempSlider.value = String(tempVal);
       elements.voiceCloneTempLabel.textContent = Number(tempVal).toFixed(2);
     }
     if (elements.voiceCloneTopKSlider && elements.voiceCloneTopKLabel) {
-      const topKVal = state.voiceConfig.topK ?? 5;
+      const topKVal = state.voiceConfig.topK ?? 15;
       elements.voiceCloneTopKSlider.value = String(topKVal);
       elements.voiceCloneTopKLabel.textContent = String(topKVal);
     }
@@ -13327,8 +13342,8 @@
         name: "傲娇小盐",
         audio: "4-03.wav",
         text: "哼，今天就勉强允许你牵我的手好了，下不为例哦。",
-        temp: 0.80,
-        topK: 5,
+        temp: 0.72,
+        topK: 15,
         repPenalty: 1.35
       },
       gentle: {
@@ -13336,31 +13351,31 @@
         audio: "3-02.wav",
         text: "靠近一点嘛，我又不会吃了你，除非你自己想被吃掉。",
         temp: 0.75,
-        topK: 5,
+        topK: 15,
         repPenalty: 1.35
       },
       playful: {
         name: "调皮撩人",
         audio: "2-04（Y）.wav",
         text: "别躲呀，看着我的眼睛，把你刚才想说的话再说一遍哦。",
-        temp: 0.80,
-        topK: 5,
+        temp: 0.72,
+        topK: 15,
         repPenalty: 1.35
       },
       confident: {
         name: "元气自信",
         audio: "4-02.wav",
         text: "我才没有特地打扮给你看呢，你千万别自作多情哦。",
-        temp: 0.80,
-        topK: 5,
+        temp: 0.72,
+        topK: 15,
         repPenalty: 1.35
       },
       possessive: {
         name: "独占女王",
         audio: "5-01.wav",
         text: "你的眼睛里只能看着我一个人，听懂了吗？",
-        temp: 0.80,
-        topK: 5,
+        temp: 0.72,
+        topK: 15,
         repPenalty: 1.35
       },
       lazy: {
@@ -13368,15 +13383,15 @@
         audio: "3-06.wav",
         text: "嗯，好舒服，再陪我待五分钟，就五分钟，好不好？",
         temp: 0.75,
-        topK: 5,
+        topK: 15,
         repPenalty: 1.35
       },
       shy: {
         name: "害羞脸红",
         audio: "2-01（n）.wav",
         text: "怎么再看我一眼就脸红啊，胆子这么小，以后可怎么办呀？",
-        temp: 0.80,
-        topK: 5,
+        temp: 0.72,
+        topK: 15,
         repPenalty: 1.35
       },
       sweet: {
@@ -13384,7 +13399,7 @@
         audio: "2-02（Y）.wav",
         text: "乖孩子叫声，自己来听听，说不定我就满足你的愿望呢。",
         temp: 0.75,
-        topK: 5,
+        topK: 15,
         repPenalty: 1.35
       }
     };
@@ -13444,14 +13459,14 @@
     });
 
     elements.voiceCloneTempSlider?.addEventListener("input", (e) => {
-      const val = parseFloat(e.target.value) || 0.80;
+      const val = parseFloat(e.target.value) || 0.72;
       state.voiceConfig.temperature = val;
       if (elements.voiceCloneTempLabel) elements.voiceCloneTempLabel.textContent = val.toFixed(2);
       safeStorageSet("natria.voice.temperature", String(val));
     });
 
     elements.voiceCloneTopKSlider?.addEventListener("input", (e) => {
-      const val = parseInt(e.target.value, 10) || 5;
+      const val = parseInt(e.target.value, 10) || 15;
       state.voiceConfig.topK = val;
       if (elements.voiceCloneTopKLabel) elements.voiceCloneTopKLabel.textContent = String(val);
       safeStorageSet("natria.voice.topK", String(val));

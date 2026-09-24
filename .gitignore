@@ -21,3 +21,7 @@
 *.old
 .claude
 GPT-SoVITS*/
+*.exe
+cloudflared.exe
+cloudflared.log
+test_fluent.wav

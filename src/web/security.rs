@@ -66,7 +66,7 @@ pub(in crate::web) async fn auth_login(
         }
     };
     let cookie =
-        format!("{AUTH_COOKIE}={session}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400");
+        format!("{AUTH_COOKIE}={session}; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400");
     let mut response = StatusCode::NO_CONTENT.into_response();
     response.headers_mut().insert(
         SET_COOKIE,
@@ -303,9 +303,34 @@ pub(in crate::web) fn origin_is_allowed(headers: &HeaderMap) -> bool {
     if origins.next().is_some() {
         return false;
     }
-    let Some(host) = headers.get(HOST).and_then(|host| host.to_str().ok()) else {
+    let Ok(origin_str) = origin.to_str() else {
         return false;
     };
-    let expected = format!("http://{host}");
-    origin.to_str().is_ok_and(|origin| origin == expected)
+
+    let origin_host = origin_str
+        .strip_prefix("https://")
+        .or_else(|| origin_str.strip_prefix("http://"))
+        .unwrap_or(origin_str)
+        .trim_end_matches('/');
+
+    // 1. 匹配 Host 请求头
+    if let Some(host) = headers.get(HOST).and_then(|h| h.to_str().ok()) {
+        if origin_host.eq_ignore_ascii_case(host.trim()) {
+            return true;
+        }
+    }
+
+    // 2. 匹配 X-Forwarded-Host（Cloudflare Tunnel / Nginx / 反向代理透传）
+    if let Some(fwd_host) = headers.get("x-forwarded-host").and_then(|h| h.to_str().ok()) {
+        if origin_host.eq_ignore_ascii_case(fwd_host.trim()) {
+            return true;
+        }
+    }
+
+    // 3. 放行 Cloudflare Tunnel 公网隧道 (*.trycloudflare.com)
+    if origin_host.ends_with(".trycloudflare.com") {
+        return true;
+    }
+
+    false
 }

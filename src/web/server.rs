@@ -152,6 +152,14 @@ pub async fn run(paths: NatriaPaths, args: WebArgs) -> Result<()> {
     }
     std::io::stdout().flush().ok();
 
+    // 若启用了 GPT-SoVITS 声音克隆或配置为克隆引擎，后台自动异步预热拉起 Sidecar
+    let voice_cfg = state.manager.lock().unwrap().config.voice.clone();
+    if voice_cfg.enabled && voice_cfg.engine == crate::voice::types::VoiceEngineKind::GptSovits {
+        tokio::spawn(async {
+            crate::voice::engines::gpt_sovits::ensure_gpt_sovits_running().await;
+        });
+    }
+
     let serve_result = {
         let server = axum::serve(
             listener,
@@ -167,6 +175,7 @@ pub async fn run(paths: NatriaPaths, args: WebArgs) -> Result<()> {
     };
     let _ = actor_tx.send(ActorCommand::Shutdown);
     tools::jobs::shutdown_all();
+    crate::voice::engines::gpt_sovits::stop_gpt_sovits_if_running();
     state.platforms.qq_listener.shutdown(&state).await;
     ipc_task.abort();
     let _ = ipc_task.await;
