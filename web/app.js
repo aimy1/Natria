@@ -13292,7 +13292,8 @@
         safeStorageSet("natria.voice.engine", state.voiceConfig.engine);
         safeStorageSet("natria.voice.endpoint", state.voiceConfig.endpoint || "");
         updateVoiceControls();
-        showToast(`已切换发音方式为：${tab.textContent.trim() || tabMode}`);
+        const tabTitle = tab.querySelector(".tab-title")?.textContent.trim() || tab.textContent.trim() || tabMode;
+        showToast(`已切换发音方式为：${tabTitle}`);
       });
     });
 
