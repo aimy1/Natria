@@ -153,6 +153,36 @@
           <div class="jobs-strip" id="jobsStrip" hidden></div>
           <div class="question-dock" id="questionDock" aria-label="待回答问题" aria-live="polite" hidden></div>
           <form class="composer" id="composerForm">
+            <!-- 录音动态波形与实时转录 HUD 浮层 -->
+            <div class="voice-recording-hud" id="voiceRecordingHud" hidden>
+              <div class="voice-hud-indicator">
+                <div class="voice-hud-wave" id="voiceHudWave" aria-hidden="true">
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                </div>
+                <span class="voice-hud-timer" id="voiceHudTimer">00:00</span>
+              </div>
+              <div class="voice-hud-preview">
+                <span class="voice-hud-text" id="voiceHudText">正在聆听中，请对准麦克风说话...</span>
+              </div>
+              <div class="voice-hud-actions">
+                <button type="button" class="voice-hud-btn cancel" id="voiceHudCancel" title="取消并放弃本次录音 (Esc)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  <span>取消</span>
+                </button>
+                <button type="button" class="voice-hud-btn done" id="voiceHudDone" title="完成录音并保留文字 (Enter)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>完成</span>
+                </button>
+                <button type="button" class="voice-hud-btn send" id="voiceHudSend" title="完成并立即发送">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                  <span>发送</span>
+                </button>
+              </div>
+            </div>
             <div class="queue-tray" id="queueTray" aria-label="排队中的消息" hidden></div>
             <div class="attachment-tray" id="attachmentTray" aria-label="待发送附件" hidden></div>
             <textarea id="composerInput" rows="3" placeholder="给小盐发消息" aria-label="消息" disabled></textarea>
@@ -847,6 +877,62 @@
                   <div class="voice-list-grid" id="voiceFileList" style="margin-top: 10px;">
                     <!-- JS 动态渲染本地文件条目 -->
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 模块 4：语音转文字 (STT) 与语音输入设置 -->
+            <div class="voice-stt-section" style="margin-top: 20px;">
+              <h2>语音转文字 (STT) · 语音输入</h2>
+              <div class="settings-card">
+                <div class="settings-row">
+                  <div class="lbl">
+                    <strong>识别语言</strong>
+                    <small>选择麦克风语音输入首选语种或方言</small>
+                  </div>
+                  <select id="sttLangSelect" class="config-input" style="min-width: 180px; max-width: 220px;">
+                    <option value="zh-CN">中文普通话 (zh-CN)</option>
+                    <option value="zh-HK">粤语 (zh-HK)</option>
+                    <option value="en-US">英语 (en-US)</option>
+                    <option value="ja-JP">日语 (ja-JP)</option>
+                  </select>
+                </div>
+
+                <div class="settings-row">
+                  <div class="lbl">
+                    <strong>录音完成行为</strong>
+                    <small>说完后是保留在输入框检查编辑，还是立即发送</small>
+                  </div>
+                  <select id="sttActionSelect" class="config-input" style="min-width: 180px; max-width: 220px;">
+                    <option value="insert">仅填入输入框（可检查修改）</option>
+                    <option value="auto_send">静音后自动发送（对齐智能助手）</option>
+                  </select>
+                </div>
+
+                <div class="settings-row">
+                  <div class="lbl">
+                    <strong>智能排版与标点优化</strong>
+                    <small>自动优化中英混排空格、补全句读标点，避免生硬空格</small>
+                  </div>
+                  <button class="toggle on" id="sttSmartPunctToggle" type="button" role="switch" aria-checked="true" aria-label="智能排版与标点优化"></button>
+                </div>
+
+                <div class="settings-row">
+                  <div class="lbl">
+                    <strong>动态波形 HUD 状态条</strong>
+                    <small>录音时在输入框上方显示跳动的音量波形与实时转写浮条</small>
+                  </div>
+                  <button class="toggle on" id="sttHudToggle" type="button" role="switch" aria-checked="true" aria-label="动态波形 HUD 状态条"></button>
+                </div>
+
+                <div class="settings-row" style="border-top: 1px solid color-mix(in srgb, var(--line) 40%, transparent); padding-top: 14px;">
+                  <div class="lbl">
+                    <strong>麦克风连通测试</strong>
+                    <small>测试当前浏览器语音识别 API 与麦克风拾音工作状态</small>
+                  </div>
+                  <button class="primary-button compact-button" id="sttTestButton" type="button" style="min-width: 110px;">
+                    🎙️ 快速测试
+                  </button>
                 </div>
               </div>
             </div>

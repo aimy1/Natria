@@ -5076,6 +5076,165 @@ body[data-color-scheme="matugen"] .tool-card.is-command {
   }
 }
 
+/* ── 语音输入动态波形 HUD 浮层 ── */
+.voice-recording-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--surface-2) 80%, var(--surface-1));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  backdrop-filter: blur(12px);
+  animation: hudSlideDown 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@keyframes hudSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.voice-hud-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.voice-hud-wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 2px;
+}
+
+.voice-hud-wave .wave-bar {
+  display: inline-block;
+  width: 3.5px;
+  height: 25%;
+  min-height: 4px;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: height 75ms ease, background-color 150ms ease;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.voice-hud-timer {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  padding: 1.5px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.voice-hud-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-hud-text {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.voice-hud-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.voice-hud-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
+  background: var(--surface-1);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+  transition: all 140ms ease;
+  user-select: none;
+}
+
+.voice-hud-btn svg {
+  flex-shrink: 0;
+}
+
+.voice-hud-btn:hover {
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+
+.voice-hud-btn.cancel:hover {
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.voice-hud-btn.done:hover {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.voice-hud-btn.send {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.voice-hud-btn.send:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.voice-hud-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* 录音激活期间输入框外框发光呼吸 */
+.composer.is-voice-listening {
+  border-color: color-mix(in srgb, var(--accent) 85%, transparent) !important;
+  box-shadow: 0 8px 32px -4px color-mix(in srgb, var(--accent) 26%, transparent), 0 0 0 2.5px color-mix(in srgb, var(--accent) 22%, transparent) !important;
+}
+
+@media (max-width: 600px) {
+  .voice-recording-hud {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .voice-hud-preview {
+    order: 3;
+    width: 100%;
+    white-space: normal;
+  }
+}
+
 .composer.is-dragging {
   box-shadow: var(--card-shadow), 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
 }

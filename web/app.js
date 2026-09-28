@@ -325,6 +325,18 @@
     resetCancelButton: document.getElementById("resetCancelButton"),
     resetConfirmButton: document.getElementById("resetConfirmButton"),
     micButton: document.getElementById("micButton"),
+    voiceRecordingHud: document.getElementById("voiceRecordingHud"),
+    voiceHudWave: document.getElementById("voiceHudWave"),
+    voiceHudTimer: document.getElementById("voiceHudTimer"),
+    voiceHudText: document.getElementById("voiceHudText"),
+    voiceHudCancel: document.getElementById("voiceHudCancel"),
+    voiceHudDone: document.getElementById("voiceHudDone"),
+    voiceHudSend: document.getElementById("voiceHudSend"),
+    sttLangSelect: document.getElementById("sttLangSelect"),
+    sttActionSelect: document.getElementById("sttActionSelect"),
+    sttSmartPunctToggle: document.getElementById("sttSmartPunctToggle"),
+    sttHudToggle: document.getElementById("sttHudToggle"),
+    sttTestButton: document.getElementById("sttTestButton"),
     voiceToggleButton: document.getElementById("voiceToggleButton"),
     voiceEnabledToggle: document.getElementById("voiceEnabledToggle"),
     voiceFilterActionsToggle: document.getElementById("voiceFilterActionsToggle"),
@@ -430,6 +442,12 @@
       pitch: "+0Hz",
       rate: "+0%",
       volume: "+0%"
+    },
+    sttConfig: {
+      lang: localStorage.getItem("natria.stt.lang") || "zh-CN",
+      action: localStorage.getItem("natria.stt.action") || "insert",
+      smartPunct: (localStorage.getItem("natria.stt.smartPunct") ?? "1") !== "0",
+      showHud: (localStorage.getItem("natria.stt.showHud") ?? "1") !== "0"
     },
     currentAudio: null,
     backgroundJobs: new Map(),
@@ -13731,23 +13749,277 @@
       });
     }
 
+    // ── STT 语音转文字设置绑定 ──
+    if (elements.sttLangSelect) {
+      elements.sttLangSelect.value = state.sttConfig?.lang || "zh-CN";
+      elements.sttLangSelect.addEventListener("change", (e) => {
+        state.sttConfig.lang = e.target.value;
+        safeStorageSet("natria.stt.lang", state.sttConfig.lang);
+        showToast(`已切换识别语言为：${e.target.selectedOptions[0]?.text || e.target.value}`);
+      });
+    }
+
+    if (elements.sttActionSelect) {
+      elements.sttActionSelect.value = state.sttConfig?.action || "insert";
+      elements.sttActionSelect.addEventListener("change", (e) => {
+        state.sttConfig.action = e.target.value;
+        safeStorageSet("natria.stt.action", state.sttConfig.action);
+        showToast(`语音完成行为已设为：${e.target.selectedOptions[0]?.text || e.target.value}`);
+      });
+    }
+
+    if (elements.sttSmartPunctToggle) {
+      elements.sttSmartPunctToggle.classList.toggle("on", state.sttConfig?.smartPunct !== false);
+      elements.sttSmartPunctToggle.setAttribute("aria-checked", String(state.sttConfig?.smartPunct !== false));
+      elements.sttSmartPunctToggle.addEventListener("click", () => {
+        state.sttConfig.smartPunct = !state.sttConfig.smartPunct;
+        elements.sttSmartPunctToggle.classList.toggle("on", state.sttConfig.smartPunct);
+        elements.sttSmartPunctToggle.setAttribute("aria-checked", String(state.sttConfig.smartPunct));
+        safeStorageSet("natria.stt.smartPunct", state.sttConfig.smartPunct ? "1" : "0");
+        showToast(state.sttConfig.smartPunct ? "已开启智能排版与标点优化" : "已关闭智能排版优化");
+      });
+    }
+
+    if (elements.sttHudToggle) {
+      elements.sttHudToggle.classList.toggle("on", state.sttConfig?.showHud !== false);
+      elements.sttHudToggle.setAttribute("aria-checked", String(state.sttConfig?.showHud !== false));
+      elements.sttHudToggle.addEventListener("click", () => {
+        state.sttConfig.showHud = !state.sttConfig.showHud;
+        elements.sttHudToggle.classList.toggle("on", state.sttConfig.showHud);
+        elements.sttHudToggle.setAttribute("aria-checked", String(state.sttConfig.showHud));
+        safeStorageSet("natria.stt.showHud", state.sttConfig.showHud ? "1" : "0");
+        showToast(state.sttConfig.showHud ? "已开启录音波形 HUD" : "已关闭录音波形 HUD");
+      });
+    }
+
+    if (elements.sttTestButton) {
+      elements.sttTestButton.addEventListener("click", () => {
+        if (isSpeechListening) {
+          stopListening(true);
+        } else {
+          showToast("正在启动麦克风测试，请对着麦克风说话...", "info");
+          startListening();
+        }
+      });
+    }
+
     loadVoiceFiles();
     updateVoiceControls();
   }
 
+  // ── 全新现代化高保真语音识别 (STT) 模块 ──
   let speechRecognizer = null;
   let isSpeechListening = false;
   let speechBaseText = "";
   let shouldKeepListening = false;
+  let audioContext = null;
+  let analyser = null;
+  let micStream = null;
+  let animFrameId = null;
+  let timerInterval = null;
+  let recordingStartTime = 0;
+  let autoSendTimeout = null;
+  let silenceWarningTimeout = null;
 
   function updateMicButtonState(listening) {
     isSpeechListening = listening;
     if (elements.micButton) {
       elements.micButton.classList.toggle("is-listening", listening);
       elements.micButton.title = listening
-        ? "正在聆听中... (再次点击完成/停止录音)"
+        ? "正在聆听中... (点击完成输入 / 停止录音)"
         : "点击开始语音输入 (识别你说的内容)";
     }
+    if (elements.composerForm) {
+      elements.composerForm.classList.toggle("is-voice-listening", listening);
+    }
+    if (elements.voiceRecordingHud) {
+      const showHud = state.sttConfig?.showHud !== false;
+      elements.voiceRecordingHud.hidden = !listening || !showHud;
+    }
+  }
+
+  function formatSpeechTranscript(base, newText, isFinal = false, smartPunct = true) {
+    if (!newText) return base;
+    const trimmedNew = newText.trim();
+    if (!trimmedNew) return base;
+    if (!base) return trimmedNew;
+
+    const lastChar = base.slice(-1);
+    const firstChar = trimmedNew.slice(0, 1);
+    const isCJK = (ch) => /[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/.test(ch);
+    const isPunct = (ch) => /[，。！？,.!?；;：:、\n]/.test(ch);
+
+    let glue = " ";
+    if (isPunct(lastChar) || !lastChar.trim()) {
+      glue = "";
+    } else if (isCJK(lastChar) && isCJK(firstChar)) {
+      glue = "";
+    } else if (isCJK(lastChar) || isCJK(firstChar)) {
+      glue = " ";
+    }
+
+    return base + glue + trimmedNew;
+  }
+
+  async function startAudioWaveVisualizer() {
+    stopAudioWaveVisualizer();
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      audioContext = new AudioCtx();
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      analyser.smoothingTimeConstant = 0.5;
+      const source = audioContext.createMediaStreamSource(micStream);
+      source.connect(analyser);
+
+      const bars = elements.voiceHudWave?.querySelectorAll(".wave-bar");
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      function updateWave() {
+        if (!isSpeechListening) return;
+        analyser.getByteFrequencyData(dataArray);
+
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / (dataArray.length || 1);
+
+        if (bars && bars.length) {
+          bars.forEach((bar, index) => {
+            const freqVal = dataArray[(index * 3 + 1) % dataArray.length] || avg;
+            const heightPct = Math.max(18, Math.min(100, Math.round((freqVal / 255) * 100)));
+            bar.style.height = `${heightPct}%`;
+          });
+        }
+
+        if (avg > 14) {
+          if (elements.voiceHudText && elements.voiceHudText.dataset.hasSpeech !== "true") {
+            elements.voiceHudText.dataset.hasSpeech = "true";
+          }
+          if (silenceWarningTimeout) {
+            clearTimeout(silenceWarningTimeout);
+            silenceWarningTimeout = null;
+          }
+        }
+
+        animFrameId = requestAnimationFrame(updateWave);
+      }
+      updateWave();
+    } catch (err) {
+      console.warn("[VoiceSTT] AudioContext visualizer unavailable:", err);
+    }
+  }
+
+  function stopAudioWaveVisualizer() {
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
+    if (micStream) {
+      try {
+        micStream.getTracks().forEach((t) => t.stop());
+      } catch (_) {}
+      micStream = null;
+    }
+    if (audioContext && audioContext.state !== "closed") {
+      try {
+        audioContext.close();
+      } catch (_) {}
+      audioContext = null;
+    }
+    elements.voiceHudWave?.querySelectorAll(".wave-bar").forEach((bar) => {
+      bar.style.height = "25%";
+    });
+  }
+
+  function startRecordingTimer() {
+    recordingStartTime = Date.now();
+    if (timerInterval) clearInterval(timerInterval);
+    if (elements.voiceHudTimer) elements.voiceHudTimer.textContent = "00:00";
+    timerInterval = setInterval(() => {
+      const elapsedSec = Math.floor((Date.now() - recordingStartTime) / 1000);
+      const mm = String(Math.floor(elapsedSec / 60)).padStart(2, "0");
+      const ss = String(elapsedSec % 60).padStart(2, "0");
+      if (elements.voiceHudTimer) elements.voiceHudTimer.textContent = `${mm}:${ss}`;
+    }, 500);
+
+    if (silenceWarningTimeout) clearTimeout(silenceWarningTimeout);
+    silenceWarningTimeout = setTimeout(() => {
+      if (isSpeechListening && elements.voiceHudText && elements.voiceHudText.dataset.hasSpeech !== "true") {
+        elements.voiceHudText.textContent = "正在聆听... 未检测到声音，请对准麦克风说话";
+      }
+    }, 4000);
+  }
+
+  function stopRecordingTimer() {
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    if (silenceWarningTimeout) {
+      clearTimeout(silenceWarningTimeout);
+      silenceWarningTimeout = null;
+    }
+    if (autoSendTimeout) {
+      clearTimeout(autoSendTimeout);
+      autoSendTimeout = null;
+    }
+  }
+
+  function stopListening(commit = true, autoSubmit = false) {
+    shouldKeepListening = false;
+    stopRecordingTimer();
+    stopAudioWaveVisualizer();
+
+    if (speechRecognizer) {
+      try {
+        speechRecognizer.onstart = null;
+        speechRecognizer.onresult = null;
+        speechRecognizer.onerror = null;
+        speechRecognizer.onend = null;
+        speechRecognizer.abort();
+      } catch (_) {}
+      speechRecognizer = null;
+    }
+
+    if (!commit && elements.composerInput) {
+      elements.composerInput.value = speechBaseText;
+      resizeComposer();
+      updateCharacterCount();
+      updateControlState();
+    }
+
+    updateMicButtonState(false);
+
+    if (commit && autoSubmit && elements.composerInput?.value.trim()) {
+      elements.sendButton?.click();
+    } else if (elements.composerInput) {
+      elements.composerInput.focus();
+    }
+  }
+
+  function startListening() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast("当前浏览器暂未开启原生语音识别 API，建议使用 Edge 或 Chrome 浏览器体验最佳语音输入", "warning");
+      return;
+    }
+
+    stopVoice();
+    shouldKeepListening = true;
+    speechBaseText = elements.composerInput?.value || "";
+
+    if (elements.voiceHudText) {
+      elements.voiceHudText.dataset.hasSpeech = "false";
+      elements.voiceHudText.textContent = "正在聆听中，请对准麦克风说话...";
+    }
+
+    updateMicButtonState(true);
+    startRecordingTimer();
+    startAudioWaveVisualizer();
+    createAndStartRecognizer();
   }
 
   function createAndStartRecognizer() {
@@ -13768,12 +14040,11 @@
     const recognizer = new SpeechRecognition();
     recognizer.continuous = true;
     recognizer.interimResults = true;
-    recognizer.lang = "zh-CN";
+    recognizer.maxAlternatives = 1;
+    recognizer.lang = state.sttConfig?.lang || "zh-CN";
 
     recognizer.onstart = () => {
       if (speechRecognizer !== recognizer) return;
-      speechBaseText = elements.composerInput?.value || "";
-      updateMicButtonState(true);
       showToast("麦克风已就绪，请说话...", "info");
     };
 
@@ -13792,13 +14063,31 @@
       }
 
       const currentSpeech = (finalTranscript + interimTranscript).trim();
+      if (!currentSpeech) return;
+
+      if (elements.voiceHudText) {
+        elements.voiceHudText.dataset.hasSpeech = "true";
+        elements.voiceHudText.textContent = currentSpeech;
+      }
+
       if (elements.composerInput) {
-        const glue = speechBaseText && !/\s$/.test(speechBaseText) ? " " : "";
-        elements.composerInput.value = speechBaseText + (currentSpeech ? glue + currentSpeech : "");
+        const smartPunct = state.sttConfig?.smartPunct !== false;
+        elements.composerInput.value = formatSpeechTranscript(speechBaseText, currentSpeech, Boolean(finalTranscript), smartPunct);
         resizeComposer();
         updateCharacterCount();
         updateControlState();
         elements.composerInput.scrollTop = elements.composerInput.scrollHeight;
+      }
+
+      // 若启用了“停顿后自动发送”
+      if (state.sttConfig?.action === "auto_send" && finalTranscript) {
+        if (autoSendTimeout) clearTimeout(autoSendTimeout);
+        autoSendTimeout = setTimeout(() => {
+          if (isSpeechListening) {
+            showToast("检测到说话结束，正在自动发送...", "info");
+            stopListening(true, true);
+          }
+        }, 1800);
       }
     };
 
@@ -13806,13 +14095,13 @@
       if (speechRecognizer !== recognizer) return;
       console.warn("[SpeechRecognition] Error:", event.error);
       if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-        shouldKeepListening = false;
         showToast("麦克风权限被拒绝，请在浏览器地址栏允许麦克风权限", "error");
-        updateMicButtonState(false);
+        stopListening(false);
       } else if (event.error === "network") {
-        shouldKeepListening = false;
-        showToast("语音识别网络服务异常，请检查网络连接或使用 Edge 浏览器", "warning");
-        updateMicButtonState(false);
+        showToast("语音识别网络服务异常，Chrome 需连通 Google 服务，建议使用 Edge 浏览器或开启系统代理", "warning");
+        stopListening(true);
+      } else if (event.error === "no-speech") {
+        // 静音超时，不直接中断
       }
     };
 
@@ -13824,10 +14113,9 @@
           if (shouldKeepListening && speechRecognizer === recognizer) {
             createAndStartRecognizer();
           }
-        }, 100);
+        }, 120);
       } else {
-        updateMicButtonState(false);
-        elements.composerInput?.focus();
+        stopListening(true);
       }
     };
 
@@ -13837,28 +14125,7 @@
     } catch (err) {
       console.warn("[SpeechRecognition] Start error:", err);
       recognizer.onend = null;
-      updateMicButtonState(false);
-    }
-  }
-
-  function resetSpeechSession() {
-    speechBaseText = "";
-    if (speechRecognizer) {
-      try {
-        speechRecognizer.onstart = null;
-        speechRecognizer.onresult = null;
-        speechRecognizer.onerror = null;
-        speechRecognizer.onend = null;
-        speechRecognizer.abort();
-      } catch (_) {}
-      speechRecognizer = null;
-    }
-    if (shouldKeepListening) {
-      setTimeout(() => {
-        if (shouldKeepListening) {
-          createAndStartRecognizer();
-        }
-      }, 50);
+      stopListening(false);
     }
   }
 
@@ -13874,30 +14141,28 @@
 
     elements.micButton?.addEventListener("click", () => {
       if (isSpeechListening || shouldKeepListening) {
-        shouldKeepListening = false;
-        if (speechRecognizer) {
-          try {
-            speechRecognizer.onstart = null;
-            speechRecognizer.onresult = null;
-            speechRecognizer.onerror = null;
-            speechRecognizer.onend = null;
-            speechRecognizer.abort();
-          } catch (_) {}
-          speechRecognizer = null;
-        }
-        updateMicButtonState(false);
+        stopListening(true);
       } else {
-        shouldKeepListening = true;
-        stopVoice();
-        speechBaseText = elements.composerInput?.value || "";
-        createAndStartRecognizer();
+        startListening();
+      }
+    });
+
+    elements.voiceHudCancel?.addEventListener("click", () => stopListening(false));
+    elements.voiceHudDone?.addEventListener("click", () => stopListening(true));
+    elements.voiceHudSend?.addEventListener("click", () => stopListening(true, true));
+
+    window.addEventListener("keydown", (e) => {
+      if (!isSpeechListening) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        stopListening(false);
       }
     });
 
     let userEditDebounce = null;
     elements.composerInput?.addEventListener("input", () => {
-      speechBaseText = elements.composerInput.value;
       if (isSpeechListening) {
+        speechBaseText = elements.composerInput.value;
         clearTimeout(userEditDebounce);
         userEditDebounce = setTimeout(() => {
           if (isSpeechListening) {
