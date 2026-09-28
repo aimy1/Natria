@@ -353,6 +353,13 @@
     voiceRateLabel: document.getElementById("voiceRateLabel"),
     voicePitchSlider: document.getElementById("voicePitchSlider"),
     voicePitchLabel: document.getElementById("voicePitchLabel"),
+    voiceVolumeSlider: document.getElementById("voiceVolumeSlider"),
+    voiceVolumeLabel: document.getElementById("voiceVolumeLabel"),
+    voiceVolumeMuteButton: document.getElementById("voiceVolumeMuteButton"),
+    edgeVoiceVolumeSlider: document.getElementById("edgeVoiceVolumeSlider"),
+    edgeVoiceVolumeLabel: document.getElementById("edgeVoiceVolumeLabel"),
+    voiceCloneVolumeSlider: document.getElementById("voiceCloneVolumeSlider"),
+    voiceCloneVolumeLabel: document.getElementById("voiceCloneVolumeLabel"),
     voiceTestButton: document.getElementById("voiceTestButton"),
     voiceCloneCharacterPresetSelect: document.getElementById("voiceCloneCharacterPresetSelect"),
     voiceCloneEngineSubSelect: document.getElementById("voiceCloneEngineSubSelect"),
@@ -441,7 +448,7 @@
       voice: "zh-CN-XiaoxiaoNeural",
       pitch: "+0Hz",
       rate: "+0%",
-      volume: "+0%"
+      volume: localStorage.getItem("natria.voice.volume") || "100%"
     },
     sttConfig: {
       lang: localStorage.getItem("natria.stt.lang") || "zh-CN",
@@ -11935,6 +11942,20 @@
   let voicePlaybackToken = 0;
   let activeStreamingVoiceSession = null;
 
+  function parseVolumePercent(vol) {
+    if (vol === undefined || vol === null || vol === "") return 100;
+    const str = String(vol).trim();
+    if (str === "+0%" || str === "default") return 100;
+    const num = parseInt(str, 10);
+    if (isNaN(num)) return 100;
+    return Math.max(0, Math.min(100, num));
+  }
+
+  function getVoiceVolumeFactor() {
+    const pct = parseVolumePercent(state?.voiceConfig?.volume);
+    return pct / 100.0;
+  }
+
   function getAudioContext() {
     if (!webAudioCtx) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -12391,7 +12412,7 @@
 
             // 20ms 微淡入平滑包络，彻底消除音频首包数字爆音/咔哒声
             gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(1.0, ctx.currentTime + 0.02);
+            gainNode.gain.linearRampToValueAtTime(Math.max(0.0001, getVoiceVolumeFactor()), ctx.currentTime + 0.02);
 
             activeAudioSource = sourceNode;
             activeGainNode = gainNode;
@@ -12415,6 +12436,7 @@
           const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
           const audioUrl = URL.createObjectURL(blob);
           const audio = new Audio(audioUrl);
+          audio.volume = getVoiceVolumeFactor();
           state.currentAudio = audio;
           const playPromise = new Promise((resolve) => {
             audio.onended = () => {
@@ -12475,7 +12497,7 @@
       voice: customOptions.voice || state.voiceConfig.voice || "zh-CN-XiaoxiaoNeural",
       pitch: customOptions.pitch || state.voiceConfig.pitch || "+0Hz",
       rate: customOptions.rate || state.voiceConfig.rate || "+0%",
-      volume: customOptions.volume || state.voiceConfig.volume || "+0%"
+      volume: customOptions.volume || state.voiceConfig.volume || "100%"
     };
 
     // 若使用的是本地上传的音频音色，直接单次播放该音频
@@ -12490,10 +12512,18 @@
             await new Promise((resolve) => {
               const sourceNode = ctx.createBufferSource();
               sourceNode.buffer = audioBuffer;
-              sourceNode.connect(ctx.destination);
+              const gainNode = ctx.createGain();
+              sourceNode.connect(gainNode);
+              gainNode.connect(ctx.destination);
+              const targetVol = getVoiceVolumeFactor();
+              gainNode.gain.setValueAtTime(Math.max(0.0001, targetVol), ctx.currentTime);
+              activeGainNode = gainNode;
               activeAudioSource = sourceNode;
               sourceNode.onended = () => {
-                if (activeAudioSource === sourceNode) activeAudioSource = null;
+                if (activeAudioSource === sourceNode) {
+                  activeAudioSource = null;
+                  activeGainNode = null;
+                }
                 resolve();
               };
               sourceNode.start(0);
@@ -12547,10 +12577,18 @@
             }
             const sourceNode = ctx.createBufferSource();
             sourceNode.buffer = audioBuffer;
-            sourceNode.connect(ctx.destination);
+            const gainNode = ctx.createGain();
+            sourceNode.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            const targetVol = getVoiceVolumeFactor();
+            gainNode.gain.setValueAtTime(Math.max(0.0001, targetVol), ctx.currentTime);
+            activeGainNode = gainNode;
             activeAudioSource = sourceNode;
             sourceNode.onended = () => {
-              if (activeAudioSource === sourceNode) activeAudioSource = null;
+              if (activeAudioSource === sourceNode) {
+                activeAudioSource = null;
+                activeGainNode = null;
+              }
               resolve();
             };
             sourceNode.start(0);
@@ -12559,6 +12597,7 @@
           const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
           const audioUrl = URL.createObjectURL(blob);
           const audio = new Audio(audioUrl);
+          audio.volume = getVoiceVolumeFactor();
           state.currentAudio = audio;
           await new Promise((resolve) => {
             audio.onended = () => {
@@ -13015,6 +13054,32 @@
       elements.voicePitchSlider.value = String(pitchVal);
       elements.voicePitchLabel.textContent = `${pitchVal >= 0 ? "+" : ""}${pitchVal}Hz`;
     }
+
+    // 7. 同步全局与子面板音量滑块及静音按钮
+    const volPct = parseVolumePercent(state.voiceConfig.volume);
+    const volText = `${volPct}%`;
+    if (elements.voiceVolumeSlider) {
+      elements.voiceVolumeSlider.value = String(volPct);
+    }
+    if (elements.voiceVolumeLabel) {
+      elements.voiceVolumeLabel.textContent = volPct === 0 ? "0% (静音)" : volText;
+    }
+    if (elements.voiceVolumeMuteButton) {
+      elements.voiceVolumeMuteButton.replaceChildren(makeIconSlot(volPct === 0 ? "volume-x" : "volume-2"));
+      elements.voiceVolumeMuteButton.title = volPct === 0 ? "解除静音" : "静音";
+    }
+    if (elements.edgeVoiceVolumeSlider) {
+      elements.edgeVoiceVolumeSlider.value = String(volPct);
+    }
+    if (elements.edgeVoiceVolumeLabel) {
+      elements.edgeVoiceVolumeLabel.textContent = volPct === 0 ? "0% (静音)" : volText;
+    }
+    if (elements.voiceCloneVolumeSlider) {
+      elements.voiceCloneVolumeSlider.value = String(volPct);
+    }
+    if (elements.voiceCloneVolumeLabel) {
+      elements.voiceCloneVolumeLabel.textContent = volPct === 0 ? "0% (静音)" : volText;
+    }
   }
 
   async function loadVoiceFiles() {
@@ -13214,14 +13279,23 @@
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
         const sourceNode = ctx.createBufferSource();
         sourceNode.buffer = audioBuffer;
-        sourceNode.connect(ctx.destination);
+        const gainNode = ctx.createGain();
+        sourceNode.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        const targetVol = getVoiceVolumeFactor();
+        gainNode.gain.setValueAtTime(Math.max(0.0001, targetVol), ctx.currentTime);
+        activeGainNode = gainNode;
         activeAudioSource = sourceNode;
         sourceNode.onended = () => {
-          if (activeAudioSource === sourceNode) activeAudioSource = null;
+          if (activeAudioSource === sourceNode) {
+            activeAudioSource = null;
+            activeGainNode = null;
+          }
         };
         sourceNode.start(0);
       } else {
         const audio = new Audio(url);
+        audio.volume = getVoiceVolumeFactor();
         state.currentAudio = audio;
         await audio.play();
       }
@@ -13278,6 +13352,8 @@
     if (savedRate) state.voiceConfig.rate = savedRate;
     const savedPitch = safeStorageGet("natria.voice.pitch");
     if (savedPitch) state.voiceConfig.pitch = savedPitch;
+    const savedVolume = safeStorageGet("natria.voice.volume");
+    if (savedVolume) state.voiceConfig.volume = savedVolume;
 
     const savedEngine = safeStorageGet("natria.voice.engine");
     if (savedEngine) state.voiceConfig.engine = savedEngine;
@@ -13635,6 +13711,72 @@
       state.voiceConfig.pitch = `${val >= 0 ? "+" : ""}${val}Hz`;
       if (elements.voicePitchLabel) elements.voicePitchLabel.textContent = state.voiceConfig.pitch;
       safeStorageSet("natria.voice.pitch", state.voiceConfig.pitch);
+    });
+
+    // 音量调节函数与实时动态生效
+    let previousUnmutedVolume = parseVolumePercent(state.voiceConfig.volume) || 100;
+    if (previousUnmutedVolume === 0) previousUnmutedVolume = 100;
+
+    function applyVoiceVolume(pctVal) {
+      const num = Math.max(0, Math.min(100, parseInt(pctVal, 10) || 0));
+      state.voiceConfig.volume = `${num}%`;
+      safeStorageSet("natria.voice.volume", state.voiceConfig.volume);
+      if (num > 0) previousUnmutedVolume = num;
+
+      // 同步所有音量滑块与标签
+      const volText = num === 0 ? "0% (静音)" : `${num}%`;
+      if (elements.voiceVolumeSlider) elements.voiceVolumeSlider.value = String(num);
+      if (elements.voiceVolumeLabel) elements.voiceVolumeLabel.textContent = volText;
+      if (elements.edgeVoiceVolumeSlider) elements.edgeVoiceVolumeSlider.value = String(num);
+      if (elements.edgeVoiceVolumeLabel) elements.edgeVoiceVolumeLabel.textContent = volText;
+      if (elements.voiceCloneVolumeSlider) elements.voiceCloneVolumeSlider.value = String(num);
+      if (elements.voiceCloneVolumeLabel) elements.voiceCloneVolumeLabel.textContent = volText;
+      if (elements.voiceVolumeMuteButton) {
+        elements.voiceVolumeMuteButton.replaceChildren(makeIconSlot(num === 0 ? "volume-x" : "volume-2"));
+        elements.voiceVolumeMuteButton.title = num === 0 ? "解除静音" : "静音";
+      }
+
+      // 若当前正在播放语音，立即实时平滑调整音量 Gain / Audio.volume
+      const factor = num / 100.0;
+      if (activeGainNode && webAudioCtx && webAudioCtx.state === "running") {
+        try {
+          activeGainNode.gain.cancelScheduledValues(webAudioCtx.currentTime);
+          activeGainNode.gain.setValueAtTime(activeGainNode.gain.value, webAudioCtx.currentTime);
+          activeGainNode.gain.linearRampToValueAtTime(Math.max(0.0001, factor), webAudioCtx.currentTime + 0.05);
+        } catch (_) {
+          activeGainNode.gain.value = Math.max(0.0001, factor);
+        }
+      }
+      if (state.currentAudio) {
+        try {
+          state.currentAudio.volume = factor;
+        } catch (_) {}
+      }
+    }
+
+    elements.voiceVolumeSlider?.addEventListener("input", (e) => {
+      applyVoiceVolume(e.target.value);
+    });
+
+    elements.edgeVoiceVolumeSlider?.addEventListener("input", (e) => {
+      applyVoiceVolume(e.target.value);
+    });
+
+    elements.voiceCloneVolumeSlider?.addEventListener("input", (e) => {
+      applyVoiceVolume(e.target.value);
+    });
+
+    elements.voiceVolumeMuteButton?.addEventListener("click", () => {
+      const currentPct = parseVolumePercent(state.voiceConfig.volume);
+      if (currentPct > 0) {
+        previousUnmutedVolume = currentPct;
+        applyVoiceVolume(0);
+        showToast("已静音语音朗读", "info");
+      } else {
+        const restoreVol = previousUnmutedVolume || 100;
+        applyVoiceVolume(restoreVol);
+        showToast(`已恢复朗读音量 (${restoreVol}%)`, "info");
+      }
     });
 
     // 微软 Edge-TTS 试听发音

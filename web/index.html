@@ -550,6 +550,19 @@
                 <button class="toggle on" id="voiceFilterActionsToggle" type="button" role="switch" aria-checked="true" aria-label="过滤动作描写与旁白"></button>
               </div>
 
+              <div class="settings-row">
+                <div class="lbl">
+                  <strong>朗读音量调节 (Volume)</strong>
+                  <small id="voiceVolumeLabel">100%</small>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <button type="button" class="icon-button compact-button" id="voiceVolumeMuteButton" title="静音 / 恢复音量" aria-label="静音 / 恢复音量" style="width: 28px; height: 28px; padding: 0;">
+                    <span class="icon-slot" data-icon="volume-2" aria-hidden="true"><span class="icon-fallback">🔊</span></span>
+                  </button>
+                  <input type="range" id="voiceVolumeSlider" min="0" max="100" step="5" value="100" style="width: 160px;" aria-label="朗读音量调节">
+                </div>
+              </div>
+
               <!-- 现代发音引擎选择卡片组 -->
               <div class="voice-engine-selector-wrap">
                 <div class="voice-engine-selector-meta">
@@ -632,6 +645,10 @@
                 <div class="settings-row">
                   <div class="lbl"><strong>音调调节 (Pitch)</strong><small id="voicePitchLabel">+0Hz</small></div>
                   <input type="range" id="voicePitchSlider" min="-50" max="50" step="5" value="0" style="width: 160px;">
+                </div>
+                <div class="settings-row">
+                  <div class="lbl"><strong>音量调节 (Volume)</strong><small id="edgeVoiceVolumeLabel">100%</small></div>
+                  <input type="range" id="edgeVoiceVolumeSlider" min="0" max="100" step="5" value="100" style="width: 160px;" aria-label="Edge-TTS 音量调节">
                 </div>
               </div>
 
@@ -793,6 +810,13 @@
                             <span class="voice-slider-val" id="voiceCloneRateLabel">+0%</span>
                           </div>
                           <input type="range" id="voiceCloneRateSlider" min="-40" max="60" step="5" value="0">
+                        </div>
+                        <div class="voice-slider-item">
+                          <div class="voice-slider-header">
+                            <label for="voiceCloneVolumeSlider">播放音量 (Volume)</label>
+                            <span class="voice-slider-val" id="voiceCloneVolumeLabel">100%</span>
+                          </div>
+                          <input type="range" id="voiceCloneVolumeSlider" min="0" max="100" step="5" value="100">
                         </div>
                       </div>
                     </div>
