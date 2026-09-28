@@ -356,6 +356,7 @@
     voiceVolumeSlider: document.getElementById("voiceVolumeSlider"),
     voiceVolumeLabel: document.getElementById("voiceVolumeLabel"),
     voiceVolumeMuteButton: document.getElementById("voiceVolumeMuteButton"),
+    voiceVolumeBoostButton: document.getElementById("voiceVolumeBoostButton"),
     edgeVoiceVolumeSlider: document.getElementById("edgeVoiceVolumeSlider"),
     edgeVoiceVolumeLabel: document.getElementById("edgeVoiceVolumeLabel"),
     voiceCloneVolumeSlider: document.getElementById("voiceCloneVolumeSlider"),
@@ -9927,7 +9928,9 @@
       if (snapshot.display.voice.voice) state.voiceConfig.voice = snapshot.display.voice.voice;
       if (snapshot.display.voice.pitch) state.voiceConfig.pitch = snapshot.display.voice.pitch;
       if (snapshot.display.voice.rate) state.voiceConfig.rate = snapshot.display.voice.rate;
-      if (snapshot.display.voice.volume) state.voiceConfig.volume = snapshot.display.voice.volume;
+      if (snapshot.display.voice.volume && !safeStorageGet("natria.voice.volume")) {
+        state.voiceConfig.volume = snapshot.display.voice.volume;
+      }
       if (safeStorageGet("natria.voice.enabled") === null) {
         state.voiceEnabled = Boolean(snapshot.display.voice.enabled);
       }
@@ -11948,25 +11951,54 @@
     if (str === "+0%" || str === "default") return 100;
     const num = parseInt(str, 10);
     if (isNaN(num)) return 100;
-    return Math.max(0, Math.min(100, num));
+    return Math.max(0, Math.min(200, num));
+  }
+
+  function formatVolumeLabel(pct) {
+    if (pct === 0) return "0% (静音)";
+    if (pct === 100) return "100% (标准)";
+    if (pct > 100 && pct <= 150) return `${pct}% (放大)`;
+    if (pct > 150) return `${pct}% (超强增益 🔊)`;
+    return `${pct}%`;
   }
 
   function getVoiceVolumeFactor() {
     const pct = parseVolumePercent(state?.voiceConfig?.volume);
-    return pct / 100.0;
+    // 基础增益倍率 1.4x，将 -17dB 默认 TTS 电平提升至 -13dB 常用媒体标准电平；
+    // 滑块支持 0%~200%，在 200% 时输出高达 2.8x 强效扩音放大
+    return (pct / 100.0) * 1.4;
   }
+
+  let masterCompressorNode = null;
 
   function getAudioContext() {
     if (!webAudioCtx) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (AudioContextClass) {
         webAudioCtx = new AudioContextClass();
+        try {
+          // 创建全局动态压限与响度增强器，确保大音量与高增益播放时人声清晰饱满、绝不爆音失真
+          masterCompressorNode = webAudioCtx.createDynamicsCompressor();
+          masterCompressorNode.threshold.setValueAtTime(-14, webAudioCtx.currentTime);
+          masterCompressorNode.knee.setValueAtTime(10, webAudioCtx.currentTime);
+          masterCompressorNode.ratio.setValueAtTime(6, webAudioCtx.currentTime);
+          masterCompressorNode.attack.setValueAtTime(0.003, webAudioCtx.currentTime);
+          masterCompressorNode.release.setValueAtTime(0.15, webAudioCtx.currentTime);
+          masterCompressorNode.connect(webAudioCtx.destination);
+        } catch (e) {
+          console.warn("Failed to create master compressor:", e);
+          masterCompressorNode = null;
+        }
       }
     }
     if (webAudioCtx && webAudioCtx.state === "suspended") {
       webAudioCtx.resume().catch(() => {});
     }
     return webAudioCtx;
+  }
+
+  function getAudioDestination(ctx) {
+    return masterCompressorNode || (ctx && ctx.destination) || null;
   }
 
   function stopActiveAudioSmoothly(fadeDuration = 0.07) {
@@ -12408,7 +12440,7 @@
             const gainNode = ctx.createGain();
             sourceNode.buffer = audioBuffer;
             sourceNode.connect(gainNode);
-            gainNode.connect(ctx.destination);
+            gainNode.connect(getAudioDestination(ctx));
 
             // 20ms 微淡入平滑包络，彻底消除音频首包数字爆音/咔哒声
             gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
@@ -12436,7 +12468,7 @@
           const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
           const audioUrl = URL.createObjectURL(blob);
           const audio = new Audio(audioUrl);
-          audio.volume = getVoiceVolumeFactor();
+          audio.volume = Math.min(1.0, Math.max(0, getVoiceVolumeFactor() / 1.4));
           state.currentAudio = audio;
           const playPromise = new Promise((resolve) => {
             audio.onended = () => {
@@ -12514,7 +12546,7 @@
               sourceNode.buffer = audioBuffer;
               const gainNode = ctx.createGain();
               sourceNode.connect(gainNode);
-              gainNode.connect(ctx.destination);
+              gainNode.connect(getAudioDestination(ctx));
               const targetVol = getVoiceVolumeFactor();
               gainNode.gain.setValueAtTime(Math.max(0.0001, targetVol), ctx.currentTime);
               activeGainNode = gainNode;
@@ -12579,7 +12611,7 @@
             sourceNode.buffer = audioBuffer;
             const gainNode = ctx.createGain();
             sourceNode.connect(gainNode);
-            gainNode.connect(ctx.destination);
+            gainNode.connect(getAudioDestination(ctx));
             const targetVol = getVoiceVolumeFactor();
             gainNode.gain.setValueAtTime(Math.max(0.0001, targetVol), ctx.currentTime);
             activeGainNode = gainNode;
@@ -12597,7 +12629,7 @@
           const blob = new Blob([audioBuffer], { type: "audio/mpeg" });
           const audioUrl = URL.createObjectURL(blob);
           const audio = new Audio(audioUrl);
-          audio.volume = getVoiceVolumeFactor();
+          audio.volume = Math.min(1.0, Math.max(0, getVoiceVolumeFactor() / 1.4));
           state.currentAudio = audio;
           await new Promise((resolve) => {
             audio.onended = () => {
@@ -13055,30 +13087,34 @@
       elements.voicePitchLabel.textContent = `${pitchVal >= 0 ? "+" : ""}${pitchVal}Hz`;
     }
 
-    // 7. 同步全局与子面板音量滑块及静音按钮
+    // 7. 同步全局与子面板音量滑块及静音按钮与增益按钮
     const volPct = parseVolumePercent(state.voiceConfig.volume);
-    const volText = `${volPct}%`;
+    const volText = formatVolumeLabel(volPct);
     if (elements.voiceVolumeSlider) {
       elements.voiceVolumeSlider.value = String(volPct);
     }
     if (elements.voiceVolumeLabel) {
-      elements.voiceVolumeLabel.textContent = volPct === 0 ? "0% (静音)" : volText;
+      elements.voiceVolumeLabel.textContent = volText;
     }
     if (elements.voiceVolumeMuteButton) {
       elements.voiceVolumeMuteButton.replaceChildren(makeIconSlot(volPct === 0 ? "volume-x" : "volume-2"));
       elements.voiceVolumeMuteButton.title = volPct === 0 ? "解除静音" : "静音";
     }
+    if (elements.voiceVolumeBoostButton) {
+      elements.voiceVolumeBoostButton.classList.toggle("is-active", volPct >= 150);
+      elements.voiceVolumeBoostButton.title = volPct >= 150 ? "已开启超大音量增益 (点击恢复100%)" : "一键开启 180% 强效音量增益与人声增强";
+    }
     if (elements.edgeVoiceVolumeSlider) {
       elements.edgeVoiceVolumeSlider.value = String(volPct);
     }
     if (elements.edgeVoiceVolumeLabel) {
-      elements.edgeVoiceVolumeLabel.textContent = volPct === 0 ? "0% (静音)" : volText;
+      elements.edgeVoiceVolumeLabel.textContent = volText;
     }
     if (elements.voiceCloneVolumeSlider) {
       elements.voiceCloneVolumeSlider.value = String(volPct);
     }
     if (elements.voiceCloneVolumeLabel) {
-      elements.voiceCloneVolumeLabel.textContent = volPct === 0 ? "0% (静音)" : volText;
+      elements.voiceCloneVolumeLabel.textContent = volText;
     }
   }
 
@@ -13281,7 +13317,7 @@
         sourceNode.buffer = audioBuffer;
         const gainNode = ctx.createGain();
         sourceNode.connect(gainNode);
-        gainNode.connect(ctx.destination);
+        gainNode.connect(getAudioDestination(ctx));
         const targetVol = getVoiceVolumeFactor();
         gainNode.gain.setValueAtTime(Math.max(0.0001, targetVol), ctx.currentTime);
         activeGainNode = gainNode;
@@ -13295,7 +13331,7 @@
         sourceNode.start(0);
       } else {
         const audio = new Audio(url);
-        audio.volume = getVoiceVolumeFactor();
+        audio.volume = Math.min(1.0, Math.max(0, getVoiceVolumeFactor() / 1.4));
         state.currentAudio = audio;
         await audio.play();
       }
@@ -13718,13 +13754,13 @@
     if (previousUnmutedVolume === 0) previousUnmutedVolume = 100;
 
     function applyVoiceVolume(pctVal) {
-      const num = Math.max(0, Math.min(100, parseInt(pctVal, 10) || 0));
+      const num = Math.max(0, Math.min(200, parseInt(pctVal, 10) || 0));
       state.voiceConfig.volume = `${num}%`;
       safeStorageSet("natria.voice.volume", state.voiceConfig.volume);
       if (num > 0) previousUnmutedVolume = num;
 
       // 同步所有音量滑块与标签
-      const volText = num === 0 ? "0% (静音)" : `${num}%`;
+      const volText = formatVolumeLabel(num);
       if (elements.voiceVolumeSlider) elements.voiceVolumeSlider.value = String(num);
       if (elements.voiceVolumeLabel) elements.voiceVolumeLabel.textContent = volText;
       if (elements.edgeVoiceVolumeSlider) elements.edgeVoiceVolumeSlider.value = String(num);
@@ -13735,9 +13771,13 @@
         elements.voiceVolumeMuteButton.replaceChildren(makeIconSlot(num === 0 ? "volume-x" : "volume-2"));
         elements.voiceVolumeMuteButton.title = num === 0 ? "解除静音" : "静音";
       }
+      if (elements.voiceVolumeBoostButton) {
+        elements.voiceVolumeBoostButton.classList.toggle("is-active", num >= 150);
+        elements.voiceVolumeBoostButton.title = num >= 150 ? "已开启超大音量增益 (点击恢复100%)" : "一键开启 180% 强效音量增益与人声增强";
+      }
 
       // 若当前正在播放语音，立即实时平滑调整音量 Gain / Audio.volume
-      const factor = num / 100.0;
+      const factor = getVoiceVolumeFactor();
       if (activeGainNode && webAudioCtx && webAudioCtx.state === "running") {
         try {
           activeGainNode.gain.cancelScheduledValues(webAudioCtx.currentTime);
@@ -13749,7 +13789,7 @@
       }
       if (state.currentAudio) {
         try {
-          state.currentAudio.volume = factor;
+          state.currentAudio.volume = Math.min(1.0, Math.max(0, factor / 1.4));
         } catch (_) {}
       }
     }
@@ -13776,6 +13816,17 @@
         const restoreVol = previousUnmutedVolume || 100;
         applyVoiceVolume(restoreVol);
         showToast(`已恢复朗读音量 (${restoreVol}%)`, "info");
+      }
+    });
+
+    elements.voiceVolumeBoostButton?.addEventListener("click", () => {
+      const currentPct = parseVolumePercent(state.voiceConfig.volume);
+      if (currentPct < 150) {
+        applyVoiceVolume(180);
+        showToast("🚀 已开启 180% 强效音量增益与人声增强！", "success");
+      } else {
+        applyVoiceVolume(100);
+        showToast("已恢复 100% 标准音量", "info");
       }
     });
 

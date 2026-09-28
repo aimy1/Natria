@@ -553,13 +553,16 @@
               <div class="settings-row">
                 <div class="lbl">
                   <strong>朗读音量调节 (Volume)</strong>
-                  <small id="voiceVolumeLabel">100%</small>
+                  <small id="voiceVolumeLabel">100% (标准)</small>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
                   <button type="button" class="icon-button compact-button" id="voiceVolumeMuteButton" title="静音 / 恢复音量" aria-label="静音 / 恢复音量" style="width: 28px; height: 28px; padding: 0;">
                     <span class="icon-slot" data-icon="volume-2" aria-hidden="true"><span class="icon-fallback">🔊</span></span>
                   </button>
-                  <input type="range" id="voiceVolumeSlider" min="0" max="100" step="5" value="100" style="width: 160px;" aria-label="朗读音量调节">
+                  <input type="range" id="voiceVolumeSlider" min="0" max="200" step="5" value="100" style="width: 130px;" aria-label="朗读音量调节">
+                  <button type="button" class="btn btn-secondary compact-button" id="voiceVolumeBoostButton" title="一键开启 180% 强效音量增益与人声增强" style="font-size: 11px; padding: 2px 7px; height: 26px; white-space: nowrap;">
+                    🚀 增益
+                  </button>
                 </div>
               </div>
 
@@ -647,8 +650,8 @@
                   <input type="range" id="voicePitchSlider" min="-50" max="50" step="5" value="0" style="width: 160px;">
                 </div>
                 <div class="settings-row">
-                  <div class="lbl"><strong>音量调节 (Volume)</strong><small id="edgeVoiceVolumeLabel">100%</small></div>
-                  <input type="range" id="edgeVoiceVolumeSlider" min="0" max="100" step="5" value="100" style="width: 160px;" aria-label="Edge-TTS 音量调节">
+                  <div class="lbl"><strong>音量调节 (Volume)</strong><small id="edgeVoiceVolumeLabel">100% (标准)</small></div>
+                  <input type="range" id="edgeVoiceVolumeSlider" min="0" max="200" step="5" value="100" style="width: 160px;" aria-label="Edge-TTS 音量调节">
                 </div>
               </div>
 
@@ -814,9 +817,9 @@
                         <div class="voice-slider-item">
                           <div class="voice-slider-header">
                             <label for="voiceCloneVolumeSlider">播放音量 (Volume)</label>
-                            <span class="voice-slider-val" id="voiceCloneVolumeLabel">100%</span>
+                            <span class="voice-slider-val" id="voiceCloneVolumeLabel">100% (标准)</span>
                           </div>
-                          <input type="range" id="voiceCloneVolumeSlider" min="0" max="100" step="5" value="100">
+                          <input type="range" id="voiceCloneVolumeSlider" min="0" max="200" step="5" value="100">
                         </div>
                       </div>
                     </div>
