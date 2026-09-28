@@ -10167,7 +10167,9 @@
     const queueing = conversationRunning();
     const updateTarget = queueing ? activeTurnUpdateTarget(sessionId) : null;
     const content = elements.composerInput.value.trim();
-    resetSpeechSession();
+    try {
+      resetSpeechSession();
+    } catch (_) {}
     // 命中命令表就当命令执行，不当消息发。不命中的 `/xxx` 照常发给模型
     // ——与 REPL 同一语义（slash_commands::parse_repl_input）。
     const commandsModule = window.NatriaCommands || window.MiyuCommands;
@@ -14000,6 +14002,11 @@
     }
   }
 
+  function resetSpeechSession() {
+    stopListening(true);
+    speechBaseText = "";
+  }
+
   function startListening() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -14245,8 +14252,16 @@
         }
       } catch (_) {}
     });
-    initVoiceUI();
-    initSpeechRecognition();
+    try {
+      initVoiceUI();
+    } catch (err) {
+      console.warn("[VoiceUI] Init failed:", err);
+    }
+    try {
+      initSpeechRecognition();
+    } catch (err) {
+      console.warn("[SpeechRecognition] Init failed:", err);
+    }
     resizeComposer();
     updateSettingsControls();
     // 命令目录从服务端拉，前端不维护第二份清单。拉失败就当没有命令，
